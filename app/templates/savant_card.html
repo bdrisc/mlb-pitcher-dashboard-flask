@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+
+{% block title %}Savant Card · MLB Pitch Intelligence{% endblock %}
+{% block body_class %}savant-page{% endblock %}
+
+{% block content %}
+  <main
+    class="dashboard-shell"
+    id="savant-app"
+    data-pitchers-url="{{ url_for('api.pitchers') }}"
+    data-charts-url-template="{{ url_for('api.pitcher_charts', pitcher_id=0) }}"
+    data-current-year="{{ current_year }}"
+  >
+    <section class="dashboard-intro">
+      <div>
+        <p class="eyebrow">Pitcher evaluation</p>
+        <h1>Savant Card</h1>
+        <p>
+          A filterable pitcher profile built from the Statcast data stored in PostgreSQL.
+          Rates use transparent denominators and update together from one API request.
+        </p>
+      </div>
+      <span class="data-badge">Database backed</span>
+    </section>
+
+    <section class="filter-panel" aria-labelledby="filter-heading">
+      <div class="section-heading compact-heading">
+        <div>
+          <p class="eyebrow">Profile controls</p>
+          <h2 id="filter-heading">Choose a pitcher and sample</h2>
+        </div>
+        <button class="text-button" id="reset-filters" type="button">Reset filters</button>
+      </div>
+
+      <form id="profile-filters">
+        <div class="filter-grid">
+          <label class="field field-wide" for="pitcher-select">
+            <span>Pitcher</span>
+            <select id="pitcher-select" name="pitcher_id" required disabled>
+              <option value="">Loading pitchers…</option>
+            </select>
+          </label>
+
+          <label class="field" for="season-filter">
+            <span>Season</span>
+            <select id="season-filter" name="season" disabled>
+              <option value="">All seasons</option>
+            </select>
+          </label>
+
+          <label class="field" for="team-filter">
+            <span>Team</span>
+            <select id="team-filter" name="team" disabled>
+              <option value="">All teams</option>
+            </select>
+          </label>
+
+          <label class="field" for="pitch-type-filter">
+            <span>Pitch type</span>
+            <select id="pitch-type-filter" name="pitch_type">
+              <option value="">All pitch types</option>
+              {% for code, name in pitch_types %}
+                <option value="{{ code }}">{{ name }} ({{ code }})</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label class="field" for="batter-side-filter">
+            <span>Batter side</span>
+            <select id="batter-side-filter" name="batter_side">
+              <option value="">All batters</option>
+              <option value="R">Right-handed</option>
+              <option value="L">Left-handed</option>
+            </select>
+          </label>
+
+          <label class="field" for="count-filter">
+            <span>Count</span>
+            <select id="count-filter" name="count">
+              <option value="">All counts</option>
+              {% for balls in range(4) %}
+                {% for strikes in range(3) %}
+                  <option value="{{ balls }}-{{ strikes }}">{{ balls }}–{{ strikes }}</option>
+                {% endfor %}
+              {% endfor %}
+            </select>
+          </label>
+
+          <label class="field" for="home-away-filter">
+            <span>Venue</span>
+            <select id="home-away-filter" name="home_away">
+              <option value="">Home and away</option>
+              <option value="home">Home</option>
+              <option value="away">Away</option>
+            </select>
+          </label>
+
+          <label class="field" for="date-from-filter">
+            <span>From</span>
+            <input id="date-from-filter" name="date_from" type="date">
+          </label>
+
+          <label class="field" for="date-to-filter">
+            <span>Through</span>
+            <input id="date-to-filter" name="date_to" type="date">
+          </label>
+        </div>
+
+        <div class="filter-actions">
+          <p id="filter-summary">Select a pitcher to load a profile.</p>
+          <button class="button button-primary" id="apply-filters" type="submit" disabled>
+            Apply filters
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="ui-message loading-message" id="loading-state" aria-live="polite" hidden>
+      <span class="spinner" aria-hidden="true"></span>
+      <div>
+        <strong>Building pitcher profile</strong>
+        <p>Aggregating the selected sample in the database…</p>
+      </div>
+    </section>
+
+    <section class="ui-message error-message" id="error-state" role="alert" hidden>
+      <span class="message-icon" aria-hidden="true">!</span>
+      <div>
+        <strong id="error-title">Profile unavailable</strong>
+        <p id="error-message"></p>
+        <ul id="error-details"></ul>
+      </div>
+    </section>
+
+    <section class="ui-message empty-message" id="empty-state" hidden>
+      <span class="message-icon" aria-hidden="true">i</span>
+      <div>
+        <strong>No database pitchers yet</strong>
+        <p>
+          Ingest the bundled sample or an MLB Statcast export, then refresh this page.
+        </p>
+        <code>flask --app wsgi statcast ingest data\sample_statcast.csv</code>
+      </div>
+    </section>
+
+    <div id="profile-content" hidden>
+      <section class="profile-hero" aria-labelledby="pitcher-name">
+        <div class="player-identity">
+          <span class="player-monogram" id="player-monogram" aria-hidden="true">SP</span>
+          <div>
+            <div class="identity-flags">
+              <span id="throwing-hand">RHP</span>
+              <span id="team-list">BOS</span>
+            </div>
+            <h2 id="pitcher-name">Sample Pitcher</h2>
+            <p id="profile-coverage">2026 season</p>
+          </div>
+        </div>
+        <dl class="sample-strip">
+          <div><dt>Pitches</dt><dd id="sample-pitches">—</dd></div>
+          <div><dt>Games</dt><dd id="sample-games">—</dd></div>
+          <div><dt>PA</dt><dd id="sample-pa">—</dd></div>
+          <div><dt>MLB ID</dt><dd id="player-id">—</dd></div>
+        </dl>
+      </section>
+
+      <section class="dashboard-section" aria-labelledby="overview-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Run prevention indicators</p>
+            <h2 id="overview-heading">Profile overview</h2>
+          </div>
+          <p>All values reflect the active filters.</p>
+        </div>
+
+        <div class="metric-grid">
+          {% set metrics = [
+            ('avg_velocity', 'Avg velocity', 'mph'),
+            ('max_velocity', 'Max velocity', 'mph'),
+            ('avg_spin', 'Avg spin', 'rpm'),
+            ('strike_pct', 'Strike%', 'all pitches'),
+            ('whiff_pct', 'Whiff%', 'per swing'),
+            ('csw_pct', 'CSW%', 'all pitches'),
+            ('zone_pct', 'Zone%', 'tracked locations'),
+            ('chase_pct', 'Chase%', 'out-of-zone pitches'),
+            ('strikeout_pct', 'K%', 'plate appearances'),
+            ('walk_pct', 'BB%', 'plate appearances'),
+            ('hard_hit_pct', 'Hard-Hit%', 'batted balls'),
+            ('xwoba_on_contact', 'xwOBAcon', 'contact only')
+          ] %}
+          {% for key, label, context in metrics %}
+            <article class="metric-card">
+              <span>{{ label }}</span>
+              <strong data-metric="{{ key }}">—</strong>
+              <small>{{ context }}</small>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="dashboard-section" aria-labelledby="arsenal-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Pitch characteristics</p>
+            <h2 id="arsenal-heading">Arsenal</h2>
+          </div>
+          <p>Movement is reported in inches.</p>
+        </div>
+        <div class="table-shell" tabindex="0" aria-label="Scrollable arsenal table">
+          <table class="arsenal-table">
+            <thead>
+              <tr>
+                <th scope="col">Pitch</th>
+                <th scope="col">Usage</th>
+                <th scope="col">#</th>
+                <th scope="col">Velo</th>
+                <th scope="col">Max</th>
+                <th scope="col">Spin</th>
+                <th scope="col">HB</th>
+                <th scope="col">IVB</th>
+                <th scope="col">Whiff</th>
+                <th scope="col">CSW</th>
+                <th scope="col">Zone</th>
+                <th scope="col">Chase</th>
+              </tr>
+            </thead>
+            <tbody id="arsenal-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="dashboard-section chart-section" aria-labelledby="charts-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Interactive analysis</p>
+            <h2 id="charts-heading">Pitch characteristics and approach</h2>
+          </div>
+          <p>Hover, zoom, pan, isolate pitch types, or download any chart.</p>
+        </div>
+
+        <div class="chart-status" id="chart-status" aria-live="polite" hidden></div>
+        <div class="chart-grid" id="chart-grid">
+          <article class="chart-card">
+            <div class="chart-card-heading">
+              <div>
+                <h3>Movement profile</h3>
+                <p>Horizontal break and induced vertical break by pitch type.</p>
+              </div>
+              <span>Shape</span>
+            </div>
+            <div
+              class="plotly-chart"
+              id="movement-chart"
+              role="img"
+              aria-label="Interactive pitch movement chart"
+            ></div>
+          </article>
+
+          <article class="chart-card">
+            <div class="chart-card-heading">
+              <div>
+                <h3>Velocity trend</h3>
+                <p>Average velocity by game date, separated by pitch type.</p>
+              </div>
+              <span>Trend</span>
+            </div>
+            <div
+              class="plotly-chart"
+              id="velocity-chart"
+              role="img"
+              aria-label="Interactive pitch velocity trend chart"
+            ></div>
+          </article>
+
+          <article class="chart-card">
+            <div class="chart-card-heading">
+              <div>
+                <h3>Release-point consistency</h3>
+                <p>Horizontal and vertical release location for every tracked pitch.</p>
+              </div>
+              <span>Delivery</span>
+            </div>
+            <div
+              class="plotly-chart"
+              id="release-chart"
+              role="img"
+              aria-label="Interactive pitcher release-point chart"
+            ></div>
+          </article>
+
+          <article class="chart-card">
+            <div class="chart-card-heading">
+              <div>
+                <h3>Pitch location</h3>
+                <p>Plate location from the catcher’s perspective with the average zone.</p>
+              </div>
+              <span>Command</span>
+            </div>
+            <div
+              class="plotly-chart"
+              id="location-chart"
+              role="img"
+              aria-label="Interactive pitch-location chart"
+            ></div>
+          </article>
+
+          <article class="chart-card">
+            <div class="chart-card-heading">
+              <div>
+                <h3>Usage by count</h3>
+                <p>Pitch mix within each count; every displayed column totals 100%.</p>
+              </div>
+              <span>Approach</span>
+            </div>
+            <div
+              class="plotly-chart"
+              id="count-usage-chart"
+              role="img"
+              aria-label="Interactive pitch usage by count chart"
+            ></div>
+          </article>
+
+          <article class="chart-card">
+            <div class="chart-card-heading">
+              <div>
+                <h3>Pitch-type performance</h3>
+                <p>Whiff, called-strike-plus-whiff, zone, and chase rates.</p>
+              </div>
+              <span>Results</span>
+            </div>
+            <div
+              class="plotly-chart"
+              id="performance-chart"
+              role="img"
+              aria-label="Interactive pitch-type performance chart"
+            ></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="dashboard-section" aria-labelledby="splits-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Matchup performance</p>
+            <h2 id="splits-heading">Platoon splits</h2>
+          </div>
+          <p>Results against right- and left-handed batters.</p>
+        </div>
+        <div class="split-grid" id="platoon-splits"></div>
+      </section>
+
+      <details class="definition-panel">
+        <summary>Metric definitions and sample notes</summary>
+        <dl id="metric-definitions"></dl>
+      </details>
+    </div>
+  </main>
+{% endblock %}
+
+{% block scripts %}
+  <script src="https://cdn.plot.ly/plotly-4.0.0.min.js" charset="utf-8" defer></script>
+  <script src="{{ url_for('static', filename='savant-card-charts.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='savant-card.js') }}" defer></script>
+{% endblock %}

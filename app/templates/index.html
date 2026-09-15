@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Home · MLB Pitch Intelligence{% endblock %}
+{% block body_class %}home-page{% endblock %}
+
+{% block content %}
+  <main class="home-main">
+    <section class="hero home-hero">
+      <div>
+        <p class="eyebrow">Flask application foundation</p>
+        <h1>A structured home for pitcher evaluation.</h1>
+        <p>
+          Explore MLB pitch data through a PostgreSQL-backed profile API,
+          validated filters, and a browser interface built for clear player evaluation.
+        </p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="{{ url_for('main.savant_card') }}">Open Savant Card</a>
+          <a class="button button-secondary" href="{{ url_for('api.pitchers') }}">View pitcher API</a>
+        </div>
+      </div>
+      <span class="status status-{{ data_status }}">{{ data_status }}</span>
+    </section>
+
+    <section class="card-grid" aria-label="Application status">
+      <article class="card featured">
+        <span>Loaded CSV pitches</span>
+        <strong>{{ "{:,}".format(pitch_count) }}</strong>
+      </article>
+      <article class="card">
+        <span>Data source</span>
+        <strong>{{ data_source }}</strong>
+      </article>
+      <article class="card">
+        <span>API version</span>
+        <strong>v1</strong>
+      </article>
+    </section>
+
+    {% if load_error %}
+      <section class="notice" role="alert">
+        <strong>Pitch data are unavailable.</strong>
+        <span>{{ load_error }}</span>
+      </section>
+    {% endif %}
+
+    <section class="panel">
+      <p class="eyebrow">Available routes</p>
+      <h2>Development endpoints</h2>
+      <div class="route-list">
+        <a href="{{ url_for('api.health') }}"><code>GET /api/v1/health</code><span>Application and dataset status</span></a>
+        <a href="{{ url_for('api.pitchers') }}"><code>GET /api/v1/pitchers</code><span>Database-backed pitcher directory</span></a>
+        <a href="{{ url_for('api.pitch_summary') }}"><code>GET /api/v1/pitches</code><span>Filterable pitch-type summary</span></a>
+        <a href="{{ url_for('main.savant_card') }}"><code>GET /savant-card</code><span>Interactive pitcher evaluation page</span></a>
+      </div>
+    </section>
+  </main>
+{% endblock %}

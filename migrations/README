@@ -1,0 +1,5 @@
+Single-database migration configuration for the MLB Pitch Intelligence Flask app.
+
+Apply migrations with:
+
+    flask --app wsgi db upgrade

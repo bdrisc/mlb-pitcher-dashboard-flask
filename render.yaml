@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: mlb-pitch-intelligence
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeployTrigger: checksPass
+    healthCheckPath: /api/v1/health
+    preDeployCommand: flask --app wsgi db upgrade
+    initialDeployHook: flask --app wsgi statcast ingest data/sample_statcast.csv
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_VERSION
+        value: render
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mlb-pitch-intelligence-db
+          property: connectionString
+      - key: PITCH_DATA_PATH
+        value: data/sample_statcast.csv
+      - key: RUN_MIGRATIONS
+        value: "0"
+      - key: SEED_SAMPLE_DATA
+        value: "0"
+      - key: WEB_CONCURRENCY
+        value: "2"
+
+databases:
+  - name: mlb-pitch-intelligence-db
+    plan: free
+    databaseName: mlb_pitch_intelligence
+    user: mlb_pitch_intelligence
+    postgresMajorVersion: "17"
+    ipAllowList: []

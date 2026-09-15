@@ -1,0 +1,51 @@
+services:
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: mlb_pitch_intelligence
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mlb_pitch_intelligence"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: development
+      APP_VERSION: docker-local
+      SECRET_KEY: docker-development-only
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@database:5432/mlb_pitch_intelligence
+      PITCH_DATA_PATH: data/sample_statcast.csv
+      RUN_MIGRATIONS: "1"
+      SEED_SAMPLE_DATA: "1"
+      PORT: "8080"
+      WEB_CONCURRENCY: "2"
+    ports:
+      - "8080:8080"
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/v1/health', timeout=4)",
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 6
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
