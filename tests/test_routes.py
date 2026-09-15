@@ -52,8 +52,8 @@ def test_health_reports_the_loaded_dataset(client):
     assert response.status_code == 200
     assert response.json["status"] == "ok"
     assert response.json["database_status"] == "ok"
-    assert response.json["environment"] == "development"
-    assert response.json["version"] == "development"
+    assert response.json["environment"] == "test"
+    assert response.json["version"] == "test"
     assert response.json["pitch_count"] == 3
 
 

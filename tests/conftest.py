@@ -76,6 +76,8 @@ def app(sample_csv, tmp_path):
     application = create_app(
         {
             "TESTING": True,
+            "APP_ENV": "test",
+            "APP_VERSION": "test",
             "PITCH_DATA_PATH": str(sample_csv),
             "SQLALCHEMY_DATABASE_URI": f"sqlite:///{database_path.as_posix()}",
             "SQLALCHEMY_ENGINE_OPTIONS": {},
