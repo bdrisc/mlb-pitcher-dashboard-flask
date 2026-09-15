@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
@@ -141,6 +141,9 @@ CONTACT_DESCRIPTIONS = {
     "hit_into_play",
 }
 
+FICTIONAL_SAMPLE_GAME_IDS = (900001, 900002)
+FICTIONAL_SAMPLE_PLAYER_IDS = (999001, 999101, 999102, 999103)
+
 
 class IngestionError(ValueError):
     """Raised when validation or the atomic database load fails."""
@@ -153,6 +156,37 @@ class IngestionReport:
     inserted_rows: int
     updated_rows: int
     rejected_rows: int
+
+
+@dataclass(frozen=True)
+class SampleRemovalReport:
+    pitches: int
+    games: int
+    players: int
+
+
+def remove_fictional_sample() -> SampleRemovalReport:
+    """Delete only the bundled sample's reserved games, pitches, and players."""
+    try:
+        pitch_result = db.session.execute(
+            delete(Pitch).where(Pitch.game_pk.in_(FICTIONAL_SAMPLE_GAME_IDS))
+        )
+        game_result = db.session.execute(
+            delete(Game).where(Game.game_pk.in_(FICTIONAL_SAMPLE_GAME_IDS))
+        )
+        player_result = db.session.execute(
+            delete(Player).where(Player.mlb_id.in_(FICTIONAL_SAMPLE_PLAYER_IDS))
+        )
+        db.session.commit()
+    except Exception as exc:
+        db.session.rollback()
+        raise IngestionError(f"Could not remove the fictional sample: {exc}") from exc
+
+    return SampleRemovalReport(
+        pitches=int(pitch_result.rowcount or 0),
+        games=int(game_result.rowcount or 0),
+        players=int(player_result.rowcount or 0),
+    )
 
 
 def _sha256(path: Path) -> str:

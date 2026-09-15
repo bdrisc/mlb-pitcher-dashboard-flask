@@ -234,3 +234,22 @@ def test_bundled_sample_can_populate_a_fresh_database(app):
         assert db.session.scalar(select(func.count()).select_from(Pitch)) == 6
         assert db.session.scalar(select(func.count()).select_from(Game)) == 2
         assert db.session.get(Player, 999001).player_name == "Sample Pitcher"
+
+
+def test_cli_removes_only_the_bundled_fictional_sample(app):
+    source = PROJECT_ROOT / "data" / "sample_statcast.csv"
+    runner = app.test_cli_runner()
+    ingestion = runner.invoke(args=["statcast", "ingest", str(source)])
+    assert ingestion.exit_code == 0, ingestion.output
+
+    removal = runner.invoke(args=["statcast", "remove-fictional-sample"])
+
+    assert removal.exit_code == 0, removal.output
+    assert "Removed pitches: 6" in removal.output
+    assert "Removed games: 2" in removal.output
+    assert "Removed players: 4" in removal.output
+    with app.app_context():
+        assert db.session.scalar(select(func.count()).select_from(Pitch)) == 0
+        assert db.session.scalar(select(func.count()).select_from(Game)) == 0
+        assert db.session.scalar(select(func.count()).select_from(Player)) == 0
+        assert db.session.scalar(select(func.count()).select_from(IngestionRun)) == 1

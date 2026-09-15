@@ -158,6 +158,15 @@ existing idempotent ingestion service. The cache directory is excluded from Git.
 fails, rerun the same command: completed chunks are reused and the database upserts prevent
 duplicates.
 
+After the real-season load completes successfully, remove only the bundled fictional records:
+
+```powershell
+flask --app wsgi statcast remove-fictional-sample
+```
+
+This command targets the sample's reserved game and player IDs. It does not delete real MLB
+pitches or clear the ingestion audit history.
+
 To extend the local database after additional games are played, use a later date or omit
 `--through` to use the current date:
 

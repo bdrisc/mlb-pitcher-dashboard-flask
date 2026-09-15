@@ -13,7 +13,11 @@ from app.services.statcast_acquisition import (
     iter_date_chunks,
     season_date_range,
 )
-from app.services.statcast_ingestion import IngestionError, ingest_statcast_file
+from app.services.statcast_ingestion import (
+    IngestionError,
+    ingest_statcast_file,
+    remove_fictional_sample,
+)
 
 
 @click.group("statcast")
@@ -47,6 +51,21 @@ def ingest_command(csv_path: Path, batch_size: int) -> None:
     click.echo(f"Inserted pitches: {report.inserted_rows:,}")
     click.echo(f"Updated pitches: {report.updated_rows:,}")
     click.echo(f"Rejected rows: {report.rejected_rows:,}")
+
+
+@statcast_cli.command("remove-fictional-sample")
+@with_appcontext
+def remove_fictional_sample_command() -> None:
+    """Remove only the six bundled demonstration pitches and their records."""
+    try:
+        report = remove_fictional_sample()
+    except IngestionError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    click.echo("Fictional sample removal completed")
+    click.echo(f"Removed pitches: {report.pitches:,}")
+    click.echo(f"Removed games: {report.games:,}")
+    click.echo(f"Removed players: {report.players:,}")
 
 
 @statcast_cli.command("fetch-season")
