@@ -145,11 +145,11 @@ environment:
 python -m pip install -r requirements-data.txt
 ```
 
-Download every available 2026 regular-season pitch through September 15 and ingest each cached
+Download every completed 2026 regular-season date through September 14 and ingest each cached
 chunk into local PostgreSQL:
 
 ```powershell
-flask --app wsgi statcast fetch-season 2026 --through 2026-09-15
+flask --app wsgi statcast fetch-season 2026 --through 2026-09-14
 ```
 
 The command requests five calendar days at a time, excludes spring-training and incomplete
@@ -167,8 +167,8 @@ flask --app wsgi statcast remove-fictional-sample
 This command targets the sample's reserved game and player IDs. It does not delete real MLB
 pitches or clear the ingestion audit history.
 
-To extend the local database after additional games are played, use a later date or omit
-`--through` to use the current date:
+To extend the local database after additional games are played, use a later completed date or
+omit `--through` to use yesterday:
 
 ```powershell
 flask --app wsgi statcast fetch-season 2026

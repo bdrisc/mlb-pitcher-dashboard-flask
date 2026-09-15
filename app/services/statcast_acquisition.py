@@ -74,7 +74,7 @@ def season_date_range(
     elif season < current_date.year:
         end_date = last_possible_date
     elif season == current_date.year:
-        end_date = min(current_date, last_possible_date)
+        end_date = min(current_date - timedelta(days=1), last_possible_date)
     else:
         raise StatcastAcquisitionError("Cannot download a future Statcast season.")
 

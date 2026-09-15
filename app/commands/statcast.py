@@ -73,7 +73,7 @@ def remove_fictional_sample_command() -> None:
 @click.option(
     "--through",
     type=click.DateTime(formats=["%Y-%m-%d"]),
-    help="Inclusive final date. Defaults to today for the current season.",
+    help="Inclusive final date. Defaults to yesterday for the current season.",
 )
 @click.option(
     "--chunk-days",

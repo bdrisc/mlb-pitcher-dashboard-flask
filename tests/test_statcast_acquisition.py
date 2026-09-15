@@ -55,9 +55,9 @@ def test_season_bounds_and_date_chunks_are_inclusive():
     chunks = iter_date_chunks(start_date, end_date, 5)
 
     assert start_date == date(2026, 3, 15)
-    assert end_date == date(2026, 9, 15)
+    assert end_date == date(2026, 9, 14)
     assert chunks[0] == DateChunk(date(2026, 3, 15), date(2026, 3, 19))
-    assert chunks[-1].end_date == date(2026, 9, 15)
+    assert chunks[-1].end_date == date(2026, 9, 14)
     assert all(
         current.end_date.toordinal() + 1 == following.start_date.toordinal()
         for current, following in zip(chunks, chunks[1:], strict=False)
