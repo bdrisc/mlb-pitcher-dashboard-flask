@@ -1,0 +1,259 @@
+{
+  "generated_at": "2026-09-15T22:43:28.739204+00:00",
+  "season": 2026,
+  "selection_rule": "top 50 pitchers by total cached pitch count",
+  "pitcher_count": 50,
+  "pitch_count": 133933,
+  "pitchers": [
+    {
+      "mlb_id": 645261,
+      "name": "Sandy Alcantara",
+      "pitch_count": 3161
+    },
+    {
+      "mlb_id": 693645,
+      "name": "Cam Schlittler",
+      "pitch_count": 2873
+    },
+    {
+      "mlb_id": 593958,
+      "name": "Eduardo Rodriguez",
+      "pitch_count": 2872
+    },
+    {
+      "mlb_id": 650911,
+      "name": "Cristopher S\u00e1nchez",
+      "pitch_count": 2862
+    },
+    {
+      "mlb_id": 666200,
+      "name": "Jes\u00fas Luzardo",
+      "pitch_count": 2860
+    },
+    {
+      "mlb_id": 656302,
+      "name": "Dylan Cease",
+      "pitch_count": 2821
+    },
+    {
+      "mlb_id": 592332,
+      "name": "Kevin Gausman",
+      "pitch_count": 2808
+    },
+    {
+      "mlb_id": 668909,
+      "name": "Gavin Williams",
+      "pitch_count": 2797
+    },
+    {
+      "mlb_id": 650633,
+      "name": "Michael King",
+      "pitch_count": 2796
+    },
+    {
+      "mlb_id": 671737,
+      "name": "Taj Bradley",
+      "pitch_count": 2795
+    },
+    {
+      "mlb_id": 669022,
+      "name": "MacKenzie Gore",
+      "pitch_count": 2791
+    },
+    {
+      "mlb_id": 672282,
+      "name": "Reid Detmers",
+      "pitch_count": 2791
+    },
+    {
+      "mlb_id": 667755,
+      "name": "Jos\u00e9 Soriano",
+      "pitch_count": 2788
+    },
+    {
+      "mlb_id": 676440,
+      "name": "Tanner Bibee",
+      "pitch_count": 2779
+    },
+    {
+      "mlb_id": 642547,
+      "name": "Freddy Peralta",
+      "pitch_count": 2769
+    },
+    {
+      "mlb_id": 605400,
+      "name": "Aaron Nola",
+      "pitch_count": 2756
+    },
+    {
+      "mlb_id": 669358,
+      "name": "Shane Baz",
+      "pitch_count": 2751
+    },
+    {
+      "mlb_id": 690997,
+      "name": "Nolan McLean",
+      "pitch_count": 2750
+    },
+    {
+      "mlb_id": 669302,
+      "name": "Logan Gilbert",
+      "pitch_count": 2745
+    },
+    {
+      "mlb_id": 608379,
+      "name": "Michael Wacha",
+      "pitch_count": 2726
+    },
+    {
+      "mlb_id": 694738,
+      "name": "Landen Roupp",
+      "pitch_count": 2712
+    },
+    {
+      "mlb_id": 607625,
+      "name": "Seth Lugo",
+      "pitch_count": 2710
+    },
+    {
+      "mlb_id": 694973,
+      "name": "Paul Skenes",
+      "pitch_count": 2705
+    },
+    {
+      "mlb_id": 676917,
+      "name": "Cade Cavalli",
+      "pitch_count": 2704
+    },
+    {
+      "mlb_id": 800048,
+      "name": "Parker Messick",
+      "pitch_count": 2702
+    },
+    {
+      "mlb_id": 702070,
+      "name": "Noah Cameron",
+      "pitch_count": 2698
+    },
+    {
+      "mlb_id": 680732,
+      "name": "Sean Burke",
+      "pitch_count": 2692
+    },
+    {
+      "mlb_id": 592662,
+      "name": "Robbie Ray",
+      "pitch_count": 2682
+    },
+    {
+      "mlb_id": 656492,
+      "name": "Foster Griffin",
+      "pitch_count": 2667
+    },
+    {
+      "mlb_id": 671096,
+      "name": "Andrew Abbott",
+      "pitch_count": 2660
+    },
+    {
+      "mlb_id": 663903,
+      "name": "Brady Singer",
+      "pitch_count": 2642
+    },
+    {
+      "mlb_id": 680694,
+      "name": "Kyle Bradish",
+      "pitch_count": 2629
+    },
+    {
+      "mlb_id": 684007,
+      "name": "Shota Imanaga",
+      "pitch_count": 2607
+    },
+    {
+      "mlb_id": 700241,
+      "name": "Michael McGreevy",
+      "pitch_count": 2594
+    },
+    {
+      "mlb_id": 664285,
+      "name": "Framber Valdez",
+      "pitch_count": 2591
+    },
+    {
+      "mlb_id": 676282,
+      "name": "Joey Cantillo",
+      "pitch_count": 2587
+    },
+    {
+      "mlb_id": 641743,
+      "name": "Anthony Kay",
+      "pitch_count": 2583
+    },
+    {
+      "mlb_id": 669923,
+      "name": "George Kirby",
+      "pitch_count": 2569
+    },
+    {
+      "mlb_id": 808967,
+      "name": "Yoshinobu Yamamoto",
+      "pitch_count": 2555
+    },
+    {
+      "mlb_id": 669432,
+      "name": "Trevor Rogers",
+      "pitch_count": 2535
+    },
+    {
+      "mlb_id": 696149,
+      "name": "Bubba Chandler",
+      "pitch_count": 2519
+    },
+    {
+      "mlb_id": 701542,
+      "name": "Will Warren",
+      "pitch_count": 2505
+    },
+    {
+      "mlb_id": 695505,
+      "name": "Chase Burns",
+      "pitch_count": 2502
+    },
+    {
+      "mlb_id": 657277,
+      "name": "Logan Webb",
+      "pitch_count": 2488
+    },
+    {
+      "mlb_id": 519242,
+      "name": "Chris Sale",
+      "pitch_count": 2477
+    },
+    {
+      "mlb_id": 693433,
+      "name": "Bryan Woo",
+      "pitch_count": 2475
+    },
+    {
+      "mlb_id": 594798,
+      "name": "Jacob deGrom",
+      "pitch_count": 2472
+    },
+    {
+      "mlb_id": 656876,
+      "name": "Drew Rasmussen",
+      "pitch_count": 2470
+    },
+    {
+      "mlb_id": 691587,
+      "name": "Eury P\u00e9rez",
+      "pitch_count": 2457
+    },
+    {
+      "mlb_id": 663567,
+      "name": "Peter Lambert",
+      "pitch_count": 2453
+    }
+  ]
+}
