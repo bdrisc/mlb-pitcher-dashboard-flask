@@ -56,4 +56,5 @@ def test_docker_image_uses_non_root_user_healthcheck_and_gunicorn():
     assert "USER app" in dockerfile
     assert "HEALTHCHECK" in dockerfile
     assert 'CMD ["gunicorn", "--config", "gunicorn.conf.py", "wsgi:app"]' in dockerfile
+    assert "statcast seed-if-needed" in entrypoint.read_text(encoding="utf-8")
     assert os.access(entrypoint, os.X_OK)

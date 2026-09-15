@@ -236,6 +236,43 @@ def test_bundled_sample_can_populate_a_fresh_database(app):
         assert db.session.get(Player, 999001).player_name == "Sample Pitcher"
 
 
+def test_seed_command_loads_bundled_sample_once(app):
+    source = PROJECT_ROOT / "data" / "sample_statcast.csv"
+    runner = app.test_cli_runner()
+
+    first = runner.invoke(args=["statcast", "seed-if-needed", str(source)])
+    second = runner.invoke(args=["statcast", "seed-if-needed", str(source)])
+
+    assert first.exit_code == 0, first.output
+    assert "Statcast seed completed" in first.output
+    assert second.exit_code == 0, second.output
+    assert "Statcast seed skipped" in second.output
+    with app.app_context():
+        assert db.session.scalar(select(func.count()).select_from(Pitch)) == 6
+        assert db.session.scalar(select(func.count()).select_from(IngestionRun)) == 1
+
+
+def test_real_seed_replaces_fictional_sample_then_skips_restarts(app, tmp_path):
+    sample = PROJECT_ROOT / "data" / "sample_statcast.csv"
+    real_source = write_statcast_csv(tmp_path)
+    runner = app.test_cli_runner()
+    initial = runner.invoke(args=["statcast", "ingest", str(sample)])
+    assert initial.exit_code == 0, initial.output
+
+    replacement = runner.invoke(args=["statcast", "seed-if-needed", str(real_source)])
+    restart = runner.invoke(args=["statcast", "seed-if-needed", str(real_source)])
+
+    assert replacement.exit_code == 0, replacement.output
+    assert "Removed fictional pitches: 6" in replacement.output
+    assert "Inserted pitches: 3" in replacement.output
+    assert restart.exit_code == 0, restart.output
+    assert "Statcast seed skipped" in restart.output
+    with app.app_context():
+        assert db.session.scalar(select(func.count()).select_from(Pitch)) == 3
+        assert db.session.get(Player, 999001) is None
+        assert db.session.get(Player, 800048).player_name == "Test Pitcher"
+
+
 def test_cli_removes_only_the_bundled_fictional_sample(app):
     source = PROJECT_ROOT / "data" / "sample_statcast.csv"
     runner = app.test_cli_runner()

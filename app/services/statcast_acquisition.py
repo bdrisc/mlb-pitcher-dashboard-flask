@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import time
+import warnings
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -107,12 +108,18 @@ def _fetch_with_pybaseball(start_date: date, end_date: date) -> pd.DataFrame:
             "Season downloads require pybaseball. Install requirements-data.txt first."
         ) from exc
 
-    return statcast(
-        start_dt=start_date.isoformat(),
-        end_dt=end_date.isoformat(),
-        verbose=False,
-        parallel=False,
-    )
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            category=FutureWarning,
+            module=r"pybaseball(\..*)?",
+        )
+        return statcast(
+            start_dt=start_date.isoformat(),
+            end_dt=end_date.isoformat(),
+            verbose=False,
+            parallel=False,
+        )
 
 
 def _prepare_download(frame: pd.DataFrame) -> tuple[pd.DataFrame, int]:
@@ -271,7 +278,12 @@ def build_top_pitcher_sample(
     for source in files:
         frame = pd.read_csv(source, low_memory=False)
         pitcher_ids = pd.to_numeric(frame["pitcher"], errors="coerce")
-        selected_frames.append(frame.loc[pitcher_ids.isin(selected_ids)])
+        selected = frame.loc[pitcher_ids.isin(selected_ids)]
+        if not selected.empty:
+            selected_frames.append(selected)
+
+    if not selected_frames:
+        raise StatcastAcquisitionError("No pitches matched the selected pitchers.")
 
     sample = pd.concat(selected_frames, ignore_index=True)
     sample = sample.drop_duplicates(

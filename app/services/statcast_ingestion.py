@@ -143,6 +143,7 @@ CONTACT_DESCRIPTIONS = {
 
 FICTIONAL_SAMPLE_GAME_IDS = (900001, 900002)
 FICTIONAL_SAMPLE_PLAYER_IDS = (999001, 999101, 999102, 999103)
+BUNDLED_SAMPLE_PATH = Path(__file__).resolve().parents[2] / "data" / "sample_statcast.csv"
 
 
 class IngestionError(ValueError):
@@ -163,6 +164,14 @@ class SampleRemovalReport:
     pitches: int
     games: int
     players: int
+
+
+@dataclass(frozen=True)
+class SeedReport:
+    seeded: bool
+    existing_pitches: int
+    removed_sample: SampleRemovalReport | None
+    ingestion: IngestionReport | None
 
 
 def remove_fictional_sample() -> SampleRemovalReport:
@@ -187,6 +196,41 @@ def remove_fictional_sample() -> SampleRemovalReport:
         games=int(game_result.rowcount or 0),
         players=int(player_result.rowcount or 0),
     )
+
+
+def seed_statcast_if_needed(path: Path, *, batch_size: int = 2_000) -> SeedReport:
+    """Seed a fresh database once without slowing every application restart.
+
+    The bundled demonstration file is retained for local Docker use. When a
+    real production file becomes the configured source, its first seed also
+    removes the reserved fictional records left by an earlier deployment.
+    """
+    source_path = path.expanduser().resolve()
+    bundled_sample = source_path == BUNDLED_SAMPLE_PATH.resolve()
+    existing_pitches = int(db.session.scalar(select(func.count()).select_from(Pitch)) or 0)
+
+    if bundled_sample:
+        if existing_pitches:
+            return SeedReport(False, existing_pitches, None, None)
+        ingestion = ingest_statcast_file(source_path, batch_size=batch_size)
+        return SeedReport(True, existing_pitches, None, ingestion)
+
+    sample_pitches = int(
+        db.session.scalar(
+            select(func.count())
+            .select_from(Pitch)
+            .where(Pitch.game_pk.in_(FICTIONAL_SAMPLE_GAME_IDS))
+        )
+        or 0
+    )
+    real_pitches = existing_pitches - sample_pitches
+    removed_sample = remove_fictional_sample() if sample_pitches else None
+
+    if real_pitches:
+        return SeedReport(False, real_pitches, removed_sample, None)
+
+    ingestion = ingest_statcast_file(source_path, batch_size=batch_size)
+    return SeedReport(True, real_pitches, removed_sample, ingestion)
 
 
 def _sha256(path: Path) -> str:

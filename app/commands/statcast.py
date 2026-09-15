@@ -17,6 +17,7 @@ from app.services.statcast_ingestion import (
     IngestionError,
     ingest_statcast_file,
     remove_fictional_sample,
+    seed_statcast_if_needed,
 )
 
 
@@ -51,6 +52,41 @@ def ingest_command(csv_path: Path, batch_size: int) -> None:
     click.echo(f"Inserted pitches: {report.inserted_rows:,}")
     click.echo(f"Updated pitches: {report.updated_rows:,}")
     click.echo(f"Rejected rows: {report.rejected_rows:,}")
+
+
+@statcast_cli.command("seed-if-needed")
+@click.argument(
+    "csv_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+)
+@click.option(
+    "--batch-size",
+    default=2_000,
+    show_default=True,
+    type=click.IntRange(min=1, max=20_000),
+    help="Rows written per database batch.",
+)
+@with_appcontext
+def seed_if_needed_command(csv_path: Path, batch_size: int) -> None:
+    """Seed an empty deployment database and skip subsequent restarts."""
+    try:
+        report = seed_statcast_if_needed(csv_path, batch_size=batch_size)
+    except IngestionError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    if report.removed_sample is not None:
+        click.echo(f"Removed fictional pitches: {report.removed_sample.pitches:,}")
+
+    if not report.seeded:
+        click.echo("Statcast seed skipped; database already contains real pitch data.")
+        click.echo(f"Existing pitches: {report.existing_pitches:,}")
+        return
+
+    assert report.ingestion is not None
+    click.echo("Statcast seed completed")
+    click.echo(f"Run ID: {report.ingestion.ingestion_run_id}")
+    click.echo(f"Inserted pitches: {report.ingestion.inserted_rows:,}")
+    click.echo(f"Updated pitches: {report.ingestion.updated_rows:,}")
 
 
 @statcast_cli.command("remove-fictional-sample")
