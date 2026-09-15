@@ -52,9 +52,11 @@ def test_health_reports_the_loaded_dataset(client):
     assert response.status_code == 200
     assert response.json["status"] == "ok"
     assert response.json["database_status"] == "ok"
+    assert response.json["database_pitch_count"] == 0
     assert response.json["environment"] == "test"
     assert response.json["version"] == "test"
     assert response.json["pitch_count"] == 3
+    assert response.json["source_pitch_count"] == 3
 
 
 def test_pitcher_directory_is_database_backed(client):

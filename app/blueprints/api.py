@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from flask import Blueprint, current_app, jsonify, request, send_file
-from sqlalchemy import text
+from sqlalchemy import func, select, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.extensions import db
+from app.models import Pitch
 from app.services.filters import FilterValidationError, parse_pitch_filters
 from app.services.pitch_data import PitchDataStore
 from app.services.pitcher_charts import build_pitcher_chart_data
@@ -85,8 +86,10 @@ def health():
     store = _store()
     database_status = "ok"
     database_error = None
+    database_pitch_count = None
     try:
         db.session.execute(text("SELECT 1"))
+        database_pitch_count = db.session.scalar(select(func.count(Pitch.pitch_id)))
     except SQLAlchemyError:
         db.session.rollback()
         database_status = "unavailable"
@@ -102,7 +105,9 @@ def health():
                 "environment": current_app.config["APP_ENV"],
                 "version": current_app.config["APP_VERSION"],
                 "database_status": database_status,
+                "database_pitch_count": database_pitch_count,
                 "data_source": store.source_name,
+                "source_pitch_count": store.row_count,
                 "pitch_count": store.row_count,
                 "error": database_error or store.error,
             }

@@ -29,7 +29,9 @@ def test_render_blueprint_connects_web_database_and_health_check():
     assert "runtime: docker" in blueprint
     assert "healthCheckPath: /api/v1/health" in blueprint
     assert "preDeployCommand:" not in blueprint
-    assert 'value: "1"' in blueprint
+    assert "initialDeployHook:" not in blueprint
+    assert '      - key: RUN_MIGRATIONS\n        value: "1"' in blueprint
+    assert '      - key: SEED_SAMPLE_DATA\n        value: "1"' in blueprint
     assert "autoDeployTrigger: checksPass" in blueprint
     assert "fromDatabase:" in blueprint
     assert "property: connectionString" in blueprint

@@ -282,10 +282,11 @@ The named PostgreSQL volume preserves the database between runs. Only use
 4. Confirm `/api/v1/health` reports `"status": "ok"` after the first deployment.
 
 Render generates the production secret and database connection string. On the free tier, the
-container entrypoint applies database migrations before Gunicorn starts, and the Blueprint
-ingests the fictional sample only on the initial deployment. For a public portfolio deployment
-that must retain data indefinitely, review the current retention limits before choosing a free
-database plan.
+container entrypoint applies database migrations and idempotently ingests the fictional sample
+before Gunicorn starts. Re-running the seed updates the same six pitches instead of duplicating
+them, so a fresh or previously empty Render database is populated on every deployment and
+container restart. For a public portfolio deployment that must retain data indefinitely, review
+the current retention limits before choosing a free database plan.
 
 For other Linux container platforms, the production process is:
 

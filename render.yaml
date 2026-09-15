@@ -7,7 +7,6 @@ services:
     dockerContext: .
     autoDeployTrigger: checksPass
     healthCheckPath: /api/v1/health
-    initialDeployHook: flask --app wsgi statcast ingest data/sample_statcast.csv
     envVars:
       - key: APP_ENV
         value: production
@@ -24,7 +23,7 @@ services:
       - key: RUN_MIGRATIONS
         value: "1"
       - key: SEED_SAMPLE_DATA
-        value: "0"
+        value: "1"
       - key: WEB_CONCURRENCY
         value: "2"
 
