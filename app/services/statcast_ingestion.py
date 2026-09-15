@@ -167,6 +167,19 @@ def _text(series: pd.Series, default: str = "") -> pd.Series:
     return series.astype("string").str.strip().fillna(default).replace("", default)
 
 
+def _pitcher_names(series: pd.Series) -> pd.Series:
+    """Convert Baseball Savant's ``Last, First`` names for display."""
+    names = _text(series, "Unknown pitcher")
+
+    def display_name(value: str) -> str:
+        if "," not in value:
+            return value
+        last_name, first_name = value.split(",", 1)
+        return f"{first_name.strip()} {last_name.strip()}".strip()
+
+    return names.map(display_name)
+
+
 def _optional_value(value: Any) -> Any:
     if pd.isna(value):
         return None
@@ -257,7 +270,7 @@ def clean_statcast(raw: pd.DataFrame) -> pd.DataFrame:
 
     data["pitch_type"] = _text(data["pitch_type"]).str.upper()
     data["pitch_name"] = data["pitch_type"].map(PITCH_NAME_MAP).fillna(_text(data["pitch_name"]))
-    data["player_name"] = _text(data["player_name"], "Unknown pitcher")
+    data["player_name"] = _pitcher_names(data["player_name"])
     for column in [
         "game_type",
         "inning_topbot",

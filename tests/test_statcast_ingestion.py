@@ -166,6 +166,7 @@ def test_cleaning_creates_ids_names_and_scouting_flags():
         "824566_9_1",
     ]
     assert cleaned["pitch_name"].tolist() == ["Four-Seam Fastball", "Slider", "Changeup"]
+    assert cleaned["player_name"].tolist() == ["Test Pitcher"] * 3
     assert bool(cleaned.iloc[1]["is_whiff"]) is True
     assert bool(cleaned.iloc[1]["is_chase"]) is True
     assert bool(cleaned.iloc[2]["is_hard_hit"]) is True

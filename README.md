@@ -15,6 +15,8 @@ The sixth milestone adds six interactive Plotly charts backed by a dedicated, fi
 data endpoint. The seventh milestone adds production configuration, expanded automated tests,
 a non-root Docker image, a PostgreSQL Docker Compose stack, GitHub Actions CI, Gunicorn, and a
 Render deployment blueprint.
+The eighth milestone adds resumable, cached MLB Statcast season acquisition and a reproducible
+top-50-pitcher production sample that preserves every pitch for each selected pitcher.
 
 ## Project structure
 
@@ -32,6 +34,7 @@ mlb-pitch-intelligence-flask/
 │   │   ├── pitcher_charts.py
 │   │   ├── pitcher_profiles.py
 │   │   ├── plots.py
+│   │   ├── statcast_acquisition.py
 │   │   └── statcast_ingestion.py
 │   ├── static/
 │   │   ├── savant-card-charts.js
@@ -57,6 +60,7 @@ mlb-pitch-intelligence-flask/
 ├── gunicorn.conf.py
 ├── render.yaml
 ├── requirements.txt
+├── requirements-data.txt
 ├── requirements-dev.txt
 └── wsgi.py
 ```
@@ -130,6 +134,66 @@ flask --app wsgi statcast ingest data\sample_statcast.csv
 ```
 
 The sample creates fictional pitcher MLB ID `999001` for local API testing.
+
+## Download the complete 2026 season locally
+
+The local Flask app uses the PostgreSQL connection in your local `.env`; it does not use the
+Render database. Install the optional data-acquisition dependency in the activated virtual
+environment:
+
+```powershell
+python -m pip install -r requirements-data.txt
+```
+
+Download every available 2026 regular-season pitch through September 15 and ingest each cached
+chunk into local PostgreSQL:
+
+```powershell
+flask --app wsgi statcast fetch-season 2026 --through 2026-09-15
+```
+
+The command requests five calendar days at a time, excludes spring-training and incomplete
+records, caches usable rows under `data/cache/statcast/2026/`, and commits each chunk through the
+existing idempotent ingestion service. The cache directory is excluded from Git. If a request
+fails, rerun the same command: completed chunks are reused and the database upserts prevent
+duplicates.
+
+To extend the local database after additional games are played, use a later date or omit
+`--through` to use the current date:
+
+```powershell
+flask --app wsgi statcast fetch-season 2026
+```
+
+Useful alternatives:
+
+```powershell
+# Download and cache without changing PostgreSQL
+flask --app wsgi statcast fetch-season 2026 --download-only
+
+# Replace existing cache files with fresh Baseball Savant responses
+flask --app wsgi statcast fetch-season 2026 --force-download
+```
+
+## Build the public top-50-pitcher dataset
+
+After the local season acquisition finishes, create a compressed production export containing
+the 50 pitchers with the most pitches and every cached pitch thrown by those pitchers:
+
+```powershell
+flask --app wsgi statcast build-production-sample 2026 --pitchers 50
+```
+
+This produces:
+
+- `data/production_statcast_2026.csv.gz`, the deployable ingestion source; and
+- `data/production_statcast_2026.manifest.json`, the selection rule, row count, MLB IDs, names,
+  and pitch totals needed to document the public sample.
+
+The production export is intentionally selected by complete pitcher history rather than random
+pitch rows. That keeps arsenal usage, trends, splits, and rate denominators internally valid.
+Inspect the generated file size and row counts before replacing the fictional Render seed; the
+full league cache should remain local and should never be committed.
 
 ## API routes
 
