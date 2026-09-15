@@ -28,7 +28,8 @@ def test_render_blueprint_connects_web_database_and_health_check():
 
     assert "runtime: docker" in blueprint
     assert "healthCheckPath: /api/v1/health" in blueprint
-    assert "preDeployCommand: flask --app wsgi db upgrade" in blueprint
+    assert "preDeployCommand:" not in blueprint
+    assert 'value: "1"' in blueprint
     assert "autoDeployTrigger: checksPass" in blueprint
     assert "fromDatabase:" in blueprint
     assert "property: connectionString" in blueprint

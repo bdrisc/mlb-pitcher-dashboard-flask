@@ -281,10 +281,11 @@ The named PostgreSQL volume preserves the database between runs. Only use
 3. Review the resources described by `render.yaml`, then apply the Blueprint.
 4. Confirm `/api/v1/health` reports `"status": "ok"` after the first deployment.
 
-Render generates the production secret and database connection string. The Blueprint runs
-database migrations as a pre-deploy command and ingests the fictional sample only on the initial
-deployment. For a public portfolio deployment that must retain data indefinitely, review the
-current retention limits before choosing a free database plan.
+Render generates the production secret and database connection string. On the free tier, the
+container entrypoint applies database migrations before Gunicorn starts, and the Blueprint
+ingests the fictional sample only on the initial deployment. For a public portfolio deployment
+that must retain data indefinitely, review the current retention limits before choosing a free
+database plan.
 
 For other Linux container platforms, the production process is:
 
