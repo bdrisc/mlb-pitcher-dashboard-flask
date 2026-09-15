@@ -25,7 +25,7 @@ services:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@database:5432/mlb_pitch_intelligence
       PITCH_DATA_PATH: data/sample_statcast.csv
       RUN_MIGRATIONS: "1"
-      SEED_SAMPLE_DATA: "1"
+      SEED_DATABASE: "1"
       PORT: "8080"
       WEB_CONCURRENCY: "2"
     ports:

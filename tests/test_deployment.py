@@ -20,7 +20,7 @@ def test_compose_defines_healthy_web_and_postgres_services():
     assert "image: postgres:17-alpine" in compose
     assert "condition: service_healthy" in compose
     assert 'RUN_MIGRATIONS: "1"' in compose
-    assert 'SEED_SAMPLE_DATA: "1"' in compose
+    assert 'SEED_DATABASE: "1"' in compose
 
 
 def test_render_blueprint_connects_web_database_and_health_check():
@@ -31,7 +31,8 @@ def test_render_blueprint_connects_web_database_and_health_check():
     assert "preDeployCommand:" not in blueprint
     assert "initialDeployHook:" not in blueprint
     assert '      - key: RUN_MIGRATIONS\n        value: "1"' in blueprint
-    assert '      - key: SEED_SAMPLE_DATA\n        value: "1"' in blueprint
+    assert '      - key: SEED_DATABASE\n        value: "1"' in blueprint
+    assert "value: data/production_statcast_2026.csv.gz" in blueprint
     assert "autoDeployTrigger: checksPass" in blueprint
     assert "fromDatabase:" in blueprint
     assert "property: connectionString" in blueprint

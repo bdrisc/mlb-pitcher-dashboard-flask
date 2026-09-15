@@ -48,7 +48,9 @@ mlb-pitch-intelligence-flask/
 │   ├── config.py
 │   ├── extensions.py
 │   └── models.py
-├── data/sample_statcast.csv
+├── data/
+│   ├── sample_statcast.csv
+│   └── production_statcast_2026.csv.gz
 ├── .github/workflows/ci.yml
 ├── migrations/
 ├── scripts/docker-entrypoint.sh
@@ -201,8 +203,8 @@ This produces:
 
 The production export is intentionally selected by complete pitcher history rather than random
 pitch rows. That keeps arsenal usage, trends, splits, and rate denominators internally valid.
-Inspect the generated file size and row counts before replacing the fictional Render seed; the
-full league cache should remain local and should never be committed.
+The checked-in production file contains 133,933 pitches from the 50 busiest pitchers through
+September 14, 2026. The full league cache remains local and is never committed.
 
 ## API routes
 
@@ -354,12 +356,13 @@ The named PostgreSQL volume preserves the database between runs. Only use
 3. Review the resources described by `render.yaml`, then apply the Blueprint.
 4. Confirm `/api/v1/health` reports `"status": "ok"` after the first deployment.
 
-Render generates the production secret and database connection string. On the free tier, the
-container entrypoint applies database migrations and idempotently ingests the fictional sample
-before Gunicorn starts. Re-running the seed updates the same six pitches instead of duplicating
-them, so a fresh or previously empty Render database is populated on every deployment and
-container restart. For a public portfolio deployment that must retain data indefinitely, review
-the current retention limits before choosing a free database plan.
+Render generates the production secret and database connection string. The container entrypoint
+applies database migrations and loads `data/production_statcast_2026.csv.gz` into an empty
+database before Gunicorn starts. When upgrading the original demonstration deployment, the seed
+command removes the six reserved fictional pitches before loading the 133,933 real pitches.
+Later deployments and container restarts detect the existing MLB data and skip the large import.
+For a public portfolio deployment that must retain data indefinitely, review the current
+retention limits before choosing a free database plan.
 
 For other Linux container platforms, the production process is:
 
