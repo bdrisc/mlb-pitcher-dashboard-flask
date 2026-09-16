@@ -2,15 +2,28 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from flask import Flask, jsonify
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app.blueprints.api import api_blueprint
 from app.blueprints.main import main_blueprint
 from app.commands.statcast import statcast_cli
-from app.config import DEVELOPMENT_SECRET, Config
+from app.config import DEVELOPMENT_SECRET, PROJECT_ROOT, Config
 from app.extensions import db, migrate
 from app.services.pitch_data import PitchDataStore
+
+
+def _runtime_pitch_data_path(app: Flask) -> Path:
+    """Keep a legacy production seed path out of the in-memory data store."""
+    configured_path = Path(app.config["PITCH_DATA_PATH"]).expanduser()
+    seed_path = Path(app.config["STATCAST_SEED_PATH"]).expanduser()
+    compressed_seed = configured_path.suffix.lower() in {".gz", ".bz2", ".xz", ".zip"}
+
+    if app.config["APP_ENV"] == "production" and configured_path == seed_path and compressed_seed:
+        return PROJECT_ROOT / "data" / "sample_statcast.csv"
+    return configured_path
 
 
 def create_app(test_config: dict | None = None) -> Flask:
@@ -40,7 +53,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     # Import after extension initialization so migration discovery sees all models.
     from app import models  # noqa: F401
 
-    store = PitchDataStore(app.config["PITCH_DATA_PATH"])
+    store = PitchDataStore(_runtime_pitch_data_path(app))
     store.load()
     app.extensions["pitch_data_store"] = store
 

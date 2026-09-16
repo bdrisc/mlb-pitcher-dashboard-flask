@@ -66,6 +66,24 @@ def test_production_enables_proxy_and_secure_cookie_settings(tmp_path):
     assert application.config["PREFERRED_URL_SCHEME"] == "https"
 
 
+def test_production_legacy_seed_path_uses_small_runtime_fallback(tmp_path):
+    production_seed = tmp_path / "production_statcast_2026.csv.gz"
+    application = create_app(
+        _app_config(
+            tmp_path,
+            APP_ENV="production",
+            SECRET_KEY="a-production-only-test-secret",
+            PITCH_DATA_PATH=str(production_seed),
+            STATCAST_SEED_PATH=str(production_seed),
+        )
+    )
+
+    store = application.extensions["pitch_data_store"]
+    assert store.source_name == "sample_statcast.csv"
+    assert store.row_count == 6
+    assert application.config["STATCAST_SEED_PATH"] == str(production_seed)
+
+
 def test_application_adds_baseline_security_headers(client):
     response = client.get("/")
 

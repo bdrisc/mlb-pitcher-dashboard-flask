@@ -366,6 +366,11 @@ Later deployments and container restarts detect the existing MLB data and skip t
 public portfolio deployment that must retain data indefinitely, review the current retention
 limits before choosing a free database plan.
 
+Deployments created before `STATCAST_SEED_PATH` was introduced remain compatible: when the
+production `PITCH_DATA_PATH` still points to the compressed seed file, Flask automatically uses
+the bundled six-row CSV only for the lightweight in-memory fallback while the full compressed
+file is streamed into PostgreSQL.
+
 For other Linux container platforms, the production process is:
 
 ```text
