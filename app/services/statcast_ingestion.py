@@ -76,6 +76,9 @@ OPTIONAL_COLUMNS = [
     "fld_score",
 ]
 
+CSV_READ_CHUNK_SIZE = 5_000
+CSV_COUNT_CHUNK_SIZE = 50_000
+
 INTEGER_COLUMNS = [
     "game_pk",
     "at_bat_number",
@@ -224,12 +227,13 @@ def seed_statcast_if_needed(path: Path, *, batch_size: int = 2_000) -> SeedRepor
         or 0
     )
     real_pitches = existing_pitches - sample_pitches
-    removed_sample = remove_fictional_sample() if sample_pitches else None
 
     if real_pitches:
+        removed_sample = remove_fictional_sample() if sample_pitches else None
         return SeedReport(False, real_pitches, removed_sample, None)
 
     ingestion = ingest_statcast_file(source_path, batch_size=batch_size)
+    removed_sample = remove_fictional_sample() if sample_pitches else None
     return SeedReport(True, real_pitches, removed_sample, ingestion)
 
 
@@ -274,6 +278,42 @@ def read_statcast_csv(path: Path) -> pd.DataFrame:
     try:
         return pd.read_csv(path, low_memory=False)
     except (OSError, UnicodeError, pd.errors.ParserError) as exc:
+        raise IngestionError(f"Could not read {path.name}: {exc}") from exc
+
+
+def _csv_columns(path: Path) -> list[str]:
+    try:
+        return pd.read_csv(path, nrows=0).columns.tolist()
+    except (OSError, UnicodeError, pd.errors.ParserError, pd.errors.EmptyDataError) as exc:
+        raise IngestionError(f"Could not read {path.name}: {exc}") from exc
+
+
+def _count_csv_rows(path: Path, first_column: str) -> int:
+    """Count rows with a bounded-memory pass so failed audits remain accurate."""
+    try:
+        chunks = pd.read_csv(
+            path,
+            usecols=[first_column],
+            chunksize=CSV_COUNT_CHUNK_SIZE,
+            low_memory=False,
+        )
+        return sum(len(chunk) for chunk in chunks)
+    except (OSError, UnicodeError, pd.errors.ParserError, pd.errors.EmptyDataError) as exc:
+        raise IngestionError(f"Could not read {path.name}: {exc}") from exc
+
+
+def _iter_statcast_csv(path: Path, columns: list[str], chunk_size: int) -> Iterable[pd.DataFrame]:
+    selected_columns = [
+        column for column in columns if column in REQUIRED_COLUMNS or column in OPTIONAL_COLUMNS
+    ]
+    try:
+        yield from pd.read_csv(
+            path,
+            usecols=selected_columns,
+            chunksize=chunk_size,
+            low_memory=False,
+        )
+    except (OSError, UnicodeError, pd.errors.ParserError, pd.errors.EmptyDataError) as exc:
         raise IngestionError(f"Could not read {path.name}: {exc}") from exc
 
 
@@ -559,8 +599,16 @@ def _upsert(
         db.session.execute(statement, batch)
 
 
-def ingest_statcast_file(path: Path, *, batch_size: int = 2_000) -> IngestionReport:
-    """Audit and atomically upsert one Statcast file into the configured database."""
+def ingest_statcast_file(
+    path: Path,
+    *,
+    batch_size: int = 2_000,
+    csv_chunk_size: int = CSV_READ_CHUNK_SIZE,
+) -> IngestionReport:
+    """Audit and atomically stream one Statcast file into the database."""
+    if csv_chunk_size < 1:
+        raise ValueError("csv_chunk_size must be at least 1.")
+
     source_path = path.expanduser().resolve()
     source_hash = _sha256(source_path)
 
@@ -574,47 +622,76 @@ def ingest_statcast_file(path: Path, *, batch_size: int = 2_000) -> IngestionRep
     run_id = int(run.ingestion_run_id)
 
     source_rows = 0
+    inserted_rows = 0
+    updated_rows = 0
     try:
-        raw = read_statcast_csv(source_path)
-        source_rows = len(raw)
+        columns = _csv_columns(source_path)
+        if not columns:
+            raise IngestionError("Statcast CSV contains no columns.")
+
+        source_rows = _count_csv_rows(source_path, columns[0])
         run.source_rows = source_rows
         db.session.commit()
+        if source_rows == 0:
+            raise IngestionError("Statcast CSV contains no pitch rows.")
 
-        data = clean_statcast(raw)
-        pitch_ids = data["pitch_id"].astype(str).tolist()
-        existing = _existing_pitch_ids(pitch_ids, batch_size)
+        missing_columns = sorted(REQUIRED_COLUMNS - set(columns))
+        if missing_columns:
+            raise IngestionError(
+                "Statcast CSV is missing required columns: " + ", ".join(missing_columns)
+            )
 
-        player_rows = _player_records(data)
-        game_rows = _game_records(data)
-        pitch_rows = _pitch_records(data)
+        seen_pitch_ids: set[str] = set()
+        for raw_chunk in _iter_statcast_csv(source_path, columns, csv_chunk_size):
+            data = clean_statcast(raw_chunk)
+            pitch_ids = data["pitch_id"].astype(str).tolist()
+            cross_chunk_duplicates = seen_pitch_ids.intersection(pitch_ids)
+            if cross_chunk_duplicates:
+                examples = ", ".join(sorted(cross_chunk_duplicates)[:10])
+                raise IngestionError(
+                    "Generated pitch_id values are not unique. Examples: " + examples
+                )
+            seen_pitch_ids.update(pitch_ids)
+            existing = _existing_pitch_ids(pitch_ids, batch_size)
 
-        _upsert(
-            Player.__table__,
-            player_rows,
-            key_columns=["mlb_id"],
-            update_columns=["player_name", "throws", "bats"],
-            batch_size=batch_size,
-            preserve_existing_on_null={"player_name", "throws", "bats"},
-        )
-        _upsert(
-            Game.__table__,
-            game_rows,
-            key_columns=["game_pk"],
-            update_columns=["game_date", "season", "game_type", "home_team", "away_team"],
-            batch_size=batch_size,
-        )
-        _upsert(
-            Pitch.__table__,
-            pitch_rows,
-            key_columns=["pitch_id"],
-            update_columns=[
-                column.name for column in Pitch.__table__.columns if not column.primary_key
-            ],
-            batch_size=batch_size,
-        )
+            player_rows = _player_records(data)
+            game_rows = _game_records(data)
+            pitch_rows = _pitch_records(data)
 
-        inserted_rows = len(pitch_rows) - len(existing)
-        updated_rows = len(existing)
+            _upsert(
+                Player.__table__,
+                player_rows,
+                key_columns=["mlb_id"],
+                update_columns=["player_name", "throws", "bats"],
+                batch_size=batch_size,
+                preserve_existing_on_null={"player_name", "throws", "bats"},
+            )
+            _upsert(
+                Game.__table__,
+                game_rows,
+                key_columns=["game_pk"],
+                update_columns=[
+                    "game_date",
+                    "season",
+                    "game_type",
+                    "home_team",
+                    "away_team",
+                ],
+                batch_size=batch_size,
+            )
+            _upsert(
+                Pitch.__table__,
+                pitch_rows,
+                key_columns=["pitch_id"],
+                update_columns=[
+                    column.name for column in Pitch.__table__.columns if not column.primary_key
+                ],
+                batch_size=batch_size,
+            )
+
+            inserted_rows += len(pitch_rows) - len(existing)
+            updated_rows += len(existing)
+
         run.status = "succeeded"
         run.inserted_rows = inserted_rows
         run.updated_rows = updated_rows

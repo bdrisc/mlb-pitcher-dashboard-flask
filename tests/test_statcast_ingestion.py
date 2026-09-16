@@ -10,7 +10,11 @@ from sqlalchemy import func, select
 
 from app.extensions import db
 from app.models import Game, IngestionRun, Pitch, Player
-from app.services.statcast_ingestion import clean_statcast
+from app.services.statcast_ingestion import (
+    IngestionError,
+    clean_statcast,
+    ingest_statcast_file,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -208,6 +212,39 @@ def test_second_ingestion_updates_without_duplicate_pitches(app, tmp_path):
         assert db.session.scalar(select(func.count()).select_from(Pitch)) == 3
         assert db.session.scalar(select(func.count()).select_from(IngestionRun)) == 2
         assert db.session.get(Pitch, "824566_8_1").velocity == 95.7
+
+
+def test_streamed_ingestion_loads_multiple_csv_chunks(app, tmp_path):
+    frames = []
+    for offset in range(3):
+        frame = statcast_rows().copy()
+        frame["game_pk"] += offset
+        frames.append(frame)
+    source = write_statcast_csv(tmp_path, pd.concat(frames, ignore_index=True))
+
+    with app.app_context():
+        report = ingest_statcast_file(source, batch_size=2, csv_chunk_size=2)
+
+        assert report.source_rows == 9
+        assert report.inserted_rows == 9
+        assert db.session.scalar(select(func.count()).select_from(Pitch)) == 9
+
+
+def test_streamed_ingestion_rejects_duplicates_across_chunks_atomically(app, tmp_path):
+    duplicated = pd.concat(
+        [statcast_rows().iloc[:2], statcast_rows().iloc[:1]],
+        ignore_index=True,
+    )
+    source = write_statcast_csv(tmp_path, duplicated)
+
+    with app.app_context(), pytest.raises(IngestionError, match="not unique"):
+        ingest_statcast_file(source, batch_size=2, csv_chunk_size=2)
+
+    with app.app_context():
+        assert db.session.scalar(select(func.count()).select_from(Pitch)) == 0
+        run = db.session.scalar(select(IngestionRun))
+        assert run.status == "failed"
+        assert run.rejected_rows == 3
 
 
 def test_validation_failure_is_audited_without_partial_pitch_load(app, tmp_path):

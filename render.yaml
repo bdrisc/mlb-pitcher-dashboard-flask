@@ -19,6 +19,8 @@ services:
           name: mlb-pitch-intelligence-db
           property: connectionString
       - key: PITCH_DATA_PATH
+        value: data/sample_statcast.csv
+      - key: STATCAST_SEED_PATH
         value: data/production_statcast_2026.csv.gz
       - key: RUN_MIGRATIONS
         value: "1"

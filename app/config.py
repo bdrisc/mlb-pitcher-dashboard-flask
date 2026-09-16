@@ -40,6 +40,7 @@ class Config:
         "PITCH_DATA_PATH",
         str(PROJECT_ROOT / "data" / "sample_statcast.csv"),
     )
+    STATCAST_SEED_PATH = os.getenv("STATCAST_SEED_PATH", PITCH_DATA_PATH)
     SQLALCHEMY_DATABASE_URI = database_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True, "pool_recycle": 300}

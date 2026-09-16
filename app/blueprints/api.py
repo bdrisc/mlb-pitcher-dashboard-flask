@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from flask import Blueprint, current_app, jsonify, request, send_file
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -98,6 +100,13 @@ def health():
 
     ready = store.available and database_status == "ok"
     status_code = 200 if ready else 503
+    database_has_pitches = bool(database_pitch_count)
+    active_source = (
+        Path(current_app.config["STATCAST_SEED_PATH"]).name
+        if database_has_pitches
+        else store.source_name
+    )
+    active_pitch_count = database_pitch_count if database_has_pitches else store.row_count
     return (
         jsonify(
             {
@@ -106,9 +115,9 @@ def health():
                 "version": current_app.config["APP_VERSION"],
                 "database_status": database_status,
                 "database_pitch_count": database_pitch_count,
-                "data_source": store.source_name,
-                "source_pitch_count": store.row_count,
-                "pitch_count": store.row_count,
+                "data_source": active_source,
+                "source_pitch_count": active_pitch_count,
+                "pitch_count": active_pitch_count,
                 "error": database_error or store.error,
             }
         ),

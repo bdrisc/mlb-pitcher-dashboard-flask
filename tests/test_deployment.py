@@ -32,7 +32,9 @@ def test_render_blueprint_connects_web_database_and_health_check():
     assert "initialDeployHook:" not in blueprint
     assert '      - key: RUN_MIGRATIONS\n        value: "1"' in blueprint
     assert '      - key: SEED_DATABASE\n        value: "1"' in blueprint
+    assert "key: STATCAST_SEED_PATH" in blueprint
     assert "value: data/production_statcast_2026.csv.gz" in blueprint
+    assert "      - key: PITCH_DATA_PATH\n        value: data/sample_statcast.csv" in blueprint
     assert "autoDeployTrigger: checksPass" in blueprint
     assert "fromDatabase:" in blueprint
     assert "property: connectionString" in blueprint

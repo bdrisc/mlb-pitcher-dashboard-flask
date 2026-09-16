@@ -356,13 +356,15 @@ The named PostgreSQL volume preserves the database between runs. Only use
 3. Review the resources described by `render.yaml`, then apply the Blueprint.
 4. Confirm `/api/v1/health` reports `"status": "ok"` after the first deployment.
 
-Render generates the production secret and database connection string. The container entrypoint
-applies database migrations and loads `data/production_statcast_2026.csv.gz` into an empty
-database before Gunicorn starts. When upgrading the original demonstration deployment, the seed
-command removes the six reserved fictional pitches before loading the 133,933 real pitches.
-Later deployments and container restarts detect the existing MLB data and skip the large import.
-For a public portfolio deployment that must retain data indefinitely, review the current
-retention limits before choosing a free database plan.
+Render generates the production secret and database connection string. `PITCH_DATA_PATH` keeps
+the small fallback source used by legacy in-memory routes separate from `STATCAST_SEED_PATH`, the
+large database-ingestion source. The container entrypoint applies database migrations and streams
+`data/production_statcast_2026.csv.gz` into an empty database before Gunicorn starts. When
+upgrading the original demonstration deployment, the seed command keeps the six reserved
+fictional pitches available until all 133,933 real pitches load successfully, then removes them.
+Later deployments and container restarts detect the existing MLB data and skip the import. For a
+public portfolio deployment that must retain data indefinitely, review the current retention
+limits before choosing a free database plan.
 
 For other Linux container platforms, the production process is:
 
