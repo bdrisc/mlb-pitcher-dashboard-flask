@@ -1,22 +1,44 @@
-# MLB Pitch Intelligence — Flask Foundation
+# MLB Pitch Intelligence
 
-This project restructures the original single-file pitch API into a maintainable Flask
-application. It uses an application factory, browser and API blueprints, environment-backed
-configuration, isolated data and plotting services, Jinja templates, and Flask test-client
-coverage.
+[![CI](https://github.com/bdrisc/mlb-pitcher-dashboard-flask/actions/workflows/ci.yml/badge.svg)](https://github.com/bdrisc/mlb-pitcher-dashboard-flask/actions/workflows/ci.yml)
 
-The second development milestone adds PostgreSQL persistence, Flask-SQLAlchemy models,
-Flask-Migrate migrations, a validated Statcast ingestion command, transactional upserts, and
-an audit record for every attempted load. The third milestone adds one shared, typed filter
-contract with normalization and structured validation errors. The fourth milestone adds a
-database-backed pitcher directory and profile API with SQL-level aggregation. The fifth
-milestone adds a responsive, server-rendered Savant Card whose browser controls call that API.
-The sixth milestone adds six interactive Plotly charts backed by a dedicated, filtered chart-
-data endpoint. The seventh milestone adds production configuration, expanded automated tests,
-a non-root Docker image, a PostgreSQL Docker Compose stack, GitHub Actions CI, Gunicorn, and a
-Render deployment blueprint.
-The eighth milestone adds resumable, cached MLB Statcast season acquisition and a reproducible
-top-50-pitcher production sample that preserves every pitch for each selected pitcher.
+**[Open the live Savant Card](https://mlb-pitch-intelligence.onrender.com/savant-card)** ·
+**[Browse the pitcher API](https://mlb-pitch-intelligence.onrender.com/api/v1/pitchers)**
+
+MLB Pitch Intelligence is a production Flask and PostgreSQL application for exploring pitcher
+arsenals, pitch characteristics, location, usage, and results from MLB Statcast data. It combines
+a reproducible data-ingestion pipeline, versioned JSON APIs, shared filter validation, a
+responsive Savant-style interface, and six interactive Plotly visualizations.
+
+![Filterable MLB pitcher Savant Card](docs/images/mlb-pitch-intelligence-dashboard.jpg)
+
+## Portfolio highlights
+
+- **Production Flask architecture:** application factory, browser and API blueprints, Jinja
+  templates, service modules, environment-backed configuration, and structured error handling.
+- **PostgreSQL data layer:** SQLAlchemy models, Alembic migrations, SQL-level aggregations,
+  transactional upserts, stable pitch identifiers, and auditable ingestion runs.
+- **Statcast pipeline:** resumable season acquisition, cached five-day downloads, bounded-memory
+  CSV streaming, schema validation, deterministic production sampling, and idempotent reloads.
+- **Interactive pitcher evaluation:** filters for pitcher, season, team, pitch type, batter side,
+  count, venue, and date range; arsenal tables; platoon splits; and denominator-aware metrics.
+- **Software delivery:** 53 automated tests, Ruff checks, GitHub Actions CI, Docker Compose,
+  Gunicorn, a non-root production image, and public deployment on Render.
+
+![Interactive arsenal and Plotly charts](docs/images/mlb-pitch-intelligence-charts.jpg)
+
+## Data scope
+
+The public application contains **133,933 pitches from the 50 busiest MLB pitchers** through
+September 14, 2026. Every pitch thrown by each selected pitcher is retained, so arsenal usage,
+game trends, platoon splits, and rate denominators remain internally valid.
+
+The local acquisition pipeline supports the full-league dataset. The current local build contains
+**663,035 MLB pitches** through September 14, 2026; that larger cache remains outside Git while the
+reproducible acquisition command and compressed portfolio sample are included in the repository.
+
+> The public app runs on Render's free infrastructure and may need a short cold start before the
+> first request completes.
 
 ## Project structure
 
