@@ -31,7 +31,7 @@ services:
       - key: SYNC_RECENT_LOOKBACK_DAYS
         value: "4"
       - key: WEB_CONCURRENCY
-        value: "2"
+        value: "1"
 
 databases:
   - name: mlb-pitch-intelligence-db
