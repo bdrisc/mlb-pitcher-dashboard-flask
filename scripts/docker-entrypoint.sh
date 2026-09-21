@@ -11,8 +11,16 @@ if [ "${SEED_DATABASE:-${SEED_SAMPLE_DATA:-0}}" = "1" ]; then
 fi
 
 if [ "${SYNC_RECENT_ON_STARTUP:-0}" = "1" ]; then
-    flask --app wsgi statcast sync-recent \
-        --lookback-days "${SYNC_RECENT_LOOKBACK_DAYS:-4}"
+    (
+        echo "Starting recent Statcast sync in the background."
+        if flask --app wsgi statcast sync-recent \
+            --lookback-days "${SYNC_RECENT_LOOKBACK_DAYS:-4}"; then
+            echo "Background Statcast sync finished successfully."
+        else
+            echo "Background Statcast sync failed; the web service will remain available." >&2
+        fi
+    ) &
 fi
 
+echo "Starting web server on port ${PORT:-10000}."
 exec "$@"
