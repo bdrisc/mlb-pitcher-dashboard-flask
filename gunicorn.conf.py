@@ -2,8 +2,8 @@
 
 import os
 
-bind = f"0.0.0.0:{os.getenv('PORT', '8080')}"
-workers = int(os.getenv("WEB_CONCURRENCY", "2"))
+bind = f"0.0.0.0:{os.getenv('PORT', '10000')}"
+workers = int(os.getenv("GUNICORN_WORKERS", "1"))
 threads = int(os.getenv("WEB_THREADS", "4"))
 worker_class = "gthread"
 timeout = int(os.getenv("WEB_TIMEOUT", "120"))
