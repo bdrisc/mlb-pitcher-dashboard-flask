@@ -24,6 +24,7 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b'data-pitchers-url="/api/v1/pitchers"' in response.data
     assert b'id="profile-filters"' in response.data
     assert b'id="pitcher-select"' in response.data
+    assert b'id="database-freshness"' in response.data
     assert b'id="arsenal-body"' in response.data
     assert b'id="platoon-splits"' in response.data
     assert response.data.count(b'data-metric="') == 12
@@ -63,7 +64,14 @@ def test_pitcher_directory_is_database_backed(client):
     response = client.get("/api/v1/pitchers")
 
     assert response.status_code == 200
-    assert response.json == {"pitchers": [], "query": {}}
+    assert response.json == {
+        "pitchers": [],
+        "query": {},
+        "data_freshness": {
+            "latest_game_date": None,
+            "last_ingested_at": None,
+        },
+    }
 
 
 def test_pitch_summary_applies_combined_filters(client):

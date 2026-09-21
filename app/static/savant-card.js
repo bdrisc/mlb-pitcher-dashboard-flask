@@ -36,6 +36,7 @@ if (root) {
     arsenal: document.querySelector("#arsenal-body"),
     splits: document.querySelector("#platoon-splits"),
     definitions: document.querySelector("#metric-definitions"),
+    databaseFreshness: document.querySelector("#database-freshness"),
   };
 
   const state = {
@@ -174,6 +175,13 @@ if (root) {
         `${pitcher.name || `MLB ${pitcher.mlb_id}`} — ${teams} · ${hand}`,
       );
     });
+  }
+
+  function renderDataFreshness(freshness) {
+    const latestGameDate = freshness?.latest_game_date;
+    elements.databaseFreshness.textContent = latestGameDate
+      ? `Database through ${formatDate(latestGameDate)}`
+      : "Database coverage unavailable";
   }
 
   function selectedPitcher() {
@@ -430,6 +438,7 @@ if (root) {
     try {
       const directory = await requestJson(root.dataset.pitchersUrl);
       state.pitchers = directory.pitchers;
+      renderDataFreshness(directory.data_freshness);
       if (!state.pitchers.length) {
         elements.pitcher.replaceChildren();
         appendOption(elements.pitcher, "", "No pitchers in database");

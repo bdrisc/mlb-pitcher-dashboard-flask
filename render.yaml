@@ -26,6 +26,10 @@ services:
         value: "1"
       - key: SEED_DATABASE
         value: "1"
+      - key: SYNC_RECENT_ON_STARTUP
+        value: "1"
+      - key: SYNC_RECENT_LOOKBACK_DAYS
+        value: "4"
       - key: WEB_CONCURRENCY
         value: "2"
 

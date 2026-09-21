@@ -7,11 +7,14 @@ from datetime import date
 
 import pandas as pd
 
+import app.commands.statcast as statcast_commands
 from app.services.statcast_acquisition import (
     DateChunk,
     acquire_statcast_chunk,
     build_top_pitcher_sample,
+    filter_statcast_pitchers,
     iter_date_chunks,
+    recent_statcast_chunk,
     season_date_range,
 )
 
@@ -62,6 +65,55 @@ def test_season_bounds_and_date_chunks_are_inclusive():
         current.end_date.toordinal() + 1 == following.start_date.toordinal()
         for current, following in zip(chunks, chunks[1:], strict=False)
     )
+
+
+def test_recent_sync_window_overlaps_recent_days_and_stops_before_season():
+    assert recent_statcast_chunk(
+        lookback_days=4,
+        today=date(2026, 9, 21),
+    ) == DateChunk(date(2026, 9, 17), date(2026, 9, 20))
+    assert recent_statcast_chunk(today=date(2026, 3, 10)) is None
+
+
+def test_filter_statcast_pitchers_preserves_only_the_deployed_cohort(tmp_path):
+    source = tmp_path / "recent.csv.gz"
+    destination = tmp_path / "selected.csv.gz"
+    pd.DataFrame(
+        [
+            _pitch_row(
+                pitcher=10,
+                player_name="Alpha, Ace",
+                game_pk=1,
+                at_bat_number=1,
+                pitch_number=1,
+            ),
+            _pitch_row(
+                pitcher=20,
+                player_name="Beta, Bob",
+                game_pk=1,
+                at_bat_number=2,
+                pitch_number=1,
+            ),
+        ]
+    ).to_csv(source, index=False, compression="gzip")
+
+    selected_rows = filter_statcast_pitchers(source, destination, {20})
+
+    assert selected_rows == 1
+    assert pd.read_csv(destination)["pitcher"].tolist() == [20]
+
+
+def test_recent_sync_command_skips_cleanly_without_a_deployed_cohort(app, monkeypatch):
+    monkeypatch.setattr(
+        statcast_commands,
+        "recent_statcast_chunk",
+        lambda **_kwargs: DateChunk(date(2026, 9, 17), date(2026, 9, 20)),
+    )
+
+    result = app.test_cli_runner().invoke(args=["statcast", "sync-recent", "--lookback-days", "4"])
+
+    assert result.exit_code == 0
+    assert "no deployed pitcher cohort exists" in result.output
 
 
 def test_acquisition_filters_invalid_rows_and_reuses_cache(tmp_path):

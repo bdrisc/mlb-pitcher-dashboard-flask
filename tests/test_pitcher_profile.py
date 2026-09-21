@@ -214,6 +214,10 @@ def test_pitcher_directory_returns_ids_and_applies_shared_filters(profile_client
     assert response.status_code == 200
     assert response.json == {
         "query": {"pitcher": "profile", "team": "BOS", "season": 2026},
+        "data_freshness": {
+            "latest_game_date": "2026-05-01",
+            "last_ingested_at": None,
+        },
         "pitchers": [
             {
                 "mlb_id": PITCHER_ID,

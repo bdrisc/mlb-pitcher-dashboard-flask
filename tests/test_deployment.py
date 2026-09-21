@@ -32,6 +32,8 @@ def test_render_blueprint_connects_web_database_and_health_check():
     assert "initialDeployHook:" not in blueprint
     assert '      - key: RUN_MIGRATIONS\n        value: "1"' in blueprint
     assert '      - key: SEED_DATABASE\n        value: "1"' in blueprint
+    assert '      - key: SYNC_RECENT_ON_STARTUP\n        value: "1"' in blueprint
+    assert '      - key: SYNC_RECENT_LOOKBACK_DAYS\n        value: "4"' in blueprint
     assert "key: STATCAST_SEED_PATH" in blueprint
     assert "value: data/production_statcast_2026.csv.gz" in blueprint
     assert "      - key: PITCH_DATA_PATH\n        value: data/sample_statcast.csv" in blueprint
@@ -58,6 +60,17 @@ def test_docker_image_uses_non_root_user_healthcheck_and_gunicorn():
     assert "FROM python:3.10-slim" in dockerfile
     assert "USER app" in dockerfile
     assert "HEALTHCHECK" in dockerfile
+    assert "requirements-data.txt" in dockerfile
     assert 'CMD ["gunicorn", "--config", "gunicorn.conf.py", "wsgi:app"]' in dockerfile
     assert "statcast seed-if-needed" in entrypoint.read_text(encoding="utf-8")
+    assert "statcast sync-recent" in entrypoint.read_text(encoding="utf-8")
     assert os.access(entrypoint, os.X_OK)
+
+
+def test_daily_sync_workflow_uses_a_secret_render_deploy_hook():
+    workflow = _read(".github/workflows/daily-data-sync.yml")
+
+    assert 'cron: "0 15 * * *"' in workflow
+    assert "workflow_dispatch:" in workflow
+    assert "secrets.RENDER_DEPLOY_HOOK_URL" in workflow
+    assert 'curl --fail --show-error --silent --request POST "$RENDER_DEPLOY_HOOK_URL"' in workflow

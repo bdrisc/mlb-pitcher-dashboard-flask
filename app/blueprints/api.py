@@ -9,7 +9,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.extensions import db
-from app.models import Pitch
+from app.models import Game, IngestionRun, Pitch
 from app.services.filters import FilterValidationError, parse_pitch_filters
 from app.services.pitch_data import PitchDataStore
 from app.services.pitcher_charts import build_pitcher_chart_data
@@ -128,7 +128,24 @@ def health():
 @api_blueprint.get("/pitchers")
 def pitchers():
     filters = parse_pitch_filters(request.args)
-    return jsonify({"query": filters.to_dict(), "pitchers": list_pitchers(filters)})
+    latest_game_date = db.session.scalar(select(func.max(Game.game_date)))
+    latest_ingestion = db.session.scalar(
+        select(func.max(IngestionRun.finished_at)).where(IngestionRun.status == "succeeded")
+    )
+    return jsonify(
+        {
+            "query": filters.to_dict(),
+            "pitchers": list_pitchers(filters),
+            "data_freshness": {
+                "latest_game_date": (
+                    latest_game_date.isoformat() if latest_game_date is not None else None
+                ),
+                "last_ingested_at": (
+                    latest_ingestion.isoformat() if latest_ingestion is not None else None
+                ),
+            },
+        }
+    )
 
 
 @api_blueprint.get("/pitchers/<int:pitcher_id>/profile")

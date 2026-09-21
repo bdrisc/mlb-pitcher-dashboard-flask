@@ -12,8 +12,8 @@ WORKDIR /app
 
 RUN groupadd --system app && useradd --system --gid app --create-home app
 
-COPY requirements.txt ./
-RUN python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+COPY requirements.txt requirements-data.txt ./
+RUN python -m pip install --upgrade pip && python -m pip install -r requirements-data.txt
 
 COPY --chown=app:app . .
 RUN chmod +x scripts/docker-entrypoint.sh
