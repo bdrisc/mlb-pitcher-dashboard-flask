@@ -70,7 +70,8 @@ def test_docker_image_uses_non_root_user_healthcheck_and_gunicorn():
 def test_daily_sync_workflow_uses_a_secret_render_deploy_hook():
     workflow = _read(".github/workflows/daily-data-sync.yml")
 
-    assert 'cron: "0 15 * * *"' in workflow
+    assert 'cron: "0 15 15-31 3 *"' in workflow
+    assert 'cron: "0 15 * 4-10 *"' in workflow
     assert "workflow_dispatch:" in workflow
     assert "secrets.RENDER_DEPLOY_HOOK_URL" in workflow
     assert 'curl --fail --show-error --silent --request POST "$RENDER_DEPLOY_HOOK_URL"' in workflow

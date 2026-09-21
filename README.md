@@ -415,9 +415,10 @@ refuses to start in production when the development-only secret is still configu
 ### Free daily data refresh
 
 The checked-in `Daily Statcast Sync` GitHub Actions workflow triggers a normal Render deployment
-every day at 15:00 UTC. During startup, the web service downloads the previous four days through
-yesterday, retains only the deployed pitcher cohort, and transactionally upserts those pitches.
-The old deployment remains available if a refresh fails.
+at 15:00 UTC during the regular-season window (March 15 through October). During startup, the web
+service downloads the previous four days through yesterday, retains only the deployed pitcher
+cohort, and transactionally upserts those pitches. The old deployment remains available if a
+refresh fails, and offseason deployments do not consume the free build allowance.
 
 Complete these one-time setup steps after deploying the branch:
 
