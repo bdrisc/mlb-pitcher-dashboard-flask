@@ -30,7 +30,7 @@ services:
         value: "1"
       - key: SYNC_RECENT_LOOKBACK_DAYS
         value: "4"
-      - key: WEB_CONCURRENCY
+      - key: GUNICORN_WORKERS
         value: "1"
 
 databases:
