@@ -48,6 +48,50 @@ class ProductionSampleReport:
     pitch_count: int
 
 
+def recent_statcast_chunk(
+    *,
+    lookback_days: int = 4,
+    today: date | None = None,
+) -> DateChunk | None:
+    """Return the recent in-season window ending yesterday.
+
+    A small overlap lets later Statcast corrections update existing pitches.
+    Before the broad regular-season window begins, there is nothing to sync.
+    """
+    if lookback_days < 1:
+        raise ValueError("lookback_days must be at least 1.")
+
+    current_date = today or date.today()
+    season_start = date(current_date.year, 3, 15)
+    season_end = date(current_date.year, 11, 15)
+    end_date = min(current_date - timedelta(days=1), season_end)
+    if end_date < season_start:
+        return None
+
+    start_date = max(season_start, end_date - timedelta(days=lookback_days - 1))
+    return DateChunk(start_date=start_date, end_date=end_date)
+
+
+def filter_statcast_pitchers(
+    source_path: Path,
+    destination_path: Path,
+    pitcher_ids: set[int],
+) -> int:
+    """Write only the selected pitchers from a downloaded Statcast chunk."""
+    if not pitcher_ids:
+        return 0
+
+    frame = pd.read_csv(source_path, low_memory=False)
+    numeric_pitchers = pd.to_numeric(frame["pitcher"], errors="coerce")
+    selected = frame.loc[numeric_pitchers.isin(pitcher_ids)].copy()
+    if selected.empty:
+        return 0
+
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
+    selected.to_csv(destination_path, index=False, compression="gzip")
+    return len(selected)
+
+
 def season_date_range(
     season: int,
     *,

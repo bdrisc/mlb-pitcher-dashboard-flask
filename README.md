@@ -22,7 +22,7 @@ responsive Savant-style interface, and six interactive Plotly visualizations.
   CSV streaming, schema validation, deterministic production sampling, and idempotent reloads.
 - **Interactive pitcher evaluation:** filters for pitcher, season, team, pitch type, batter side,
   count, venue, and date range; arsenal tables; platoon splits; and denominator-aware metrics.
-- **Software delivery:** 53 automated tests, Ruff checks, GitHub Actions CI, Docker Compose,
+- **Software delivery:** 57 automated tests, Ruff checks, GitHub Actions CI, Docker Compose,
   Gunicorn, a non-root production image, and public deployment on Render.
 
 ![Interactive arsenal and Plotly charts](docs/images/mlb-pitch-intelligence-charts.jpg)
@@ -197,6 +197,16 @@ omit `--through` to use yesterday:
 ```powershell
 flask --app wsgi statcast fetch-season 2026
 ```
+
+To update only the deployed pitcher cohort, redownload a small overlapping window and upsert it:
+
+```powershell
+flask --app wsgi statcast sync-recent --lookback-days 4
+```
+
+The overlap captures delayed Statcast corrections without creating duplicates. This command keeps
+the public cohort stable by discarding pitches from pitchers who are not already represented in
+PostgreSQL.
 
 Useful alternatives:
 
@@ -401,6 +411,27 @@ gunicorn --config gunicorn.conf.py wsgi:app
 
 Set `APP_ENV=production`, a strong `SECRET_KEY`, `DATABASE_URL`, and `BEHIND_PROXY=1`. The app
 refuses to start in production when the development-only secret is still configured.
+
+### Free daily data refresh
+
+The checked-in `Daily Statcast Sync` GitHub Actions workflow triggers a normal Render deployment
+at 15:00 UTC during the regular-season window (March 15 through October). During startup, the web
+service downloads the previous four days through yesterday, retains only the deployed pitcher
+cohort, and transactionally upserts those pitches. The old deployment remains available if a
+refresh fails, and offseason deployments do not consume the free build allowance.
+
+Complete these one-time setup steps after deploying the branch:
+
+1. Open the Render web service's **Settings** page and create or copy its deploy hook URL.
+2. In GitHub, open **Settings → Secrets and variables → Actions**, create a repository secret
+   named `RENDER_DEPLOY_HOOK_URL`, and paste the deploy hook URL as its value.
+3. Open **Actions → Daily Statcast Sync** and run the workflow manually once.
+4. Confirm the Render deploy logs contain `Recent Statcast sync completed` and the Savant Card's
+   database coverage date advances.
+
+The deploy hook is a credential and must never be committed. GitHub can disable scheduled
+workflows on inactive public repositories after an extended period, so confirm the workflow is
+enabled before each new season.
 
 ## Architectural decisions
 

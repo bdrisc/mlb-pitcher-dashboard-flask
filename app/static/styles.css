@@ -407,6 +407,19 @@ summary,
   border: 1px solid #b9dfcf;
 }
 
+.data-status {
+  display: grid;
+  justify-items: end;
+  gap: 7px;
+}
+
+.data-freshness {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
 .filter-panel,
 .dashboard-section {
   padding: clamp(18px, 3vw, 26px);
@@ -1078,6 +1091,10 @@ summary,
   .section-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .data-status {
+    justify-items: start;
   }
 
   .section-heading > p {
