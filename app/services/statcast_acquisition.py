@@ -51,12 +51,14 @@ class ProductionSampleReport:
 def recent_statcast_chunk(
     *,
     lookback_days: int = 4,
+    latest_game_date: date | None = None,
     today: date | None = None,
 ) -> DateChunk | None:
-    """Return the recent in-season window ending yesterday.
+    """Return an in-season catch-up window ending yesterday.
 
-    A small overlap lets later Statcast corrections update existing pitches.
-    Before the broad regular-season window begins, there is nothing to sync.
+    The normal window overlaps recent days so later Statcast corrections update
+    existing pitches. When the database is behind, begin before its latest game
+    so no dates are skipped during catch-up.
     """
     if lookback_days < 1:
         raise ValueError("lookback_days must be at least 1.")
@@ -68,7 +70,11 @@ def recent_statcast_chunk(
     if end_date < season_start:
         return None
 
-    start_date = max(season_start, end_date - timedelta(days=lookback_days - 1))
+    rolling_start = end_date - timedelta(days=lookback_days - 1)
+    if latest_game_date is not None:
+        catch_up_start = latest_game_date - timedelta(days=lookback_days - 1)
+        rolling_start = min(rolling_start, catch_up_start)
+    start_date = max(season_start, rolling_start)
     return DateChunk(start_date=start_date, end_date=end_date)
 
 

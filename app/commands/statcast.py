@@ -6,10 +6,10 @@ from tempfile import TemporaryDirectory
 
 import click
 from flask.cli import with_appcontext
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.extensions import db
-from app.models import Pitch
+from app.models import Game, Pitch
 from app.services.statcast_acquisition import (
     StatcastAcquisitionError,
     acquire_statcast_chunk,
@@ -128,44 +128,60 @@ def remove_fictional_sample_command() -> None:
 @with_appcontext
 def sync_recent_command(lookback_days: int, retries: int, batch_size: int) -> None:
     """Update the deployed cohort with a small recent Statcast window."""
-    chunk = recent_statcast_chunk(lookback_days=lookback_days)
-    if chunk is None:
-        click.echo("Recent Statcast sync skipped; the season window has not started.")
-        return
-
     pitcher_ids = set(db.session.scalars(select(Pitch.pitcher_id).distinct()))
     if not pitcher_ids:
         click.echo("Recent Statcast sync skipped; no deployed pitcher cohort exists.")
         return
 
+    latest_game_date = db.session.scalar(select(func.max(Game.game_date)))
+    window = recent_statcast_chunk(
+        lookback_days=lookback_days,
+        latest_game_date=latest_game_date,
+    )
+    if window is None:
+        click.echo("Recent Statcast sync skipped; the season window has not started.")
+        return
+
+    chunks = iter_date_chunks(window.start_date, window.end_date, 7)
+    selected_rows = 0
+    inserted_rows = 0
+    updated_rows = 0
+
     try:
         with TemporaryDirectory(prefix="statcast-sync-") as temporary_directory:
             working_directory = Path(temporary_directory)
-            downloaded = acquire_statcast_chunk(
-                chunk,
-                cache_dir=working_directory,
-                retries=retries,
-            )
-            selected_path = working_directory / "selected_recent_statcast.csv.gz"
-            selected_rows = filter_statcast_pitchers(
-                downloaded.path,
-                selected_path,
-                pitcher_ids,
-            )
-            if selected_rows == 0:
-                click.echo(
-                    "Recent Statcast sync completed; no pitches matched the deployed cohort."
+            for chunk in chunks:
+                downloaded = acquire_statcast_chunk(
+                    chunk,
+                    cache_dir=working_directory,
+                    retries=retries,
                 )
-                return
+                selected_path = working_directory / (
+                    f"selected_{chunk.start_date}_{chunk.end_date}.csv.gz"
+                )
+                chunk_rows = filter_statcast_pitchers(
+                    downloaded.path,
+                    selected_path,
+                    pitcher_ids,
+                )
+                if chunk_rows == 0:
+                    continue
 
-            report = ingest_statcast_file(selected_path, batch_size=batch_size)
+                report = ingest_statcast_file(selected_path, batch_size=batch_size)
+                selected_rows += chunk_rows
+                inserted_rows += report.inserted_rows
+                updated_rows += report.updated_rows
     except (StatcastAcquisitionError, IngestionError) as exc:
         raise click.ClickException(str(exc)) from exc
 
-    click.echo(f"Recent Statcast sync completed for {chunk.start_date} through {chunk.end_date}.")
+    if selected_rows == 0:
+        click.echo("Recent Statcast sync completed; no pitches matched the deployed cohort.")
+        return
+
+    click.echo(f"Recent Statcast sync completed for {window.start_date} through {window.end_date}.")
     click.echo(f"Cohort pitches downloaded: {selected_rows:,}")
-    click.echo(f"Inserted pitches: {report.inserted_rows:,}")
-    click.echo(f"Updated pitches: {report.updated_rows:,}")
+    click.echo(f"Inserted pitches: {inserted_rows:,}")
+    click.echo(f"Updated pitches: {updated_rows:,}")
 
 
 @statcast_cli.command("fetch-season")

@@ -72,6 +72,11 @@ def test_recent_sync_window_overlaps_recent_days_and_stops_before_season():
         lookback_days=4,
         today=date(2026, 9, 21),
     ) == DateChunk(date(2026, 9, 17), date(2026, 9, 20))
+    assert recent_statcast_chunk(
+        lookback_days=4,
+        latest_game_date=date(2026, 9, 14),
+        today=date(2026, 9, 21),
+    ) == DateChunk(date(2026, 9, 11), date(2026, 9, 20))
     assert recent_statcast_chunk(today=date(2026, 3, 10)) is None
 
 

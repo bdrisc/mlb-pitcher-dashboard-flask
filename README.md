@@ -204,9 +204,10 @@ To update only the deployed pitcher cohort, redownload a small overlapping windo
 flask --app wsgi statcast sync-recent --lookback-days 4
 ```
 
-The overlap captures delayed Statcast corrections without creating duplicates. This command keeps
-the public cohort stable by discarding pitches from pitchers who are not already represented in
-PostgreSQL.
+The overlap captures delayed Statcast corrections without creating duplicates. If the database is
+more than four days behind, the command starts from its latest stored game date and catches up in
+seven-day chunks. It keeps the public cohort stable by discarding pitches from pitchers who are
+not already represented in PostgreSQL.
 
 Useful alternatives:
 
