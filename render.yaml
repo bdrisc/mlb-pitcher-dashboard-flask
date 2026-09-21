@@ -30,8 +30,8 @@ services:
         value: "1"
       - key: SYNC_RECENT_LOOKBACK_DAYS
         value: "4"
-      - key: WEB_CONCURRENCY
-        value: "2"
+      - key: GUNICORN_WORKERS
+        value: "1"
 
 databases:
   - name: mlb-pitch-intelligence-db
