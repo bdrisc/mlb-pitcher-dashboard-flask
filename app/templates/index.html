@@ -7,14 +7,14 @@
   <main class="home-main">
     <section class="hero home-hero">
       <div>
-        <p class="eyebrow">Flask application foundation</p>
-        <h1>A structured home for pitcher evaluation.</h1>
+        <p class="eyebrow">Statcast metrics and trends</p>
+        <h1>Measure how a pitcher wins.</h1>
         <p>
-          Explore MLB pitch data through a PostgreSQL-backed profile API,
-          validated filters, and a browser interface built for clear player evaluation.
+          Evaluate outcomes, plate discipline, contact quality, arsenal shape, command, and
+          usage through a PostgreSQL-backed profile API and consistently filtered statistics.
         </p>
         <div class="hero-actions">
-          <a class="button button-primary" href="{{ url_for('main.savant_card') }}">Open Savant Card</a>
+          <a class="button button-primary" href="{{ url_for('main.savant_card') }}">Open pitcher report</a>
           <a class="button button-secondary" href="{{ url_for('api.pitchers') }}">View pitcher API</a>
         </div>
       </div>
@@ -50,7 +50,7 @@
         <a href="{{ url_for('api.health') }}"><code>GET /api/v1/health</code><span>Application and dataset status</span></a>
         <a href="{{ url_for('api.pitchers') }}"><code>GET /api/v1/pitchers</code><span>Database-backed pitcher directory</span></a>
         <a href="{{ url_for('api.pitch_summary') }}"><code>GET /api/v1/pitches</code><span>Filterable pitch-type summary</span></a>
-        <a href="{{ url_for('main.savant_card') }}"><code>GET /savant-card</code><span>Interactive pitcher evaluation page</span></a>
+        <a href="{{ url_for('main.savant_card') }}"><code>GET /savant-card</code><span>Interactive statistical pitcher report</span></a>
       </div>
     </section>
   </main>
