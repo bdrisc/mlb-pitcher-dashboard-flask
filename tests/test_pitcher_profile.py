@@ -322,12 +322,8 @@ def test_chart_data_returns_all_five_filtered_datasets(profile_client):
     assert len(payload["charts"]["velocity_trend"]["rows"]) == 2
     assert len(payload["charts"]["usage_by_count"]["rows"]) == 4
     movement = payload["charts"]["movement"]["points"]
-    assert next(point for point in movement if point["pitch_type"] == "FF")[
-        "horizontal_break"
-    ] > 0
-    assert next(point for point in movement if point["pitch_type"] == "SL")[
-        "horizontal_break"
-    ] < 0
+    assert next(point for point in movement if point["pitch_type"] == "FF")["horizontal_break"] > 0
+    assert next(point for point in movement if point["pitch_type"] == "SL")["horizontal_break"] < 0
 
 
 def test_chart_data_uses_the_shared_filter_contract(profile_client):
