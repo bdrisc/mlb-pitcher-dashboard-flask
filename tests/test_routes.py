@@ -20,7 +20,8 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     response = client.get("/savant-card")
 
     assert response.status_code == 200
-    assert b"Savant Card" in response.data
+    assert b"Pitch Intelligence Report" in response.data
+    assert b"Performance metrics" in response.data
     assert b'data-pitchers-url="/api/v1/pitchers"' in response.data
     assert b'id="profile-filters"' in response.data
     assert b'id="pitcher-select"' in response.data
