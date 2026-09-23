@@ -178,9 +178,7 @@
 
         <div class="metric-grid">
           {% set metrics = [
-            ('avg_velocity', 'Avg velocity', 'mph'),
-            ('max_velocity', 'Max velocity', 'mph'),
-            ('avg_spin', 'Avg spin', 'rpm'),
+            ('avg_exit_velocity', 'Avg exit velo', 'mph on batted balls'),
             ('strike_pct', 'Strike%', 'all pitches'),
             ('whiff_pct', 'Whiff%', 'per swing'),
             ('csw_pct', 'CSW%', 'all pitches'),
@@ -323,21 +321,6 @@
             ></div>
           </article>
 
-          <article class="chart-card">
-            <div class="chart-card-heading">
-              <div>
-                <h3>Pitch-type performance</h3>
-                <p>Whiff, called-strike-plus-whiff, zone, and chase rates.</p>
-              </div>
-              <span>Results</span>
-            </div>
-            <div
-              class="plotly-chart"
-              id="performance-chart"
-              role="img"
-              aria-label="Interactive pitch-type performance chart"
-            ></div>
-          </article>
         </div>
       </section>
 
@@ -352,10 +335,6 @@
         <div class="split-grid" id="platoon-splits"></div>
       </section>
 
-      <details class="definition-panel">
-        <summary>Metric definitions and sample notes</summary>
-        <dl id="metric-definitions"></dl>
-      </details>
     </div>
   </main>
 {% endblock %}

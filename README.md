@@ -8,7 +8,7 @@
 MLB Pitch Intelligence is a production Flask and PostgreSQL application for exploring pitcher
 arsenals, pitch characteristics, location, usage, and results from MLB Statcast data. It combines
 a reproducible data-ingestion pipeline, versioned JSON APIs, shared filter validation, a
-responsive Savant-style interface, and six interactive Plotly visualizations.
+responsive Savant-style interface, and five interactive Plotly visualizations.
 
 ![Filterable MLB pitcher Savant Card](docs/images/mlb-pitch-intelligence-dashboard.jpg)
 
@@ -22,7 +22,7 @@ responsive Savant-style interface, and six interactive Plotly visualizations.
   CSV streaming, schema validation, deterministic production sampling, and idempotent reloads.
 - **Interactive pitcher evaluation:** filters for pitcher, season, team, pitch type, batter side,
   count, venue, and date range; arsenal tables; platoon splits; and denominator-aware metrics.
-- **Software delivery:** 57 automated tests, Ruff checks, GitHub Actions CI, Docker Compose,
+- **Software delivery:** 58 automated tests, Ruff checks, GitHub Actions CI, Docker Compose,
   Gunicorn, a non-root production image, and public deployment on Render.
 
 ![Interactive arsenal and Plotly charts](docs/images/mlb-pitch-intelligence-charts.jpg)
@@ -259,9 +259,9 @@ loads pitcher data from the versioned JSON API. The page includes:
 - season, team, pitch type, batter side, count, venue, and date-range filters;
 - URL-synchronized filter state for reproducible profiles;
 - loading, empty-database, empty-sample, and structured API-error states;
-- 12 headline metrics with denominator-aware formatting;
+- 10 headline metrics with denominator-aware formatting;
 - a pitch-level arsenal table and right/left platoon cards;
-- six interactive Plotly charts with hover details, legend isolation, zoom, pan, and PNG export;
+- five interactive Plotly charts with hover details, legend isolation, zoom, pan, and PNG export;
 - responsive layouts for desktop, tablet, and mobile screens.
 
 The page does not calculate baseball metrics in the browser. It sends the active filter set to
@@ -269,18 +269,17 @@ the pitcher profile API and renders the returned SQL aggregates, keeping the API
 source of truth. It sends the same normalized filters to the chart-data API, so every metric,
 table, and chart represents the same sample.
 
-The six visualizations are:
+The five visualizations are:
 
 1. movement profile by pitch type;
 2. average velocity by game date;
 3. release-point consistency;
 4. pitch location with the sample's average strike zone;
-5. pitch usage within each count; and
-6. pitch-type Whiff%, CSW%, Zone%, and Chase%.
+5. pitch usage within each count.
 
 Dense scatter plots are sampled deterministically at 6,000 points for browser performance, while
-the velocity, count-usage, and performance calculations continue to use the complete filtered
-sample. Plotly.js is loaded from its official CDN with an explicit version rather than the frozen
+the velocity and count-usage calculations continue to use the complete filtered sample. Plotly.js
+is loaded from its official CDN with an explicit version rather than the frozen
 legacy `plotly-latest` bundle.
 
 `GET /api/v1/pitchers` is a database-backed directory that returns stable MLB IDs, names,
@@ -295,14 +294,14 @@ filters, including a partial `pitcher` name search.
 - pitch-level arsenal usage and performance metrics; and
 - right- and left-handed batter splits.
 
-`GET /api/v1/pitchers/<pitcher_id>/charts` returns six chart-ready datasets. It selects only the
+`GET /api/v1/pitchers/<pitcher_id>/charts` returns five chart-ready datasets. It selects only the
 database columns needed for the visualizations, applies the shared filter contract before data
 leaves PostgreSQL, and retains `null` rates when a pitch type has no valid opportunity denominator.
 
 All aggregations execute in SQL. The API reports rates as percentages, returns `null` when a
-rate has no valid denominator, and includes metric definitions in the response. The
-`xwoba_on_contact` field is explicitly contact-only rather than being presented as full pitcher
-xwOBA.
+rate has no valid denominator. Avg Exit Velocity, Hard-Hit%, and `xwoba_on_contact` use only
+tracked balls in play; foul-ball exit readings and pitch-level plate-appearance estimates are
+excluded.
 
 After ingesting the fictional sample, open:
 

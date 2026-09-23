@@ -51,18 +51,57 @@ def _metric_columns() -> list[Any]:
     location_known = _location_known()
     event_recorded = and_(Pitch.events.is_not(None), Pitch.events != "")
     event_name = func.lower(Pitch.events)
+    description = func.lower(Pitch.description)
+    swing = description.in_(
+        (
+            "swinging_strike",
+            "swinging_strike_blocked",
+            "missed_bunt",
+            "foul",
+            "foul_tip",
+            "foul_bunt",
+            "bunt_foul_tip",
+            "hit_into_play",
+        )
+    )
+    whiff = description.in_(
+        ("swinging_strike", "swinging_strike_blocked", "foul_tip", "missed_bunt")
+    )
+    strike = description.in_(
+        (
+            "called_strike",
+            "swinging_strike",
+            "swinging_strike_blocked",
+            "missed_bunt",
+            "foul",
+            "foul_tip",
+            "foul_bunt",
+            "bunt_foul_tip",
+            "hit_into_play",
+        )
+    )
+    tracked_batted_ball = and_(
+        Pitch.batted_ball_type.is_not(None),
+        Pitch.batted_ball_type != "",
+        Pitch.exit_velocity.is_not(None),
+    )
+    expected_contact = and_(
+        Pitch.batted_ball_type.is_not(None),
+        Pitch.batted_ball_type != "",
+        Pitch.estimated_woba.is_not(None),
+    )
     return [
         func.count(Pitch.pitch_id).label("pitch_count"),
-        _count_where(Pitch.is_strike.is_(True)).label("strikes"),
-        _count_where(Pitch.is_swing.is_(True)).label("swings"),
-        _count_where(Pitch.is_whiff.is_(True)).label("whiffs"),
-        _count_where(Pitch.is_csw.is_(True)).label("csw"),
+        _count_where(strike).label("strikes"),
+        _count_where(swing).label("swings"),
+        _count_where(whiff).label("whiffs"),
+        _count_where(or_(description == "called_strike", whiff)).label("csw"),
         _count_where(location_known).label("location_tracked"),
         _count_where(and_(location_known, Pitch.is_in_zone.is_(True))).label("in_zone"),
         _count_where(and_(location_known, Pitch.is_in_zone.is_(False))).label("out_of_zone"),
         _count_where(Pitch.is_chase.is_(True)).label("chases"),
-        _count_where(Pitch.exit_velocity.is_not(None)).label("batted_balls"),
-        _count_where(Pitch.is_hard_hit.is_(True)).label("hard_hits"),
+        _count_where(tracked_batted_ball).label("batted_balls"),
+        _count_where(and_(tracked_batted_ball, Pitch.exit_velocity >= 95)).label("hard_hits"),
         _count_where(event_recorded).label("plate_appearances"),
         _count_where(event_name.in_(("strikeout", "strikeout_double_play"))).label("strikeouts"),
         _count_where(event_name.in_(("walk", "intent_walk"))).label("walks"),
@@ -72,8 +111,8 @@ def _metric_columns() -> list[Any]:
         func.avg(Pitch.horizontal_break_inches).label("horizontal_break"),
         func.avg(Pitch.vertical_break_inches).label("vertical_break"),
         func.avg(Pitch.release_extension).label("release_extension"),
-        func.avg(Pitch.exit_velocity).label("avg_exit_velocity"),
-        func.avg(Pitch.estimated_woba).label("xwoba_on_contact"),
+        func.avg(Pitch.exit_velocity).filter(tracked_batted_ball).label("avg_exit_velocity"),
+        func.avg(Pitch.estimated_woba).filter(expected_contact).label("xwoba_on_contact"),
     ]
 
 
@@ -281,12 +320,4 @@ def build_pitcher_profile(pitcher_id: int, filters: PitchFilters) -> dict[str, A
         "overall": _performance_metrics(overview),
         "arsenal": _arsenal_rows(conditions, total_pitches),
         "platoon_splits": _platoon_rows(conditions),
-        "definitions": {
-            "rate_unit": "percent",
-            "whiff_pct": "whiffs divided by swings",
-            "chase_pct": "swings outside the strike zone divided by tracked pitches outside",
-            "zone_pct": "in-zone pitches divided by pitches with tracked locations",
-            "hard_hit_pct": "batted balls at least 95 mph divided by tracked batted balls",
-            "xwoba_on_contact": "average Statcast estimated wOBA on tracked batted balls",
-        },
     }

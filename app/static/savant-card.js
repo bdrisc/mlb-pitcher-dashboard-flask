@@ -35,7 +35,6 @@ if (root) {
     playerId: document.querySelector("#player-id"),
     arsenal: document.querySelector("#arsenal-body"),
     splits: document.querySelector("#platoon-splits"),
-    definitions: document.querySelector("#metric-definitions"),
     databaseFreshness: document.querySelector("#database-freshness"),
   };
 
@@ -347,25 +346,6 @@ if (root) {
     });
   }
 
-  function renderDefinitions(definitions) {
-    const labels = {
-      rate_unit: "Rate unit",
-      whiff_pct: "Whiff%",
-      chase_pct: "Chase%",
-      zone_pct: "Zone%",
-      hard_hit_pct: "Hard-Hit%",
-      xwoba_on_contact: "xwOBAcon",
-    };
-    elements.definitions.replaceChildren();
-    Object.entries(definitions).forEach(([key, definition]) => {
-      const term = document.createElement("dt");
-      const description = document.createElement("dd");
-      term.textContent = labels[key] || key;
-      description.textContent = definition;
-      elements.definitions.append(term, description);
-    });
-  }
-
   function renderProfile(profile) {
     const { pitcher, sample, overall } = profile;
     elements.monogram.textContent = initials(pitcher.name);
@@ -381,7 +361,6 @@ if (root) {
     renderMetricCards(overall);
     renderArsenal(profile.arsenal);
     renderSplits(profile.platoon_splits);
-    renderDefinitions(profile.definitions);
     setVisible(elements.content, true);
   }
 
