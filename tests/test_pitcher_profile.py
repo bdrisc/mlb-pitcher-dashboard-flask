@@ -58,6 +58,7 @@ def profile_client(app):
                     horizontal_break_inches=-8.0,
                     vertical_break_inches=16.0,
                     release_extension=6.2,
+                    description="called_strike",
                     is_strike=True,
                     is_swing=False,
                     is_whiff=False,
@@ -82,6 +83,7 @@ def profile_client(app):
                     horizontal_break_inches=-9.0,
                     vertical_break_inches=17.0,
                     release_extension=6.3,
+                    description="swinging_strike",
                     events="strikeout",
                     is_strike=True,
                     is_swing=True,
@@ -108,6 +110,8 @@ def profile_client(app):
                     horizontal_break_inches=4.0,
                     vertical_break_inches=3.0,
                     release_extension=6.1,
+                    description="hit_into_play",
+                    batted_ball_type="fly_ball",
                     exit_velocity=100.0,
                     estimated_woba=0.620,
                     events="home_run",
@@ -137,6 +141,9 @@ def profile_client(app):
                     horizontal_break_inches=5.0,
                     vertical_break_inches=2.0,
                     release_extension=6.0,
+                    description="foul_tip",
+                    exit_velocity=70.0,
+                    estimated_woba=0.0,
                     is_strike=True,
                     is_swing=False,
                     is_csw=True,
@@ -185,7 +192,7 @@ def test_profile_returns_identity_sample_overall_arsenal_and_splits(profile_clie
         "pitches": 4,
         "games": 2,
         "plate_appearances": 2,
-        "swings": 2,
+        "swings": 3,
         "batted_balls": 1,
         "location_tracked_pitches": 4,
         "out_of_zone_pitches": 2,
@@ -193,9 +200,11 @@ def test_profile_returns_identity_sample_overall_arsenal_and_splits(profile_clie
         "last_game_date": "2026-05-01",
     }
     assert payload["overall"]["avg_velocity"] == 90.5
-    assert payload["overall"]["strike_pct"] == 75.0
-    assert payload["overall"]["whiff_pct"] == 50.0
+    assert payload["overall"]["strike_pct"] == 100.0
+    assert payload["overall"]["whiff_pct"] == 66.7
     assert payload["overall"]["chase_pct"] == 100.0
+    assert payload["overall"]["avg_exit_velocity"] == 100.0
+    assert payload["overall"]["hard_hit_pct"] == 100.0
     assert payload["overall"]["xwoba_on_contact"] == 0.62
     assert [pitch["pitch_type"] for pitch in payload["arsenal"]] == ["FF", "SL"]
     assert payload["arsenal"][0]["usage_pct"] == 50.0
@@ -293,7 +302,7 @@ def test_profile_returns_404_when_known_player_has_no_matching_pitches(profile_c
     }
 
 
-def test_chart_data_returns_all_six_filtered_datasets(profile_client):
+def test_chart_data_returns_all_five_filtered_datasets(profile_client):
     response = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/charts")
 
     assert response.status_code == 200
@@ -306,17 +315,15 @@ def test_chart_data_returns_all_six_filtered_datasets(profile_client):
         "release_point",
         "location",
         "usage_by_count",
-        "pitch_performance",
     }
     assert payload["charts"]["movement"]["available_points"] == 4
     assert payload["charts"]["release_point"]["available_points"] == 4
     assert payload["charts"]["location"]["available_points"] == 4
     assert len(payload["charts"]["velocity_trend"]["rows"]) == 2
     assert len(payload["charts"]["usage_by_count"]["rows"]) == 4
-    assert [row["pitch_type"] for row in payload["charts"]["pitch_performance"]["rows"]] == [
-        "FF",
-        "SL",
-    ]
+    movement = payload["charts"]["movement"]["points"]
+    assert next(point for point in movement if point["pitch_type"] == "FF")["horizontal_break"] > 0
+    assert next(point for point in movement if point["pitch_type"] == "SL")["horizontal_break"] < 0
 
 
 def test_chart_data_uses_the_shared_filter_contract(profile_client):
@@ -340,7 +347,6 @@ def test_chart_data_uses_the_shared_filter_contract(profile_client):
     }
     assert payload["sample"]["pitches"] == 2
     assert {point["pitch_type"] for point in payload["charts"]["movement"]["points"]} == {"SL"}
-    assert payload["charts"]["pitch_performance"]["rows"][0]["usage_pct"] == 100.0
 
 
 def test_chart_data_returns_404_for_an_empty_filtered_sample(profile_client):

@@ -25,13 +25,6 @@ def _rate(numerator: int, denominator: int) -> float | None:
     return None if denominator == 0 else round(100 * numerator / denominator, 1)
 
 
-def _location_known(row: dict[str, Any]) -> bool:
-    return row["zone"] is not None or all(
-        row[field] is not None
-        for field in ("plate_x", "plate_z", "strike_zone_bottom", "strike_zone_top")
-    )
-
-
 def _sample_points(points: list[dict[str, Any]]) -> dict[str, Any]:
     """Cap dense browser scatter plots while preserving the full aggregation sample."""
     available = len(points)
@@ -56,12 +49,15 @@ def _pitch_order(rows: list[dict[str, Any]]) -> list[tuple[str, str]]:
     return sorted(counts, key=lambda key: (-counts[key], key[0]))
 
 
-def _movement_payload(rows: list[dict[str, Any]]) -> dict[str, Any]:
+def _movement_payload(rows: list[dict[str, Any]], throws: str | None) -> dict[str, Any]:
+    horizontal_multiplier = -1 if (throws or "").upper() == "R" else 1
     points = [
         {
             "pitch_type": row["pitch_type"],
             "pitch_name": row["pitch_name"],
-            "horizontal_break": _rounded(row["horizontal_break"]),
+            # Normalize the horizontal axis by pitcher handedness so arm-side
+            # movement is positive and glove-side movement is negative.
+            "horizontal_break": _rounded(row["horizontal_break"] * horizontal_multiplier),
             "vertical_break": _rounded(row["vertical_break"]),
             "velocity": _rounded(row["velocity"]),
             "spin_rate": _rounded(row["spin_rate"], 0),
@@ -169,45 +165,10 @@ def _usage_by_count(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(payload, key=lambda row: (order_lookup[row["count"]], row["pitch_type"]))
 
 
-def _pitch_performance(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    groups: dict[tuple[str, str], dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    for row in rows:
-        group = groups[(row["pitch_type"], row["pitch_name"])]
-        group["pitches"] += 1
-        group["strikes"] += int(row["is_strike"])
-        group["swings"] += int(row["is_swing"])
-        group["whiffs"] += int(row["is_whiff"])
-        group["csw"] += int(row["is_csw"])
-        if _location_known(row):
-            group["tracked"] += 1
-            group["in_zone"] += int(row["is_in_zone"])
-            if not row["is_in_zone"]:
-                group["out_of_zone"] += 1
-        group["chases"] += int(row["is_chase"])
-
-    total = len(rows)
-    performance = []
-    for pitch_type, pitch_name in _pitch_order(rows):
-        group = groups[(pitch_type, pitch_name)]
-        performance.append(
-            {
-                "pitch_type": pitch_type,
-                "pitch_name": pitch_name,
-                "pitch_count": group["pitches"],
-                "usage_pct": _rate(group["pitches"], total),
-                "strike_pct": _rate(group["strikes"], group["pitches"]),
-                "whiff_pct": _rate(group["whiffs"], group["swings"]),
-                "csw_pct": _rate(group["csw"], group["pitches"]),
-                "zone_pct": _rate(group["in_zone"], group["tracked"]),
-                "chase_pct": _rate(group["chases"], group["out_of_zone"]),
-            }
-        )
-    return performance
-
-
 def build_pitcher_chart_data(pitcher_id: int, filters: PitchFilters) -> dict[str, Any]:
-    """Return six chart-ready datasets for one filtered pitcher sample."""
-    if db.session.get(Player, pitcher_id) is None:
+    """Return five chart-ready datasets for one filtered pitcher sample."""
+    player = db.session.get(Player, pitcher_id)
+    if player is None:
         raise PitcherNotFoundError(pitcher_id)
 
     conditions = pitch_filter_conditions(filters, pitcher_id=pitcher_id)
@@ -232,12 +193,6 @@ def build_pitcher_chart_data(pitcher_id: int, filters: PitchFilters) -> dict[str
             Pitch.strike_zone_top,
             Pitch.strike_zone_bottom,
             Pitch.description,
-            Pitch.is_strike,
-            Pitch.is_swing,
-            Pitch.is_whiff,
-            Pitch.is_csw,
-            Pitch.is_in_zone,
-            Pitch.is_chase,
         )
         .select_from(Pitch)
         .join(Game, Game.game_pk == Pitch.game_pk)
@@ -260,11 +215,10 @@ def build_pitcher_chart_data(pitcher_id: int, filters: PitchFilters) -> dict[str
         "query": filters.to_dict(),
         "sample": {"pitches": len(rows), "scatter_point_limit": MAX_SCATTER_POINTS},
         "charts": {
-            "movement": _movement_payload(rows),
+            "movement": _movement_payload(rows, player.throws),
             "velocity_trend": {"rows": _velocity_trend(rows)},
             "release_point": _release_payload(rows),
             "location": _location_payload(rows),
             "usage_by_count": {"rows": _usage_by_count(rows)},
-            "pitch_performance": {"rows": _pitch_performance(rows)},
         },
     }

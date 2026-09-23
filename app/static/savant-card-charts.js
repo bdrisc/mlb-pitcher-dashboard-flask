@@ -21,7 +21,6 @@
     release: document.querySelector("#release-chart"),
     location: document.querySelector("#location-chart"),
     countUsage: document.querySelector("#count-usage-chart"),
-    performance: document.querySelector("#performance-chart"),
   };
   const status = document.querySelector("#chart-status");
   const chartGrid = document.querySelector("#chart-grid");
@@ -75,6 +74,16 @@
     return colors[pitchType] || "#64748b";
   }
 
+  function paddedRange(rows, key, minimumSpan, padding) {
+    const values = rows.map((row) => Number(row[key])).filter(Number.isFinite);
+    if (!values.length) return undefined;
+    const minimum = Math.min(...values);
+    const maximum = Math.max(...values);
+    const span = Math.max(maximum - minimum, minimumSpan);
+    const center = (minimum + maximum) / 2;
+    return [center - span / 2 - padding, center + span / 2 + padding];
+  }
+
   function emptyChart(container, message) {
     if (window.Plotly) window.Plotly.purge(container);
     container.replaceChildren();
@@ -113,25 +122,54 @@
   }
 
   function velocityTraces(chart) {
-    return [...pitchGroups(chart.rows).entries()].map(([pitchType, rows]) => ({
-      type: "scatter",
-      mode: "lines+markers",
-      name: pitchType,
-      x: rows.map((row) => row.game_date),
-      y: rows.map((row) => row.avg_velocity),
-      customdata: rows.map((row) => [
-        row.pitch_name,
-        row.pitch_count,
-        row.min_velocity,
-        row.max_velocity,
-      ]),
-      line: { color: pitchColor(pitchType), width: 2.3 },
-      marker: { color: pitchColor(pitchType), size: 7 },
-      hovertemplate:
-        "<b>%{customdata[0]}</b><br>%{x|%b %d, %Y}<br>Average: %{y:.1f} mph" +
-        "<br>Range: %{customdata[2]:.1f}–%{customdata[3]:.1f} mph" +
-        "<br>Pitches: %{customdata[1]}<extra></extra>",
-    }));
+    return [...pitchGroups(chart.rows).entries()].flatMap(([pitchType, rows]) => {
+      const points = {
+        type: "scatter",
+        mode: "markers",
+        name: pitchType,
+        x: rows.map((row) => row.game_date),
+        y: rows.map((row) => row.avg_velocity),
+        customdata: rows.map((row) => [
+          row.pitch_name,
+          row.pitch_count,
+          row.min_velocity,
+          row.max_velocity,
+        ]),
+        marker: { color: pitchColor(pitchType), size: 7, opacity: 0.78 },
+        hovertemplate:
+          "<b>%{customdata[0]}</b><br>%{x|%b %d, %Y}<br>Average: %{y:.1f} mph" +
+          "<br>Range: %{customdata[2]:.1f}–%{customdata[3]:.1f} mph" +
+          "<br>Pitches: %{customdata[1]}<extra></extra>",
+      };
+      if (rows.length < 2) return [points];
+
+      const dates = rows.map((row) => Date.parse(`${row.game_date}T00:00:00Z`));
+      const firstDate = Math.min(...dates);
+      const x = dates.map((date) => (date - firstDate) / 86400000);
+      const y = rows.map((row) => Number(row.avg_velocity));
+      const xMean = x.reduce((sum, value) => sum + value, 0) / x.length;
+      const yMean = y.reduce((sum, value) => sum + value, 0) / y.length;
+      const denominator = x.reduce((sum, value) => sum + (value - xMean) ** 2, 0);
+      const slope = denominator
+        ? x.reduce((sum, value, index) => sum + (value - xMean) * (y[index] - yMean), 0) /
+          denominator
+        : 0;
+      const minimumX = Math.min(...x);
+      const maximumX = Math.max(...x);
+      const fitted = (value) => yMean + slope * (value - xMean);
+      const trend = {
+        type: "scatter",
+        mode: "lines",
+        name: `${pitchType} trend`,
+        showlegend: false,
+        hoverinfo: "skip",
+        x: [new Date(firstDate + minimumX * 86400000), new Date(firstDate + maximumX * 86400000)],
+        y: [fitted(minimumX), fitted(maximumX)],
+        line: { color: pitchColor(pitchType), width: 3 },
+        opacity: 0.38,
+      };
+      return [points, trend];
+    });
   }
 
   function releaseTraces(chart) {
@@ -198,27 +236,6 @@
     });
   }
 
-  function performanceTraces(chart) {
-    const metrics = [
-      ["Whiff%", "whiff_pct", "#7a0019"],
-      ["CSW%", "csw_pct", "#b59a57"],
-      ["Zone%", "zone_pct", "#18775a"],
-      ["Chase%", "chase_pct", "#2f6fed"],
-    ];
-    const labels = chart.rows.map((row) => row.pitch_type);
-    return metrics.map(([label, key, color]) => ({
-      type: "bar",
-      name: label,
-      x: labels,
-      y: chart.rows.map((row) => row[key]),
-      customdata: chart.rows.map((row) => [row.pitch_name, row.pitch_count]),
-      marker: { color },
-      hovertemplate:
-        `<b>%{customdata[0]}</b><br>${label}: %{y:.1f}%` +
-        "<br>Pitches: %{customdata[1]}<extra></extra>",
-    }));
-  }
-
   async function render(payload) {
     if (!window.Plotly) {
       showError("Plotly could not load. Check the internet connection and refresh the page.");
@@ -228,12 +245,14 @@
     chartGrid.classList.remove("charts-unavailable");
     const charts = payload.charts;
     const zone = charts.location.strike_zone;
+    const releaseXRange = paddedRange(charts.release_point.points, "release_pos_x", 2.4, 0.35);
+    const releaseYRange = paddedRange(charts.release_point.points, "release_pos_z", 2.4, 0.35);
     await Promise.all([
       draw(
         containers.movement,
         movementTraces(charts.movement),
         baseLayout({
-          xaxis: { title: "Horizontal break (in.)", gridcolor: "#e8ebee", zerolinecolor: "#9da7b0" },
+          xaxis: { title: "Glove side (−) / arm side (+), in.", gridcolor: "#e8ebee", zerolinecolor: "#9da7b0" },
           yaxis: { title: "Induced vertical break (in.)", gridcolor: "#e8ebee", zerolinecolor: "#9da7b0" },
         }),
         "No movement data are available for this sample.",
@@ -252,8 +271,8 @@
         containers.release,
         releaseTraces(charts.release_point),
         baseLayout({
-          xaxis: { title: "Horizontal release (ft.)", gridcolor: "#e8ebee" },
-          yaxis: { title: "Release height (ft.)", gridcolor: "#e8ebee", scaleanchor: "x", scaleratio: 1 },
+          xaxis: { title: "Horizontal release (ft.)", range: releaseXRange, gridcolor: "#e8ebee" },
+          yaxis: { title: "Release height (ft.)", range: releaseYRange, gridcolor: "#e8ebee", scaleanchor: "x", scaleratio: 1 },
         }),
         "No release-point data are available for this sample.",
       ),
@@ -269,13 +288,13 @@
               x1: zone.right,
               y0: zone.bottom,
               y1: zone.top,
-              line: { color: "#17202a", width: 2 },
-              fillcolor: "rgba(122,0,25,0.025)",
-              layer: "below",
+              line: { color: "#17202a", width: 3 },
+              fillcolor: "rgba(122,0,25,0.035)",
+              layer: "above",
             },
           ],
-          xaxis: { title: "Horizontal location (ft.)", range: [-2.2, 2.2], gridcolor: "#e8ebee" },
-          yaxis: { title: "Vertical location (ft.)", range: [0.5, 4.8], gridcolor: "#e8ebee", scaleanchor: "x", scaleratio: 1 },
+          xaxis: { title: "Horizontal location (ft.)", range: [-3, 3], gridcolor: "#e8ebee" },
+          yaxis: { title: "Vertical location (ft.)", range: [0, 5.5], gridcolor: "#e8ebee", scaleanchor: "x", scaleratio: 1 },
         }),
         "No plate-location data are available for this sample.",
       ),
@@ -290,17 +309,6 @@
         }),
         "No count data are available for this sample.",
       ),
-      draw(
-        containers.performance,
-        performanceTraces(charts.pitch_performance),
-        baseLayout({
-          barmode: "group",
-          hovermode: "x unified",
-          xaxis: { title: "Pitch type", gridcolor: "#e8ebee", type: "category" },
-          yaxis: { title: "Rate (%)", rangemode: "tozero", ticksuffix: "%", gridcolor: "#e8ebee" },
-        }),
-        "No performance data are available for this sample.",
-      ),
     ]);
   }
 
@@ -309,7 +317,7 @@
     if (isLoading) {
       status.hidden = false;
       status.className = "chart-status";
-      status.textContent = "Updating all six charts…";
+      status.textContent = "Updating all five charts…";
     } else if (!status.classList.contains("chart-status-error")) {
       status.hidden = true;
       status.textContent = "";

@@ -130,17 +130,21 @@ SWING_DESCRIPTIONS = {
     "foul",
     "foul_tip",
     "foul_bunt",
+    "bunt_foul_tip",
     "hit_into_play",
 }
 WHIFF_DESCRIPTIONS = {
     "swinging_strike",
     "swinging_strike_blocked",
+    # Baseball Savant includes caught foul tips in its Swing & Miss% total.
+    "foul_tip",
     "missed_bunt",
 }
 CONTACT_DESCRIPTIONS = {
     "foul",
     "foul_tip",
     "foul_bunt",
+    "bunt_foul_tip",
     "hit_into_play",
 }
 
@@ -415,7 +419,9 @@ def clean_statcast(raw: pd.DataFrame) -> pd.DataFrame:
         raise IngestionError(f"Generated pitch_id values are not unique. Examples: {examples}")
 
     description = data["description"].str.lower()
-    data["is_strike"] = data["type"].astype("string").str.upper().eq("S")
+    # Statcast marks balls put in play as type X. They still count as strikes
+    # for Strike%, along with rows marked S.
+    data["is_strike"] = data["type"].astype("string").str.upper().isin(("S", "X"))
     data["is_swing"] = description.isin(SWING_DESCRIPTIONS)
     data["is_contact"] = description.isin(CONTACT_DESCRIPTIONS)
     data["is_whiff"] = description.isin(WHIFF_DESCRIPTIONS)

@@ -173,7 +173,19 @@ def test_cleaning_creates_ids_names_and_scouting_flags():
     assert cleaned["player_name"].tolist() == ["Test Pitcher"] * 3
     assert bool(cleaned.iloc[1]["is_whiff"]) is True
     assert bool(cleaned.iloc[1]["is_chase"]) is True
+    assert bool(cleaned.iloc[2]["is_strike"]) is True
     assert bool(cleaned.iloc[2]["is_hard_hit"]) is True
+
+
+def test_cleaning_matches_savant_foul_tip_whiff_classification():
+    rows = statcast_rows()
+    rows.loc[0, "description"] = "foul_tip"
+
+    cleaned = clean_statcast(rows)
+
+    assert bool(cleaned.iloc[0]["is_swing"]) is True
+    assert bool(cleaned.iloc[0]["is_whiff"]) is True
+    assert bool(cleaned.iloc[0]["is_csw"]) is True
 
 
 def test_cli_ingests_relational_records_and_audits_success(app, tmp_path):

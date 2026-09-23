@@ -734,7 +734,7 @@ summary,
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -998,6 +998,10 @@ summary,
   border-radius: 11px;
 }
 
+.chart-card:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
 .chart-card-heading {
   display: flex;
   align-items: flex-start;
@@ -1123,6 +1127,10 @@ summary,
 
   .chart-grid {
     grid-template-columns: 1fr;
+  }
+
+  .chart-card:last-child:nth-child(odd) {
+    grid-column: auto;
   }
 }
 
