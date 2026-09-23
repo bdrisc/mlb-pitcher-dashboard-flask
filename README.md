@@ -2,13 +2,21 @@
 
 [![CI](https://github.com/bdrisc/mlb-pitcher-dashboard-flask/actions/workflows/ci.yml/badge.svg)](https://github.com/bdrisc/mlb-pitcher-dashboard-flask/actions/workflows/ci.yml)
 
-**[Open the live Savant Card](https://mlb-pitch-intelligence.onrender.com/savant-card)** ·
+**Stack:** Python · Flask · PostgreSQL · SQLAlchemy · Alembic · Plotly · Docker · Render
+
+**[Open the live Pitcher Report](https://mlb-pitch-intelligence.onrender.com/savant-card)** ·
 **[Browse the pitcher API](https://mlb-pitch-intelligence.onrender.com/api/v1/pitchers)**
 
-MLB Pitch Intelligence is a production Flask and PostgreSQL application for exploring pitcher
-arsenals, pitch characteristics, location, usage, and results from MLB Statcast data. It combines
+MLB Pitch Intelligence is a production Flask and PostgreSQL statistical evaluation platform for
+comparing pitcher outcomes, plate discipline, contact quality, arsenals, shape, command, and
+trends from MLB Statcast data. It combines
 a reproducible data-ingestion pipeline, versioned JSON APIs, shared filter validation, a
 responsive Savant-style interface, and five interactive Plotly visualizations.
+
+**Portfolio role:** this project demonstrates statistics-first product design, relational data
+modeling, SQL aggregation, automated data refresh, and production Flask architecture. Its
+companion Video Scouting Workspace focuses on film review, clip organization, and scouting notes
+rather than repeating this application's full statistical report.
 
 ![Filterable MLB pitcher Savant Card](docs/images/mlb-pitch-intelligence-dashboard.jpg)
 
