@@ -5,7 +5,7 @@ def test_factory_serves_the_jinja_homepage(client):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert b"MLB Pitch Intelligence" in response.data
+    assert b"MLB Pitcher Dashboard" in response.data
     assert b"3" in response.data
 
 
@@ -20,8 +20,14 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     response = client.get("/savant-card")
 
     assert response.status_code == 200
-    assert b"Pitch Intelligence Report" in response.data
+    assert b"Pitcher Report" in response.data
+    assert b"A filterable dashboard built from pitch-level Statcast data in PostgreSQL." in response.data
     assert b"Performance metrics" in response.data
+    assert b'class="metric-grid"' in response.data
+    assert b"Plate-appearance results" not in response.data
+    assert b"Movement is reported in inches." not in response.data
+    assert b"Results against right- and left-handed batters." not in response.data
+    assert b'class="eyebrow"' not in response.data
     assert b'data-pitchers-url="/api/v1/pitchers"' in response.data
     assert b'id="profile-filters"' in response.data
     assert b'id="pitcher-select"' in response.data

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Statistical Pitcher Report · MLB Pitch Intelligence{% endblock %}
+{% block title %}Statistical Pitcher Report · MLB Pitcher Dashboard{% endblock %}
 {% block body_class %}savant-page{% endblock %}
 
 {% block content %}
@@ -13,13 +13,8 @@
   >
     <section class="dashboard-intro">
       <div>
-        <p class="eyebrow">Statistical pitcher evaluation</p>
-        <h1>Pitch Intelligence Report</h1>
-        <p>
-          A filterable statistical profile built from pitch-level Statcast data in PostgreSQL.
-          Evaluate outcomes, plate discipline, contact quality, arsenal shape, and trends from
-          one consistently filtered sample.
-        </p>
+        <h1>Pitcher Report</h1>
+        <p>A filterable dashboard built from pitch-level Statcast data in PostgreSQL.</p>
       </div>
       <div class="data-status">
         <span class="data-badge">Database backed</span>
@@ -30,7 +25,6 @@
     <section class="filter-panel" aria-labelledby="filter-heading">
       <div class="section-heading compact-heading">
         <div>
-          <p class="eyebrow">Profile controls</p>
           <h2 id="filter-heading">Choose a pitcher and sample</h2>
         </div>
         <button class="text-button" id="reset-filters" type="button">Reset filters</button>
@@ -171,47 +165,29 @@
       <section class="dashboard-section" aria-labelledby="overview-heading">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Statistical evaluation</p>
             <h2 id="overview-heading">Performance metrics</h2>
           </div>
-          <p>Every rate uses an explicit opportunity denominator and the active filters.</p>
         </div>
 
-        {% set metric_groups = [
-          ('Outcomes', 'Plate-appearance results', [
-            ('strikeout_pct', 'K%', 'plate appearances'),
-            ('walk_pct', 'BB%', 'plate appearances')
-          ]),
-          ('Plate discipline', 'Strike generation and swing decisions', [
-            ('strike_pct', 'Strike%', 'all pitches'),
-            ('whiff_pct', 'Whiff%', 'per swing'),
-            ('csw_pct', 'CSW%', 'all pitches'),
-            ('zone_pct', 'Zone%', 'tracked locations'),
-            ('chase_pct', 'Chase%', 'out-of-zone pitches')
-          ]),
-          ('Contact quality', 'Damage on tracked balls in play', [
-            ('avg_exit_velocity', 'Avg exit velo', 'mph on batted balls'),
-            ('hard_hit_pct', 'Hard-Hit%', 'batted balls'),
-            ('xwoba_on_contact', 'xwOBAcon', 'contact only')
-          ])
+        {% set metrics = [
+          ('strikeout_pct', 'K%', 'plate appearances'),
+          ('walk_pct', 'BB%', 'plate appearances'),
+          ('strike_pct', 'Strike%', 'all pitches'),
+          ('whiff_pct', 'Whiff%', 'per swing'),
+          ('csw_pct', 'CSW%', 'all pitches'),
+          ('zone_pct', 'Zone%', 'tracked locations'),
+          ('chase_pct', 'Chase%', 'out-of-zone pitches'),
+          ('avg_exit_velocity', 'Avg exit velo', 'mph on batted balls'),
+          ('hard_hit_pct', 'Hard-Hit%', 'batted balls'),
+          ('xwoba_on_contact', 'xwOBAcon', 'contact only')
         ] %}
-        <div class="metric-groups">
-          {% for group_name, group_context, metrics in metric_groups %}
-            <section class="metric-group" aria-labelledby="metric-group-{{ loop.index }}">
-              <div class="metric-group-heading">
-                <h3 id="metric-group-{{ loop.index }}">{{ group_name }}</h3>
-                <p>{{ group_context }}</p>
-              </div>
-              <div class="metric-grid metric-grid-{{ metrics|length }}">
-                {% for key, label, context in metrics %}
-                  <article class="metric-card">
-                    <span>{{ label }}</span>
-                    <strong data-metric="{{ key }}">—</strong>
-                    <small>{{ context }}</small>
-                  </article>
-                {% endfor %}
-              </div>
-            </section>
+        <div class="metric-grid">
+          {% for key, label, context in metrics %}
+            <article class="metric-card">
+              <span>{{ label }}</span>
+              <strong data-metric="{{ key }}">—</strong>
+              <small>{{ context }}</small>
+            </article>
           {% endfor %}
         </div>
       </section>
@@ -219,10 +195,8 @@
       <section class="dashboard-section" aria-labelledby="arsenal-heading">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Pitch-level metrics</p>
             <h2 id="arsenal-heading">Arsenal performance</h2>
           </div>
-          <p>Movement is reported in inches.</p>
         </div>
         <div class="table-shell" tabindex="0" aria-label="Scrollable arsenal table">
           <table class="arsenal-table">
@@ -250,7 +224,6 @@
       <section class="dashboard-section chart-section" aria-labelledby="charts-heading">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Statistical trends</p>
             <h2 id="charts-heading">Shape, command, and usage</h2>
           </div>
           <p>Hover, zoom, pan, isolate pitch types, or download any chart.</p>
@@ -344,10 +317,8 @@
       <section class="dashboard-section" aria-labelledby="splits-heading">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Matchup performance</p>
             <h2 id="splits-heading">Platoon splits</h2>
           </div>
-          <p>Results against right- and left-handed batters.</p>
         </div>
         <div class="split-grid" id="platoon-splits"></div>
       </section>
