@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Home · MLB Pitch Intelligence{% endblock %}
+{% block title %}Home · MLB Pitcher Dashboard{% endblock %}
 {% block body_class %}home-page{% endblock %}
 
 {% block content %}
@@ -8,11 +8,8 @@
     <section class="hero home-hero">
       <div>
         <p class="eyebrow">Statcast metrics and trends</p>
-        <h1>Measure how a pitcher wins.</h1>
-        <p>
-          Evaluate outcomes, plate discipline, contact quality, arsenal shape, command, and
-          usage through a PostgreSQL-backed profile API and consistently filtered statistics.
-        </p>
+        <h1>MLB Pitcher Dashboard</h1>
+        <p>Evaluate outcomes and arsenals.</p>
         <div class="hero-actions">
           <a class="button button-primary" href="{{ url_for('main.savant_card') }}">Open pitcher report</a>
           <a class="button button-secondary" href="{{ url_for('api.pitchers') }}">View pitcher API</a>

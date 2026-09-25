@@ -1,4 +1,4 @@
-"""Application factory for the MLB Pitch Intelligence Flask app."""
+"""Application factory for the MLB Pitcher Dashboard Flask app."""
 
 from __future__ import annotations
 

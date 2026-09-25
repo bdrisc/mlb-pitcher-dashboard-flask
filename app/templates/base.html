@@ -4,16 +4,16 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
-    <title>{% block title %}MLB Pitch Intelligence{% endblock %}</title>
+    <title>{% block title %}MLB Pitcher Dashboard{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     {% block head %}{% endblock %}
   </head>
   <body class="{% block body_class %}{% endblock %}">
     <header class="site-header">
-      <a class="brand" href="{{ url_for('main.index') }}" aria-label="MLB Pitch Intelligence home">
-        <span class="brand-mark" aria-hidden="true">PI</span>
+      <a class="brand" href="{{ url_for('main.index') }}" aria-label="MLB Pitcher Dashboard home">
+        <span class="brand-mark" aria-hidden="true">PD</span>
         <span>
-          <strong>MLB Pitch Intelligence</strong>
+          <strong>MLB Pitcher Dashboard</strong>
           <small>Statistical evaluation platform</small>
         </span>
       </a>
@@ -27,7 +27,7 @@
     {% block content %}{% endblock %}
 
     <footer class="site-footer">
-      <span>MLB Pitch Intelligence</span>
+      <span>MLB Pitcher Dashboard</span>
       <span>Flask · PostgreSQL · SQLAlchemy</span>
     </footer>
     {% block scripts %}{% endblock %}

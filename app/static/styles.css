@@ -732,50 +732,10 @@ summary,
   font-weight: 850;
 }
 
-.metric-groups {
-  display: grid;
-  gap: 18px;
-}
-
-.metric-group {
-  display: grid;
-  grid-template-columns: minmax(150px, 0.24fr) minmax(0, 1fr);
-  gap: 18px;
-  align-items: start;
-  padding-top: 18px;
-  border-top: 1px solid #e6e9ec;
-}
-
-.metric-group:first-child {
-  padding-top: 0;
-  border-top: 0;
-}
-
-.metric-group-heading h3 {
-  margin: 2px 0 5px;
-  font-size: 0.9rem;
-  letter-spacing: -0.015em;
-}
-
-.metric-group-heading p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.7rem;
-  line-height: 1.45;
-}
-
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
-}
-
-.metric-grid-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.metric-grid-3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .metric-card {
@@ -1099,21 +1059,8 @@ summary,
 }
 
 @media (max-width: 1120px) {
-  .metric-group {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
   .metric-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .metric-grid-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .metric-grid-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .profile-hero {
@@ -1172,10 +1119,6 @@ summary,
 
   .metric-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .metric-grid-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .split-grid {

@@ -1,4 +1,4 @@
-# MLB Pitch Intelligence
+# MLB Pitcher Dashboard
 
 [![CI](https://github.com/bdrisc/mlb-pitcher-dashboard-flask/actions/workflows/ci.yml/badge.svg)](https://github.com/bdrisc/mlb-pitcher-dashboard-flask/actions/workflows/ci.yml)
 
@@ -7,7 +7,7 @@
 **[Open the live Pitcher Report](https://mlb-pitch-intelligence.onrender.com/savant-card)** ·
 **[Browse the pitcher API](https://mlb-pitch-intelligence.onrender.com/api/v1/pitchers)**
 
-MLB Pitch Intelligence is a production Flask and PostgreSQL statistical evaluation platform for
+MLB Pitcher Dashboard is a production Flask and PostgreSQL statistical evaluation platform for
 comparing pitcher outcomes, plate discipline, contact quality, arsenals, shape, command, and
 trends from MLB Statcast data. It combines
 a reproducible data-ingestion pipeline, versioned JSON APIs, shared filter validation, a

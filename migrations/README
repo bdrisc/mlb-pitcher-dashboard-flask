@@ -1,4 +1,4 @@
-Single-database migration configuration for the MLB Pitch Intelligence Flask app.
+Single-database migration configuration for the MLB Pitcher Dashboard Flask app.
 
 Apply migrations with:
 
