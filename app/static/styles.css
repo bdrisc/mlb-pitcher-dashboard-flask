@@ -2,10 +2,10 @@
   color: #17202a;
   background: #eef1f4;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --maroon: #7a0019;
-  --maroon-bright: #97052b;
-  --maroon-dark: #3f000d;
-  --gold: #b59a57;
+  --brand: #0b6877;
+  --brand-bright: #087f8c;
+  --brand-dark: #0b2438;
+  --accent: #60c7c2;
   --ink: #17202a;
   --muted: #66727e;
   --line: #dce1e6;
@@ -35,7 +35,7 @@ body {
   min-height: 100vh;
   color: var(--ink);
   background:
-    radial-gradient(circle at 88% -5%, rgba(122, 0, 25, 0.1), transparent 28rem),
+    radial-gradient(circle at 88% -5%, rgba(8, 127, 140, 0.12), transparent 28rem),
     #eef1f4;
 }
 
@@ -51,7 +51,7 @@ input,
 select,
 summary,
 [tabindex="0"] {
-  outline-color: var(--maroon-bright);
+  outline-color: var(--brand-bright);
   outline-offset: 3px;
 }
 
@@ -66,9 +66,9 @@ summary,
   min-height: 76px;
   padding: 13px clamp(18px, 4vw, 64px);
   color: white;
-  background: linear-gradient(112deg, var(--maroon-dark), var(--maroon) 70%, var(--maroon-bright));
-  border-bottom: 3px solid var(--gold);
-  box-shadow: 0 8px 24px rgba(63, 0, 13, 0.2);
+  background: linear-gradient(112deg, var(--brand-dark), var(--brand) 70%, var(--brand-bright));
+  border-bottom: 3px solid var(--accent);
+  box-shadow: 0 8px 24px rgba(11, 36, 56, 0.2);
 }
 
 .brand {
@@ -86,8 +86,8 @@ summary,
   width: 42px;
   height: 42px;
   place-items: center;
-  color: var(--maroon-dark);
-  background: #eadba7;
+  color: var(--brand-dark);
+  background: #d9f3f2;
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 11px;
   font-size: 0.88rem;
@@ -185,7 +185,7 @@ summary,
 
 .eyebrow {
   margin: 0 0 6px;
-  color: var(--maroon);
+  color: var(--brand);
   font-size: 0.68rem;
   font-weight: 850;
   letter-spacing: 0.14em;
@@ -226,18 +226,18 @@ summary,
 
 .button-primary {
   color: white;
-  background: var(--maroon);
-  box-shadow: 0 7px 18px rgba(122, 0, 25, 0.2);
+  background: var(--brand);
+  box-shadow: 0 7px 18px rgba(11, 104, 119, 0.2);
 }
 
 .button-primary:hover:not(:disabled) {
-  background: var(--maroon-bright);
+  background: var(--brand-bright);
 }
 
 .button-secondary {
-  color: var(--maroon);
+  color: var(--brand);
   background: white;
-  border-color: #d7bfc5;
+  border-color: #b5d4d9;
 }
 
 .status,
@@ -305,8 +305,8 @@ summary,
 
 .card.featured {
   color: white;
-  background: linear-gradient(135deg, var(--maroon-dark), var(--maroon));
-  border-color: var(--maroon);
+  background: linear-gradient(135deg, var(--brand-dark), var(--brand));
+  border-color: var(--brand);
 }
 
 .card.featured span {
@@ -355,12 +355,12 @@ summary,
 }
 
 .route-list a:hover {
-  background: #fbf5f6;
-  border-color: #c9aeb5;
+  background: #f0f8f9;
+  border-color: #b5d4d9;
 }
 
 .route-list code {
-  color: var(--maroon);
+  color: var(--brand);
   font-weight: 800;
 }
 
@@ -458,7 +458,7 @@ summary,
 
 .text-button {
   padding: 7px 0;
-  color: var(--maroon);
+  color: var(--brand);
   background: transparent;
   border: 0;
   font-size: 0.75rem;
@@ -513,8 +513,8 @@ summary,
 
 .field input:focus,
 .field select:focus {
-  border-color: var(--maroon);
-  box-shadow: 0 0 0 3px rgba(122, 0, 25, 0.1);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(8, 127, 140, 0.15);
   outline: none;
 }
 
@@ -616,7 +616,7 @@ summary,
 
 .spinner {
   border: 3px solid #d5dce2;
-  border-top-color: var(--maroon);
+  border-top-color: var(--brand);
   animation: spin 800ms linear infinite;
 }
 
@@ -640,10 +640,10 @@ summary,
   color: white;
   background:
     radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.13), transparent 18rem),
-    linear-gradient(125deg, var(--maroon-dark), var(--maroon) 68%, #8d0928);
-  border: 1px solid #5d0618;
+    linear-gradient(125deg, var(--brand-dark), var(--brand) 68%, var(--brand-bright));
+  border: 1px solid #145566;
   border-radius: 14px;
-  box-shadow: 0 18px 44px rgba(63, 0, 13, 0.2);
+  box-shadow: 0 18px 44px rgba(11, 36, 56, 0.2);
 }
 
 .player-identity {
@@ -659,8 +659,8 @@ summary,
   width: 72px;
   height: 72px;
   place-items: center;
-  color: var(--maroon-dark);
-  background: linear-gradient(145deg, #f3e7bd, #cab06d);
+  color: var(--brand-dark);
+  background: linear-gradient(145deg, #e4f8f7, #9addda);
   border: 2px solid rgba(255, 255, 255, 0.58);
   border-radius: 18px;
   font-size: 1.35rem;
@@ -756,7 +756,7 @@ summary,
   right: 0;
   left: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--maroon), var(--gold));
+  background: linear-gradient(90deg, var(--brand), var(--accent));
   content: "";
 }
 
@@ -833,11 +833,11 @@ summary,
 
 .arsenal-table tbody tr:hover th,
 .arsenal-table tbody tr:hover td {
-  background: #fbf7f8;
+  background: #f0f8f9;
 }
 
 .emphasized-cell {
-  color: var(--maroon);
+  color: var(--brand);
   font-weight: 850;
 }
 
@@ -949,7 +949,7 @@ summary,
 }
 
 .definition-panel dt {
-  color: var(--maroon);
+  color: var(--brand);
   font-weight: 850;
 }
 
@@ -1026,8 +1026,8 @@ summary,
 .chart-card-heading > span {
   flex: 0 0 auto;
   padding: 4px 6px;
-  color: var(--maroon);
-  background: #f8edef;
+  color: var(--brand);
+  background: #eaf6f7;
   border-radius: 5px;
   font-size: 0.58rem;
   font-weight: 850;
