@@ -61,7 +61,7 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
 
 
 def test_health_reports_the_loaded_dataset(client):
-    response = client.get("/api/v1/health")
+    response = client.get("/api/v1/ready")
 
     assert response.status_code == 200
     assert response.json["status"] == "ok"
@@ -183,7 +183,8 @@ def test_liveness_does_not_query_an_unavailable_database(client, monkeypatch):
     monkeypatch.setattr(db.session, "execute", fail_query)
     monkeypatch.setattr(db.session, "scalar", fail_query)
 
-    response = client.get("/api/v1/live")
+    for path in ("/api/v1/live", "/api/v1/health"):
+        response = client.get(path)
 
-    assert response.status_code == 200
-    assert response.json == {"status": "ok", "version": "test"}
+        assert response.status_code == 200
+        assert response.json == {"status": "ok", "version": "test"}

@@ -250,7 +250,7 @@ September 14, 2026. The full league cache remains local and is never committed.
 ## API routes
 
 ```text
-GET /api/v1/health
+GET /api/v1/ready
 GET /api/v1/pitchers
 GET /api/v1/pitchers/<pitcher_id>/profile
 GET /api/v1/pitchers/<pitcher_id>/charts
@@ -376,7 +376,7 @@ docker compose up --build
 Compose starts PostgreSQL 17, waits for it to become healthy, applies the database migrations,
 loads the fictional sample data idempotently, and serves the Flask app through Gunicorn at
 `http://127.0.0.1:8080`. The API health check is available at
-`http://127.0.0.1:8080/api/v1/health`.
+`http://127.0.0.1:8080/api/v1/ready`.
 
 Press `Ctrl+C` to stop the foreground process, then remove the stopped containers:
 
@@ -393,7 +393,11 @@ The named PostgreSQL volume preserves the database between runs. Only use
 connection. The public deployment uses Neon PostgreSQL; local Docker Compose still runs its own
 PostgreSQL 17 database.
 
-1. Create a Neon project on the **Free** plan, near the existing Render service's region.
+The current public deployment uses the existing Neon **Launch** organization, with a 0.25–0.5 CU
+compute and a five-minute idle timeout. Render web hosting remains on its Free plan.
+
+1. Create a Neon project near the existing Render service's region (Oregon for this deployment).
+   For a new account, the Free plan is an alternative if its quotas fit your dataset.
    Select PostgreSQL 17 to match the local and CI environments.
 2. Copy the **direct** PostgreSQL connection URL from Neon's Connect dialog. Keep the supplied
    SSL parameters. This one-worker app can use a direct connection for both migrations and queries.
@@ -408,8 +412,8 @@ PostgreSQL 17 database.
    Startup maintenance applies migrations, imports the bundled production dataset into an empty
    database, then refreshes the existing pitcher cohort. It runs in the background, so the page
    can open before the data is ready. Wait for the successful maintenance messages in deploy logs.
-6. Check `/api/v1/health` manually for database readiness, then open `/api/v1/pitchers` and a
-   Savant Card to verify the data and charts. The `/api/v1/live` hosting probe checks only the
+6. Check `/api/v1/ready` manually for database readiness, then open `/api/v1/pitchers` and a
+   Savant Card to verify the data and charts. The `/api/v1/live` hosting probe and legacy `/api/v1/health` alias check only the
    web process so routine health checks do not keep Neon's database awake.
 7. In Neon's SQL Editor, check storage after the initial load and periodically as data grows:
 
