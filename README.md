@@ -389,22 +389,50 @@ The named PostgreSQL volume preserves the database between runs. Only use
 
 ## Deploy on Render
 
-`render.yaml` defines a Docker web service and managed PostgreSQL 17 database. To deploy it:
+`render.yaml` defines a free Docker web service with an externally supplied PostgreSQL
+connection. The public deployment uses Neon PostgreSQL; local Docker Compose still runs its own
+PostgreSQL 17 database.
 
-1. Push this repository to GitHub.
-2. In Render, create a new Blueprint and select the repository.
-3. Review the resources described by `render.yaml`, then apply the Blueprint.
-4. Confirm `/api/v1/health` reports `"status": "ok"` after the first deployment.
+1. Create a Neon project on the **Free** plan, near the existing Render service's region.
+   Select PostgreSQL 17 to match the local and CI environments.
+2. Copy the **direct** PostgreSQL connection URL from Neon's Connect dialog. Keep the supplied
+   SSL parameters. This one-worker app can use a direct connection for both migrations and queries.
+3. In the existing Render web service's **Environment** settings, replace `DATABASE_URL` with
+   that URL. Store it only as a secret environment variable, never in GitHub source code.
+   `sync: false` in the Blueprint leaves the secret under dashboard control. For an existing
+   Blueprint, set this value manually; syncing the YAML alone will not replace the old URL.
+4. Deploy the updated code to the existing Render web service to keep its public URL. Set its
+   **Health Check Path** to `/api/v1/live` if the service is not managed by a Blueprint.
+5. Keep `RUN_MIGRATIONS=1`, `SEED_DATABASE=1`,
+   `STATCAST_SEED_PATH=data/production_statcast_2026.csv.gz`, and `SYNC_RECENT_ON_STARTUP=1`.
+   Startup maintenance applies migrations, imports the bundled production dataset into an empty
+   database, then refreshes the existing pitcher cohort. It runs in the background, so the page
+   can open before the data is ready. Wait for the successful maintenance messages in deploy logs.
+6. Check `/api/v1/health` manually for database readiness, then open `/api/v1/pitchers` and a
+   Savant Card to verify the data and charts. The `/api/v1/live` hosting probe checks only the
+   web process so routine health checks do not keep Neon's database awake.
+7. In Neon's SQL Editor, check storage after the initial load and periodically as data grows:
 
-Render generates the production secret and database connection string. `PITCH_DATA_PATH` keeps
-the small fallback source used by legacy in-memory routes separate from `STATCAST_SEED_PATH`, the
-large database-ingestion source. The container entrypoint applies database migrations and streams
-`data/production_statcast_2026.csv.gz` into an empty database before Gunicorn starts. When
-upgrading the original demonstration deployment, the seed command keeps the six reserved
-fictional pitches available until all 133,933 real pitches load successfully, then removes them.
-Later deployments and container restarts detect the existing MLB data and skip the import. For a
-public portfolio deployment that must retain data indefinitely, review the current retention
-limits before choosing a free database plan.
+   ```sql
+   SELECT pg_size_pretty(pg_database_size(current_database())) AS database_size;
+   ```
+
+Neon's current Free plan includes 1 GB of database storage and 100 CU-hours per project per
+month. Check the console's usage meters and [current pricing](https://neon.com/pricing) before
+expanding the public dataset. The database scales to zero when idle; the first query may take
+longer. Avoid uptime monitors that repeatedly call database-backed routes. Render's free web
+service also sleeps when idle and retains its existing monthly usage limits.
+
+The old Render database is no longer declared in this Blueprint. Do not delete it until the new
+database has been verified and any data absent from the bundled seed has been recovered or
+redownloaded. An expired Render database requires an upgrade to regain access; rebuilding from
+the checked-in seed and public Statcast source avoids depending on that export. Ingestion audit
+history from the old database is not recreated. The existing daily Render deploy-hook workflow
+continues to refresh the Neon-backed deployment without a new GitHub secret.
+
+Render generates the production secret. `PITCH_DATA_PATH` keeps the small fallback source used
+by legacy in-memory routes separate from `STATCAST_SEED_PATH`, the database-ingestion source.
+Later restarts detect existing MLB data and skip the seed import.
 
 Deployments created before `STATCAST_SEED_PATH` was introduced remain compatible: when the
 production `PITCH_DATA_PATH` still points to the compressed seed file, Flask automatically uses
@@ -459,7 +487,7 @@ enabled before each new season.
 - Plot generation is isolated from request handling and uses a non-interactive backend.
 - Missing or invalid data produce readable `503` responses while the app remains diagnosable.
 - The health endpoint verifies both the SQL connection and pitch-data source for orchestrator
-  readiness checks.
+  manual readiness checks; hosting probes use the database-free liveness endpoint.
 - Gunicorn serves production traffic, while `ProxyFix` is enabled explicitly behind a trusted
   platform proxy.
 - The container runs as an unprivileged user and starts only after optional migration and sample

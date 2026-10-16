@@ -23,7 +23,7 @@ USER app
 EXPOSE 10000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD ["python", "-c", "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.getenv('PORT', '10000') + '/api/v1/health', timeout=4)"]
+    CMD ["python", "-c", "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.getenv('PORT', '10000') + '/api/v1/live', timeout=4)"]
 
 ENTRYPOINT ["./scripts/docker-entrypoint.sh"]
 CMD ["gunicorn", "--config", "gunicorn.conf.py", "wsgi:app"]
