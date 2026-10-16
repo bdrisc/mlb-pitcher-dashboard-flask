@@ -21,7 +21,10 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
 
     assert response.status_code == 200
     assert b"Pitcher Report" in response.data
-    assert b"A filterable dashboard built from pitch-level Statcast data in PostgreSQL." in response.data
+    assert (
+        b"A filterable dashboard built from pitch-level Statcast data in PostgreSQL."
+        in response.data
+    )
     assert b"Performance metrics" in response.data
     assert b'class="metric-grid"' in response.data
     assert b"Plate-appearance results" not in response.data
@@ -169,3 +172,18 @@ def test_movement_plot_returns_png_bytes(client):
     assert response.status_code == 200
     assert response.content_type == "image/png"
     assert response.data.startswith(b"\x89PNG")
+
+
+def test_liveness_does_not_query_an_unavailable_database(client, monkeypatch):
+    from app.extensions import db
+
+    def fail_query(*args, **kwargs):
+        raise AssertionError("Liveness must not query the database")
+
+    monkeypatch.setattr(db.session, "execute", fail_query)
+    monkeypatch.setattr(db.session, "scalar", fail_query)
+
+    response = client.get("/api/v1/live")
+
+    assert response.status_code == 200
+    assert response.json == {"status": "ok", "version": "test"}

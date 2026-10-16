@@ -83,6 +83,12 @@ def no_matching_profile_pitches(error: NoMatchingPitchesError):
     )
 
 
+@api_blueprint.get("/live")
+def live():
+    """Check the web process without waking an idle hosted database."""
+    return jsonify({"status": "ok", "version": current_app.config["APP_VERSION"]})
+
+
 @api_blueprint.get("/health")
 def health():
     store = _store()

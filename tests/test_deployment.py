@@ -27,7 +27,7 @@ def test_render_blueprint_connects_web_database_and_health_check():
     blueprint = _read("render.yaml")
 
     assert "runtime: docker" in blueprint
-    assert "healthCheckPath: /api/v1/health" in blueprint
+    assert "healthCheckPath: /api/v1/live" in blueprint
     assert "preDeployCommand:" not in blueprint
     assert "initialDeployHook:" not in blueprint
     assert '      - key: RUN_MIGRATIONS\n        value: "1"' in blueprint
@@ -38,9 +38,9 @@ def test_render_blueprint_connects_web_database_and_health_check():
     assert "value: data/production_statcast_2026.csv.gz" in blueprint
     assert "      - key: PITCH_DATA_PATH\n        value: data/sample_statcast.csv" in blueprint
     assert "autoDeployTrigger: checksPass" in blueprint
-    assert "fromDatabase:" in blueprint
-    assert "property: connectionString" in blueprint
-    assert 'postgresMajorVersion: "17"' in blueprint
+    assert "      - key: DATABASE_URL\n        sync: false" in blueprint
+    assert "fromDatabase:" not in blueprint
+    assert "databases:" not in blueprint
 
 
 def test_ci_runs_supported_python_versions_postgres_and_docker_build():
@@ -60,6 +60,7 @@ def test_docker_image_uses_non_root_user_healthcheck_and_gunicorn():
     assert "FROM python:3.10-slim" in dockerfile
     assert "USER app" in dockerfile
     assert "HEALTHCHECK" in dockerfile
+    assert "/api/v1/live" in dockerfile
     assert "requirements-data.txt" in dockerfile
     assert 'CMD ["gunicorn", "--config", "gunicorn.conf.py", "wsgi:app"]' in dockerfile
     assert "statcast seed-if-needed" in entrypoint.read_text(encoding="utf-8")
