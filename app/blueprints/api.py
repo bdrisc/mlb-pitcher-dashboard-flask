@@ -83,7 +83,7 @@ def no_matching_profile_pitches(error: NoMatchingPitchesError):
     )
 
 
-@api_blueprint.get("/health")
+@api_blueprint.get("/health", endpoint="health")
 @api_blueprint.get("/live")
 def live():
     """Check the web process without waking an idle hosted database."""
