@@ -141,3 +141,11 @@ def test_profile_filters_keep_season_reference_and_withhold_ambiguous_slider(app
     assert response.get_json()["arsenal"][0]["stuff_plus"] == 123.2
     response = client.get("/api/v1/pitchers/100/profile")
     assert response.get_json()["overall"]["stuff_plus"] is None
+
+
+def test_published_negative_and_zero_grades_are_preserved(app):
+    with app.app_context():
+        import_grades(frame(**{"Stuff+": -15.96, "Stf+ FA": 0}), 2026)
+        result = profile_grades(100, 2026)
+        assert result["overall"] == -15.96
+        assert result["pitches"]["FF"] == 0

@@ -47,7 +47,7 @@ def import_grades(frame, season, crosswalk=None):
             if raw is None or pd.isna(raw) or str(raw).strip() in ("", "-", "—"):
                 continue
             value = float(raw)
-            if not math.isfinite(value) or value <= 0:
+            if not math.isfinite(value):
                 continue
             pending.append((mlb_id, fg_id, category, value))
     if not pending:
