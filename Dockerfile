@@ -16,7 +16,8 @@ COPY requirements.txt requirements-data.txt ./
 RUN python -m pip install --upgrade pip && python -m pip install -r requirements-data.txt
 
 COPY --chown=app:app . .
-RUN chmod +x scripts/docker-entrypoint.sh
+RUN python -c "from pathlib import Path; p = Path('scripts/docker-entrypoint.sh'); p.write_bytes(p.read_bytes().replace(b'\r\n', b'\n'))" \
+    && chmod +x scripts/docker-entrypoint.sh
 
 USER app
 
