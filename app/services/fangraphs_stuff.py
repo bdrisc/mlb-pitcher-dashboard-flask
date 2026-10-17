@@ -42,14 +42,22 @@ def import_grades(frame, season, crosswalk=None):
                 "Duplicate pitcher rows; export combined season totals, not team splits."
             )
         seen.add(mlb_id)
-        for category, column in [("ALL", "Stuff+")] + [(c, f"Stf+ {c}") for c in CATEGORIES]:
-            raw = row.get(column)
-            if raw is None or pd.isna(raw) or str(raw).strip() in ("", "-", "—"):
-                continue
-            value = float(raw)
-            if not math.isfinite(value):
-                continue
-            pending.append((mlb_id, fg_id, category, value))
+        for category in ("ALL", *CATEGORIES):
+            values = []
+            for overall, prefix in (
+                ("Stuff+", "Stf+"),
+                ("Location+", "Loc+"),
+                ("Pitching+", "Pit+"),
+            ):
+                raw = row.get(overall if category == "ALL" else f"{prefix} {category}")
+                value = None
+                if raw is not None and not pd.isna(raw) and str(raw).strip() not in ("", "-", "—"):
+                    parsed = float(raw)
+                    if math.isfinite(parsed):
+                        value = parsed
+                values.append(value)
+            if any(value is not None for value in values):
+                pending.append((mlb_id, fg_id, category, *values))
     if not pending:
         raise ValueError("No usable grades matched MLB IDs; existing data were preserved.")
     now = datetime.now(timezone.utc)
@@ -59,11 +67,13 @@ def import_grades(frame, season, crosswalk=None):
                 FanGraphsStuff.season == season, FanGraphsStuff.mlb_id.in_(seen)
             )
         )
-        for mlb_id, fg_id, category, value in pending:
+        for mlb_id, fg_id, category, value, location, pitching in pending:
             grade = FanGraphsStuff(mlb_id=mlb_id, season=season, category=category)
             db.session.add(grade)
             grade.fangraphs_id = fg_id
             grade.stuff_plus = value
+            grade.location_plus = location
+            grade.pitching_plus = pitching
             grade.updated_at = now
         db.session.commit()
     except Exception:
@@ -78,6 +88,10 @@ def profile_grades(pitcher_id, season):
             "season": None,
             "overall": None,
             "pitches": {},
+            "location_plus": None,
+            "pitching_plus": None,
+            "pitch_location": {},
+            "pitch_pitching": {},
             "updated_at": None,
             "message": "Select one season to view FanGraphs Stuff+.",
         }
@@ -90,6 +104,16 @@ def profile_grades(pitcher_id, season):
     return {
         "season": season,
         "overall": grades.get("ALL"),
+        "location_plus": next((r.location_plus for r in rows if r.category == "ALL"), None),
+        "pitching_plus": next((r.pitching_plus for r in rows if r.category == "ALL"), None),
+        "pitch_location": {
+            p: next((r.location_plus for r in rows if r.category == c), None)
+            for p, c in PITCH_CATEGORIES.items()
+        },
+        "pitch_pitching": {
+            p: next((r.pitching_plus for r in rows if r.category == c), None)
+            for p, c in PITCH_CATEGORIES.items()
+        },
         "pitches": {p: grades.get(c) for p, c in PITCH_CATEGORIES.items()},
         "updated_at": max(r.updated_at for r in rows).isoformat() if rows else None,
         "message": (

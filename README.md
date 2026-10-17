@@ -502,13 +502,13 @@ enabled before each new season.
 - The original TrackMan schema remains temporarily supported so the restructure does not discard
   the prototype's earlier functionality.
 
-## FanGraphs Stuff+
+## FanGraphs pitch models
 
-Pitcher reports include FanGraphs' published overall Stuff+ and a Stuff+ arsenal
-column. These are **regular-season reference grades**, not calculations from the
+Pitcher reports include FanGraphs' published Stuff+, Location+ and Pitching+
+as the final three main metrics and adjacent arsenal columns, in that order. These are **regular-season reference grades**, not calculations from the
 filtered Statcast pitches. Select one season. Date, team, count and handedness
 filters do not change the season reference. Missing grades display as a dash.
-The source and import time appear beneath the metric cards.
+Source metadata and import time remain in the profile API.
 
 FanGraphs fastball (`FA` / API `sp_s_FF`) maps to Statcast four-seam (`FF`).
 Sinker, cutter, curveball, knuckle curve, changeup, splitter and forkball map by
@@ -520,7 +520,7 @@ current filters hide those other pitches. Overall Stuff+ remains available.
 The bundled `data/fangraphs_stuff_2026.csv` snapshot was retrieved from the
 [FanGraphs leaderboard](https://www.fangraphs.com/leaders/major-league?stats=pit&qual=0&type=36&season=2026&season1=2026)
 on October 17, 2026 UTC (October 16 Eastern): 868 pitchers, minimum innings zero.
-It stores only IDs, season and published Stuff+ grades. It is not a fitted model.
+It stores only IDs, season and published Stuff+, Location+ and Pitching+ grades. It is not a fitted model.
 Source methodology: [FanGraphs primer](https://library.fangraphs.com/pitching/stuff-location-and-pitching-primer/).
 
 ### Local update
@@ -532,7 +532,7 @@ git pull origin main
 docker compose up -d --build
 ```
 
-Startup applies migrations, seeds the snapshot if a season has no saved grades,
+Startup applies migrations, seeds the snapshot if a season lacks the complete model metrics,
 and attempts a live refresh. The same startup steps run on Render. The existing
 daily deploy workflow therefore refreshes both Statcast and FanGraphs. Refresh
 failure leaves the previous snapshot intact and never prevents the web server
@@ -561,7 +561,7 @@ undocumented upstream endpoint and may change; the saved snapshot remains usable
 ### CSV fallback
 
 Export a single-season FanGraphs pitching leaderboard with minimum innings zero,
-overall Stuff+ and the `Stf+` pitch columns. Use combined pitcher totals rather
+overall Stuff+, Location+, Pitching+ and the `Stf+`, `Loc+`, `Pit+` pitch columns. Use combined pitcher totals rather
 than separate team rows. Supply `mlb_id`/`MLBAMID`, or a CSV crosswalk containing
 `key_fangraphs` and `key_mlbam`. Names are never used for matching.
 

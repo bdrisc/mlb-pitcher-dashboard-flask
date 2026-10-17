@@ -67,7 +67,15 @@ def test_crosswalk_matches_ids_not_names(app):
 
 
 def test_acquisition_rejects_partial_or_wrong_season():
-    row = {"playerid": 42, "xMLBAMID": 100, "Season": 2026, "sp_stuff": 114, "sp_s_FF": 123}
+    row = {
+        "playerid": 42,
+        "xMLBAMID": 100,
+        "Season": 2026,
+        "sp_stuff": 114,
+        "sp_location": 103,
+        "sp_pitching": 108,
+        "sp_s_FF": 123,
+    }
     result = normalize_response({"data": [row], "totalCount": 1}, 2026)
     assert result.iloc[0]["Stf+ FA"] == 123
     for payload in (
@@ -149,3 +157,40 @@ def test_published_negative_and_zero_grades_are_preserved(app):
         result = profile_grades(100, 2026)
         assert result["overall"] == -15.96
         assert result["pitches"]["FF"] == 0
+
+
+def test_import_all_three_model_grades(app):
+    with app.app_context():
+        import_grades(
+            frame(**{"Location+": 102, "Pitching+": 109, "Loc+ FA": 104, "Pit+ FA": 111}), 2026
+        )
+        result = profile_grades(100, 2026)
+        assert result["location_plus"] == 102
+        assert result["pitching_plus"] == 109
+        assert result["pitch_location"]["FF"] == 104
+        assert result["pitch_pitching"]["FF"] == 111
+        assert profile_grades(100, None)["location_plus"] is None
+
+
+def test_model_metric_order_and_removed_notes(client):
+    html = client.get("/savant-card").get_data(as_text=True)
+    import re
+
+    metrics = re.findall(r'data-metric="([^"]+)"', html)
+    assert metrics[-3:] == ["stuff_plus", "location_plus", "pitching_plus"]
+    assert "fangraphs-note" not in html
+    assert "Stuff+ source:" not in html
+    assert "Full-season reference;" not in html
+    assert html.index('scope="col">Stuff+') < html.index('scope="col">Location+')
+    assert html.index('scope="col">Location+') < html.index('scope="col">Pitching+')
+
+
+def test_seed_upgrades_existing_stuff_only_snapshot(app):
+    with app.app_context():
+        import_grades(frame(mlb_id=605400), 2026)
+        assert profile_grades(605400, 2026)["location_plus"] is None
+    result = app.test_cli_runner().invoke(args=["fangraphs", "seed-if-needed"])
+    assert result.exit_code == 0
+    with app.app_context():
+        assert profile_grades(605400, 2026)["location_plus"] is not None
+        assert profile_grades(605400, 2026)["pitching_plus"] is not None

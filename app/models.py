@@ -156,5 +156,7 @@ class FanGraphsStuff(db.Model):
     season: Mapped[int] = mapped_column(db.SmallInteger, primary_key=True)
     category: Mapped[str] = mapped_column(db.String(4), primary_key=True)
     fangraphs_id: Mapped[str] = mapped_column(db.String(20), nullable=False)
-    stuff_plus: Mapped[float] = mapped_column(nullable=False)
+    stuff_plus: Mapped[float | None]
+    location_plus: Mapped[float | None]
+    pitching_plus: Mapped[float | None]
     updated_at: Mapped[datetime] = mapped_column(db.DateTime(timezone=True), nullable=False)

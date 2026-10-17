@@ -328,8 +328,11 @@ def build_pitcher_profile(pitcher_id: int, filters: PitchFilters) -> dict[str, A
     ambiguous_slider = has_sweeper and stuff["pitches"].get("ST") is None
     for pitch in arsenal:
         pitch["stuff_plus"] = stuff["pitches"].get(pitch["pitch_type"])
+        pitch["location_plus"] = stuff["pitch_location"].get(pitch["pitch_type"])
+        pitch["pitching_plus"] = stuff["pitch_pitching"].get(pitch["pitch_type"])
         if ambiguous_slider and pitch["pitch_type"] == "SL":
-            pitch["stuff_plus"] = None
+            for metric in ("stuff_plus", "location_plus", "pitching_plus"):
+                pitch[metric] = None
     if ambiguous_slider and stuff["overall"] is not None:
         stuff["message"] += (
             " Slider/sweeper grades are withheld where categories cannot be separated."
@@ -345,7 +348,12 @@ def build_pitcher_profile(pitcher_id: int, filters: PitchFilters) -> dict[str, A
         },
         "query": filters.to_dict(),
         "sample": _sample(overview),
-        "overall": {**_performance_metrics(overview), "stuff_plus": stuff["overall"]},
+        "overall": {
+            **_performance_metrics(overview),
+            "stuff_plus": stuff["overall"],
+            "location_plus": stuff["location_plus"],
+            "pitching_plus": stuff["pitching_plus"],
+        },
         "arsenal": arsenal,
         "platoon_splits": _platoon_rows(conditions),
     }

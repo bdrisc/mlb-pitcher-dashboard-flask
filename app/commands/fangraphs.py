@@ -66,11 +66,17 @@ def import_csv(path, season, crosswalk):
 @fangraphs_cli.command("seed-if-needed")
 @with_appcontext
 def seed_if_needed():
-    """Load bundled verified snapshots only when a season has no cached grades."""
+    """Load bundled snapshots when a season lacks the complete model metrics."""
     for path in sorted((PROJECT_ROOT / "data").glob("fangraphs_stuff_*.csv")):
         season = int(path.stem.rsplit("_", 1)[1])
         count = db.session.scalar(
-            select(func.count()).select_from(FanGraphsStuff).where(FanGraphsStuff.season == season)
+            select(func.count())
+            .select_from(FanGraphsStuff)
+            .where(
+                FanGraphsStuff.season == season,
+                FanGraphsStuff.location_plus.is_not(None),
+                FanGraphsStuff.pitching_plus.is_not(None),
+            )
         )
         if not count:
             click.echo(import_grades(pd.read_csv(path), season))

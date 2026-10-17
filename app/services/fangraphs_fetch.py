@@ -16,7 +16,10 @@ def normalize_response(payload, season):
         raise ValueError("FanGraphs returned no leaderboard data.")
     if len(rows) != int(payload.get("totalCount", -1)):
         raise ValueError("FanGraphs returned an incomplete leaderboard; cached data preserved.")
-    if not all("sp_stuff" in row and "xMLBAMID" in row for row in rows):
+    if not all(
+        all(key in row for key in ("sp_stuff", "sp_location", "sp_pitching", "xMLBAMID"))
+        for row in rows
+    ):
         raise ValueError("FanGraphs leaderboard schema changed.")
     records = []
     for row in rows:
@@ -29,10 +32,13 @@ def normalize_response(payload, season):
             "mlb_id": row["xMLBAMID"],
             "Season": season,
             "Stuff+": row["sp_stuff"],
+            "Location+": row["sp_location"],
+            "Pitching+": row["sp_pitching"],
         }
         for category in CATEGORIES:
             source_category = "FF" if category == "FA" else category
-            record[f"Stf+ {category}"] = row.get(f"sp_s_{source_category}")
+            for prefix, code in (("Stf+", "s"), ("Loc+", "l"), ("Pit+", "p")):
+                record[f"{prefix} {category}"] = row.get(f"sp_{code}_{source_category}")
         records.append(record)
     return pd.DataFrame(records)
 

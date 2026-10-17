@@ -170,7 +170,6 @@
         </div>
 
         {% set metrics = [
-          ('stuff_plus', 'Stuff+', 'FanGraphs · full season'),
           ('strikeout_pct', 'K%', 'plate appearances'),
           ('walk_pct', 'BB%', 'plate appearances'),
           ('strike_pct', 'Strike%', 'all pitches'),
@@ -180,7 +179,10 @@
           ('chase_pct', 'Chase%', 'out-of-zone pitches'),
           ('avg_exit_velocity', 'Avg exit velo', 'mph on batted balls'),
           ('hard_hit_pct', 'Hard-Hit%', 'batted balls'),
-          ('xwoba_on_contact', 'xwOBAcon', 'contact only')
+          ('xwoba_on_contact', 'xwOBAcon', 'contact only'),
+          ('stuff_plus', 'Stuff+', 'FanGraphs · full season'),
+          ('location_plus', 'Location+', 'FanGraphs · full season'),
+          ('pitching_plus', 'Pitching+', 'FanGraphs · full season')
         ] %}
         <div class="metric-grid">
           {% for key, label, context in metrics %}
@@ -193,8 +195,6 @@
         </div>
       </section>
 
-      <p id="fangraphs-note" class="filter-summary" aria-live="polite"></p>
-      <p class="filter-summary">Stuff+ source: <a href="https://library.fangraphs.com/pitching/stuff-location-and-pitching-primer/" target="_blank" rel="noopener noreferrer">FanGraphs</a>. Pitch categories may differ from Statcast; unmatched grades appear as —.</p>
       <section class="dashboard-section" aria-labelledby="arsenal-heading">
         <div class="section-heading">
           <div>
@@ -209,6 +209,8 @@
                 <th scope="col">Usage</th>
                 <th scope="col">#</th>
                 <th scope="col">Stuff+</th>
+                <th scope="col">Location+</th>
+                <th scope="col">Pitching+</th>
                 <th scope="col">Velo</th>
                 <th scope="col">Max</th>
                 <th scope="col">Spin</th>
