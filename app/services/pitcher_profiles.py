@@ -10,6 +10,7 @@ from sqlalchemy.engine import RowMapping
 from app.extensions import db
 from app.models import Game, Pitch, Player
 from app.services.database_queries import pitch_filter_conditions, pitcher_team_expression
+from app.services.fangraphs_stuff import profile_grades
 from app.services.filters import PitchFilters
 from app.services.pitch_data import PITCH_NAME_MAP
 
@@ -308,7 +309,34 @@ def build_pitcher_profile(pitcher_id: int, filters: PitchFilters) -> dict[str, A
         team for team in db.session.scalars(team_statement) if team is not None and team.strip()
     )
 
+    stuff = profile_grades(pitcher_id, filters.season)
+    arsenal = _arsenal_rows(conditions, total_pitches)
+    # FanGraphs' slider category can combine Statcast sliders and sweepers.
+    has_sweeper = (
+        db.session.scalar(
+            select(Pitch.pitch_id)
+            .join(Game, Game.game_pk == Pitch.game_pk)
+            .where(
+                Pitch.pitcher_id == pitcher_id,
+                Game.season == filters.season,
+                Pitch.pitch_type.in_(("ST", "SV")),
+            )
+            .limit(1)
+        )
+        is not None
+    )
+    ambiguous_slider = has_sweeper and stuff["pitches"].get("ST") is None
+    for pitch in arsenal:
+        pitch["stuff_plus"] = stuff["pitches"].get(pitch["pitch_type"])
+        if ambiguous_slider and pitch["pitch_type"] == "SL":
+            pitch["stuff_plus"] = None
+    if ambiguous_slider and stuff["overall"] is not None:
+        stuff["message"] += (
+            " Slider/sweeper grades are withheld where categories cannot be separated."
+        )
+
     return {
+        "fangraphs": stuff,
         "pitcher": {
             "mlb_id": player.mlb_id,
             "name": player.player_name,
@@ -317,7 +345,7 @@ def build_pitcher_profile(pitcher_id: int, filters: PitchFilters) -> dict[str, A
         },
         "query": filters.to_dict(),
         "sample": _sample(overview),
-        "overall": _performance_metrics(overview),
-        "arsenal": _arsenal_rows(conditions, total_pitches),
+        "overall": {**_performance_metrics(overview), "stuff_plus": stuff["overall"]},
+        "arsenal": arsenal,
         "platoon_splits": _platoon_rows(conditions),
     }

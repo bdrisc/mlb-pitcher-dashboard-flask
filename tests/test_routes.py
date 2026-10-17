@@ -37,7 +37,7 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b'id="database-freshness"' in response.data
     assert b'id="arsenal-body"' in response.data
     assert b'id="platoon-splits"' in response.data
-    assert response.data.count(b'data-metric="') == 10
+    assert response.data.count(b'data-metric="') == 11
     assert response.data.count(b'class="plotly-chart"') == 5
     assert b"Avg exit velo" in response.data
     assert b"Pitch-type performance" not in response.data

@@ -31,6 +31,15 @@ echo "Starting web server on port ${PORT:-10000}."
         fi
     fi
 
+    if [ "$maintenance_ok" = "1" ] && [ "${SYNC_FANGRAPHS_ON_STARTUP:-1}" = "1" ]; then
+        if ! flask --app wsgi fangraphs seed-if-needed; then
+            echo "FanGraphs snapshot import unavailable." >&2
+        fi
+        if ! flask --app wsgi fangraphs sync --timeout 120; then
+            echo "FanGraphs refresh unavailable; existing grades retained." >&2
+        fi
+    fi
+
     if [ "$maintenance_ok" = "1" ] && [ "${SYNC_RECENT_ON_STARTUP:-0}" = "1" ]; then
         echo "Starting recent Statcast sync in the background."
         if flask --app wsgi statcast sync-recent \

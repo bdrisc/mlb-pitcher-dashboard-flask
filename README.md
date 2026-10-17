@@ -501,3 +501,74 @@ enabled before each new season.
 - MLB Statcast movement is converted from feet to inches during normalization.
 - The original TrackMan schema remains temporarily supported so the restructure does not discard
   the prototype's earlier functionality.
+
+## FanGraphs Stuff+
+
+Pitcher reports include FanGraphs' published overall Stuff+ and a Stuff+ arsenal
+column. These are **regular-season reference grades**, not calculations from the
+filtered Statcast pitches. Select one season. Date, team, count and handedness
+filters do not change the season reference. Missing grades display as a dash.
+The source and import time appear beneath the metric cards.
+
+FanGraphs fastball (`FA` / API `sp_s_FF`) maps to Statcast four-seam (`FF`).
+Sinker, cutter, curveball, knuckle curve, changeup, splitter and forkball map by
+category. Sweeper/slurve grades are not inferred from slider grades. When a
+pitcher has a Statcast sweeper/slurve during the season and FanGraphs does not
+provide separate sweeper grades, the slider row is also withheld, even when the
+current filters hide those other pitches. Overall Stuff+ remains available.
+
+The bundled `data/fangraphs_stuff_2026.csv` snapshot was retrieved from the
+[FanGraphs leaderboard](https://www.fangraphs.com/leaders/major-league?stats=pit&qual=0&type=36&season=2026&season1=2026)
+on October 17, 2026 UTC (October 16 Eastern): 868 pitchers, minimum innings zero.
+It stores only IDs, season and published Stuff+ grades. It is not a fitted model.
+Source methodology: [FanGraphs primer](https://library.fangraphs.com/pitching/stuff-location-and-pitching-primer/).
+
+### Local update
+
+After pulling the repository, rebuild the local Docker app:
+
+```bash
+git pull origin main
+docker compose up -d --build
+```
+
+Startup applies migrations, seeds the snapshot if a season has no saved grades,
+and attempts a live refresh. The same startup steps run on Render. The existing
+daily deploy workflow therefore refreshes both Statcast and FanGraphs. Refresh
+failure leaves the previous snapshot intact and never prevents the web server
+from starting. Set `SYNC_FANGRAPHS_ON_STARTUP=0` to disable seed/refresh maintenance.
+No new paid service or credentials are required for this acquisition route.
+
+For a Python environment:
+
+```bash
+flask --app wsgi db upgrade
+flask --app wsgi fangraphs seed-if-needed
+flask --app wsgi fangraphs sync --season 2026
+```
+
+Manual refresh in Docker:
+
+```bash
+docker compose exec web flask --app wsgi fangraphs sync --season 2026
+```
+
+Acquisition uses a single server-side FanGraphs leaderboard request, with a
+30-second network timeout and a 120-second subprocess limit. It verifies the
+response season, schema and complete row count before importing. This is an
+undocumented upstream endpoint and may change; the saved snapshot remains usable.
+
+### CSV fallback
+
+Export a single-season FanGraphs pitching leaderboard with minimum innings zero,
+overall Stuff+ and the `Stf+` pitch columns. Use combined pitcher totals rather
+than separate team rows. Supply `mlb_id`/`MLBAMID`, or a CSV crosswalk containing
+`key_fangraphs` and `key_mlbam`. Names are never used for matching.
+
+```bash
+flask --app wsgi fangraphs import-csv fangraphs.csv --season 2026 --crosswalk register.csv
+```
+
+Imports validate before changing saved grades, replace each matched pitcher's
+season snapshot transactionally, and report unmapped pitchers. Missing pitch
+grades in a successful replacement are cleared instead of retaining stale values.

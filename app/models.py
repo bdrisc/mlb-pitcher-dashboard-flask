@@ -147,3 +147,14 @@ class IngestionRun(db.Model):
         nullable=False,
     )
     finished_at: Mapped[datetime | None] = mapped_column(db.DateTime(timezone=True))
+
+
+class FanGraphsStuff(db.Model):
+    __tablename__ = "fangraphs_stuff"
+
+    mlb_id: Mapped[int] = mapped_column(primary_key=True)
+    season: Mapped[int] = mapped_column(db.SmallInteger, primary_key=True)
+    category: Mapped[str] = mapped_column(db.String(4), primary_key=True)
+    fangraphs_id: Mapped[str] = mapped_column(db.String(20), nullable=False)
+    stuff_plus: Mapped[float] = mapped_column(nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(db.DateTime(timezone=True), nullable=False)

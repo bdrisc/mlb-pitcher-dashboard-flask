@@ -81,7 +81,7 @@ if (root) {
   function formatMetric(key, value) {
     if (value === null || value === undefined) return "—";
     if (percentageMetrics.has(key)) return `${formatNumber(value)}%`;
-    if (key === "avg_spin") return formatNumber(value, 0);
+    if (key === "avg_spin" || key === "stuff_plus") return formatNumber(value, 0);
     if (key === "xwoba_on_contact") return Number(value).toFixed(3).replace(/^0/, "");
     return formatNumber(value);
   }
@@ -297,6 +297,7 @@ if (root) {
 
       tableCell(row, formatMetric("usage_pct", pitch.usage_pct), "emphasized-cell");
       tableCell(row, Number(pitch.pitch_count).toLocaleString("en-US"));
+      tableCell(row, formatMetric("stuff_plus", pitch.stuff_plus));
       tableCell(row, formatMetric("avg_velocity", pitch.avg_velocity));
       tableCell(row, formatMetric("max_velocity", pitch.max_velocity));
       tableCell(row, formatMetric("avg_spin", pitch.avg_spin));
@@ -358,6 +359,10 @@ if (root) {
     elements.samplePa.textContent = sample.plate_appearances.toLocaleString("en-US");
     elements.playerId.textContent = pitcher.mlb_id;
     elements.summary.textContent = `${sample.pitches.toLocaleString("en-US")} pitches across ${sample.games.toLocaleString("en-US")} games`;
+    const fg = profile.fangraphs;
+    document.querySelector("#fangraphs-note").textContent = fg
+      ? `FanGraphs${fg.season ? ` · ${fg.season}` : ""}${fg.updated_at ? ` · Updated ${formatDate(fg.updated_at.slice(0, 10))}` : ""}. ${fg.message}`
+      : "FanGraphs Stuff+ unavailable.";
     renderMetricCards(overall);
     renderArsenal(profile.arsenal);
     renderSplits(profile.platoon_splits);
