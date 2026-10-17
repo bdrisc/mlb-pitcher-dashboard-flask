@@ -24,6 +24,7 @@ services:
       SECRET_KEY: docker-development-only
       DATABASE_URL: postgresql+psycopg://postgres:postgres@database:5432/mlb_pitch_intelligence
       PITCH_DATA_PATH: data/sample_statcast.csv
+      STATCAST_SEED_PATH: data/production_statcast_2026.csv.gz
       RUN_MIGRATIONS: "1"
       SEED_DATABASE: "1"
       PORT: "8080"
