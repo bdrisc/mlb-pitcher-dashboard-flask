@@ -107,6 +107,12 @@ def _metric_columns() -> list[Any]:
         _count_where(event_recorded).label("plate_appearances"),
         _count_where(event_name.in_(("strikeout", "strikeout_double_play"))).label("strikeouts"),
         _count_where(event_name.in_(("walk", "intent_walk"))).label("walks"),
+        _count_where(
+            Pitch.pitch_type.notin_(("", "UN")),
+            func.coalesce(func.lower(Pitch.description), "").notin_(
+                ("automatic_ball", "automatic_strike")
+            ),
+        ).label("run_value_denominator"),
         func.sum(Pitch.delta_run_expectancy).label("run_value_against"),
         func.count(Pitch.delta_run_expectancy).label("run_value_pitches"),
         func.avg(Pitch.velocity).label("avg_velocity"),
@@ -140,15 +146,16 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
     batted_balls = _integer(row, "batted_balls")
     plate_appearances = _integer(row, "plate_appearances")
     run_value_pitches = _integer(row, "run_value_pitches")
+    run_value_denominator = _integer(row, "run_value_denominator")
     pitcher_run_value = (
         None if row["run_value_against"] is None else -float(row["run_value_against"])
     )
     return {
         "run_value_per_100": (
             None
-            if not run_value_pitches
+            if not run_value_pitches or not run_value_denominator
             else float(
-                (Decimal(str(round(pitcher_run_value, 9))) * 100 / run_value_pitches).quantize(
+                (Decimal(str(round(pitcher_run_value, 9))) * 100 / run_value_denominator).quantize(
                     Decimal("0.1"), rounding=ROUND_HALF_UP
                 )
             )
@@ -156,7 +163,8 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         ),
         "run_value": _rounded(pitcher_run_value, 3),
         "run_value_pitch_count": run_value_pitches,
-        "run_value_coverage_pct": _rate(run_value_pitches, pitches),
+        "run_value_denominator": run_value_denominator,
+        "run_value_coverage_pct": _rate(run_value_pitches, run_value_denominator),
         "avg_velocity": _rounded(row["avg_velocity"]),
         "max_velocity": _rounded(row["max_velocity"]),
         "avg_spin": _rounded(row["avg_spin"]),

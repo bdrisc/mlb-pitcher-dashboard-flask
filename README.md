@@ -577,9 +577,9 @@ grades in a successful replacement are cleared instead of retaining stale values
 
 RV/100 appears immediately before Stuff+ in the main metrics and arsenal table.
 It uses Baseball Savant's context-neutral CSV run value, reverses the batter-facing
-sign to pitcher value, and divides by pitches with non-null run values. Positive
+sign to pitcher value, and divides by all physical pitches, including pitches with missing run values. Positive
 values mean runs prevented. Zero is valid; entirely missing data display a dash.
-Overall RV/100 is weighted by valued pitch counts. Dates, handedness, count,
+Overall RV/100 is weighted by physical pitch counts. Dates, handedness, count,
 team, home/away and pitch filters apply to the calculation. Hover shows coverage.
 
 The calculation was validated against Savant's neutral aggregate and all six

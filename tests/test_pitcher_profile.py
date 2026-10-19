@@ -366,15 +366,30 @@ def test_run_value_is_pitcher_friendly_weighted_and_respects_filters(app, profil
             "1002_3_1": None,
         }.items():
             db.session.get(Pitch, key).delta_run_expectancy = value
+        db.session.add(
+            _pitch(
+                pitch_id="1001_2_1",
+                game_pk=1001,
+                batter_id=200,
+                at_bat_number=2,
+                pitch_number=1,
+                pitch_type="FF",
+                balls=2,
+                strikes=1,
+                batter_side="R",
+                delta_run_expectancy=0.0,
+            )
+        )
         db.session.commit()
     data = profile_client.get("/api/v1/pitchers/100/profile?season=2026").get_json()
-    assert data["overall"]["run_value_per_100"] == -10.0
+    assert data["overall"]["run_value_per_100"] == -6.0
     assert data["overall"]["run_value"] == -0.3
-    assert data["overall"]["run_value_pitch_count"] == 3
-    assert data["overall"]["run_value_coverage_pct"] == 75.0
+    assert data["overall"]["run_value_pitch_count"] == 4
+    assert data["overall"]["run_value_denominator"] == 5
+    assert data["overall"]["run_value_coverage_pct"] == 80.0
     arsenal = {p["pitch_type"]: p for p in data["arsenal"]}
-    assert arsenal["FF"]["run_value_per_100"] == 10.0
-    assert arsenal["SL"]["run_value_per_100"] == -50.0
+    assert arsenal["FF"]["run_value_per_100"] == 6.7
+    assert arsenal["SL"]["run_value_per_100"] == -25.0
     assert (
         data["overall"]["run_value_per_100"]
         != (arsenal["FF"]["run_value_per_100"] + arsenal["SL"]["run_value_per_100"]) / 2
@@ -382,7 +397,7 @@ def test_run_value_is_pitcher_friendly_weighted_and_respects_filters(app, profil
     filtered = profile_client.get(
         "/api/v1/pitchers/100/profile?season=2026&batter_side=R&date_to=2026-04-30"
     ).get_json()
-    assert filtered["overall"]["run_value_per_100"] == 10.0
+    assert filtered["overall"]["run_value_per_100"] == 6.7
     assert filtered["overall"]["run_value_coverage_pct"] == 100.0
     zero = profile_client.get(
         "/api/v1/pitchers/100/profile?season=2026&balls=0&strikes=1"

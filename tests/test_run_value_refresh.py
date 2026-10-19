@@ -17,9 +17,27 @@ from app.services.run_value_refresh import (
 def source_frame():
     return pd.DataFrame(
         [
-            {"game_pk": 1, "at_bat_number": 1, "pitch_number": 1, "delta_run_exp": -0.1},
-            {"game_pk": 1, "at_bat_number": 1, "pitch_number": 2, "delta_run_exp": 0.3},
-            {"game_pk": 1, "at_bat_number": 2, "pitch_number": 1, "delta_run_exp": None},
+            {
+                "game_pk": 1,
+                "at_bat_number": 1,
+                "pitch_number": 1,
+                "delta_run_exp": -0.1,
+                "pitch_type": "FF",
+            },
+            {
+                "game_pk": 1,
+                "at_bat_number": 1,
+                "pitch_number": 2,
+                "delta_run_exp": 0.3,
+                "pitch_type": "FF",
+            },
+            {
+                "game_pk": 1,
+                "at_bat_number": 2,
+                "pitch_number": 1,
+                "delta_run_exp": None,
+                "pitch_type": None,
+            },
         ]
     )
 
@@ -99,3 +117,11 @@ def test_missing_pitch_or_unverified_source_preserves_existing_values(app, monke
         result = refresh_run_values(pitcher_id=100, workers=1)
         assert result["failed"]
         assert db.session.get(Pitch, "1_1_1").delta_run_expectancy == 0.5
+
+
+def test_physical_pitches_with_missing_run_values_count_in_savant_denominator():
+    frame = source_frame()
+    frame.loc[2, "pitch_type"] = "SI"
+    values = validate_source(frame, [{"pitches": 3, "delev_pitcher_run_exp": -0.2}])
+    assert values["1_2_1"] is None
+    assert len(values) == 3

@@ -34,9 +34,10 @@ profile API, checking both overall and all six pitch types. Existing Statcast
 pitch classifications remain separate; the Savant arsenal page groups Nola's KC
 as CU. Grouped Statcast Search can use the original pitch type.
 
-Formula: `100 * SUM(pitcher run value) / COUNT(non-null run value)`.
+Formula: `100 * SUM(non-null pitcher run value) / COUNT(physical pitches)`.
 The database stores the batter-facing value, so the SQL sum is negated. Zero is
-valid data. Missing values do not become zero; coverage is exposed in the API and
+valid data. Missing physical-pitch run values are omitted from the sum but their pitches remain
+in the denominator. Coverage is exposed in the API and
 in metric hover text. Overall rates use all valued pitches, never an unweighted
 average of pitch-type rates. Display uses one decimal and positive is good for the
 pitcher. All dashboard filters apply before aggregation.
@@ -56,3 +57,15 @@ Only after both agree are matching existing pitch rows updated. Pitcher-seasons
 with missing source identities, truncated responses, count mismatches or mismatched
 neutral totals are preserved. No velocity, pitch identity, player, game, or other
 performance fields are changed, and no new pitches are inserted.
+
+
+## Missing-value denominator regression
+
+Brayan Bello (678394), 2026 export checked October 19: 2,152 event rows,
+2,140 physical pitches, 2,133 non-null run values, and 12 automatic events with
+no pitch type. Seven physical pitches on March 31 have missing run value.
+Savant nevertheless reports denominator 2,140 and neutral pitcher total +3.939,
+giving +0.184065421 per 100 before rounding. The validator checks physical pitch
+counts rather than non-null run-value counts. The dashboard uses the same physical
+pitch denominator and reports missing-value coverage separately. Source total
+verification remains mandatory, and missing values remain null in storage.

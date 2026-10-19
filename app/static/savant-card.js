@@ -276,7 +276,7 @@ if (root) {
 
   function runValueTitle(metrics) {
     const count = metrics.run_value_pitch_count || 0;
-    return `Context-neutral runs prevented per 100 pitches; higher is better. ${count.toLocaleString("en-US")} pitches with run-value data (${formatNumber(metrics.run_value_coverage_pct || 0)}% coverage).`;
+    return `Context-neutral runs prevented per 100 pitches; higher is better. ${count.toLocaleString("en-US")} of ${(metrics.run_value_denominator || 0).toLocaleString("en-US")} pitches have run-value data (${formatNumber(metrics.run_value_coverage_pct || 0)}% coverage).`;
   }
 
   function tableCell(row, value, className = "") {

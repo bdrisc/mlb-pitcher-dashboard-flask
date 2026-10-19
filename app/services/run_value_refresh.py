@@ -35,7 +35,7 @@ def _download(path, params):
 
 
 def validate_source(frame, aggregate):
-    required = {"game_pk", "at_bat_number", "pitch_number", "delta_run_exp"}
+    required = {"game_pk", "at_bat_number", "pitch_number", "delta_run_exp", "pitch_type"}
     if not required.issubset(frame.columns):
         raise RunValueRefreshError("Savant did not return the required pitch CSV columns.")
     if len(frame) >= 30000:
@@ -44,7 +44,8 @@ def validate_source(frame, aggregate):
     if len(aggregate) != 1 or "delev_pitcher_run_exp" not in aggregate[0]:
         raise RunValueRefreshError("Savant did not return its explicit context-neutral total.")
     official = aggregate[0]
-    count = int(values.notna().sum())
+    # Savant counts physical pitches even when their run value is missing.
+    count = int(frame["pitch_type"].notna().sum())
     total = -float(values.sum())
     if count != int(official["pitches"]):
         raise RunValueRefreshError("Pitch counts differ from the Savant neutral aggregate.")
@@ -76,7 +77,9 @@ def fetch_verified_values(job):
     csv = _download("/statcast_search/csv", {**params, "type": "details", "all": "true"})
     frame = pd.read_csv(
         io.BytesIO(csv),
-        usecols=lambda c: c in {"game_pk", "at_bat_number", "pitch_number", "delta_run_exp"},
+        usecols=lambda c: (
+            c in {"game_pk", "at_bat_number", "pitch_number", "delta_run_exp", "pitch_type"}
+        ),
     )
     official = json.loads(
         _download(
