@@ -369,6 +369,7 @@ def test_run_value_is_pitcher_friendly_weighted_and_respects_filters(app, profil
         db.session.add(
             _pitch(
                 pitch_id="1001_2_1",
+                pitch_name="Four-Seam Fastball",
                 game_pk=1001,
                 batter_id=200,
                 at_bat_number=2,
