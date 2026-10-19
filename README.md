@@ -592,8 +592,18 @@ For the full local PostgreSQL app, stop Flask with Ctrl+C, then run:
 ```powershell
 git pull origin main
 .\.venv\Scripts\Activate.ps1
+python -m flask --app wsgi statcast refresh-run-values --season 2026
 python -m flask --app wsgi run --debug --port 8080
 ```
 
-Open `http://127.0.0.1:8080/savant-card`. This feature needs no new migration,
-reimport or Docker commands and uses the existing local `.env` database connection.
+The refresh updates only run values on pitches already in the local database.
+It verifies each pitcher-season CSV against Savant's explicit context-neutral
+aggregate before writing, and preserves the previous values on failure. It does
+not import the public cohort or add or remove any pitches. The first full local
+refresh downloads data for each existing pitcher and can take several minutes.
+Use `--pitcher MLB_ID` to refresh one pitcher, or omit `--season` to refresh all
+stored seasons. The public Docker app performs this refresh in background
+maintenance on startup; `SYNC_RUN_VALUE_ON_STARTUP=0` disables it.
+
+Open `http://127.0.0.1:8080/savant-card`. No new migration is needed. The local
+commands use the existing `.env` connection to the full PostgreSQL database.

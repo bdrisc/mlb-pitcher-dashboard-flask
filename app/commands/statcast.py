@@ -318,3 +318,22 @@ def build_production_sample_command(
     click.echo(f"Pitches: {report.pitch_count:,}")
     click.echo(f"CSV: {report.output_path}")
     click.echo(f"Manifest: {report.manifest_path}")
+
+
+@statcast_cli.command("refresh-run-values")
+@click.option("--pitcher", "pitcher_id", type=click.IntRange(min=1))
+@click.option("--season", type=click.IntRange(2008, 2100))
+@click.option("--workers", type=click.IntRange(1, 8), default=4, show_default=True)
+@with_appcontext
+def refresh_run_values_command(pitcher_id, season, workers):
+    """Refresh only existing pitch run values, verifying Savant's neutral totals."""
+    from app.services.run_value_refresh import refresh_run_values
+
+    summary = refresh_run_values(
+        pitcher_id=pitcher_id, season=season, workers=workers, progress=click.echo
+    )
+    click.echo(summary)
+    if summary["failed"]:
+        raise click.ClickException(
+            "Some pitcher-seasons could not be verified; saved values preserved."
+        )

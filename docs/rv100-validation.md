@@ -45,3 +45,14 @@ Existing databases contain the snapshot originally ingested. Later Savant
 revisions or different date coverage can change the displayed result; matching
 the calculation does not update the underlying pitch dataset. No stored pitches
 are overwritten by this feature.
+
+
+The October 19 live check found the cached Nola total was -22.039 rather than the
+current source's -22.272: the same method displayed -0.7 vs -0.8 from updated data.
+The dedicated `statcast refresh-run-values` command corrects this by retrieving the
+current detailed CSV within each stored pitcher-season's date window and comparing
+its sum and denominator to Savant's explicitly named `delev_pitcher_run_exp` total.
+Only after both agree are matching existing pitch rows updated. Pitcher-seasons
+with missing source identities, truncated responses, count mismatches or mismatched
+neutral totals are preserved. No velocity, pitch identity, player, game, or other
+performance fields are changed, and no new pitches are inserted.
