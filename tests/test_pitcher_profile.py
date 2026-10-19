@@ -355,3 +355,88 @@ def test_chart_data_returns_404_for_an_empty_filtered_sample(profile_client):
     assert response.status_code == 404
     assert response.json["error"] == "not_found"
     assert response.json["query"] == {"balls": 3}
+
+
+def test_run_value_is_pitcher_friendly_weighted_and_respects_filters(app, profile_client):
+    with app.app_context():
+        for key, value in {
+            "1001_1_1": -0.2,
+            "1001_1_2": 0.0,
+            "1002_2_1": 0.5,
+            "1002_3_1": None,
+        }.items():
+            db.session.get(Pitch, key).delta_run_expectancy = value
+        db.session.commit()
+    data = profile_client.get("/api/v1/pitchers/100/profile?season=2026").get_json()
+    assert data["overall"]["run_value_per_100"] == -10.0
+    assert data["overall"]["run_value"] == -0.3
+    assert data["overall"]["run_value_pitch_count"] == 3
+    assert data["overall"]["run_value_coverage_pct"] == 75.0
+    arsenal = {p["pitch_type"]: p for p in data["arsenal"]}
+    assert arsenal["FF"]["run_value_per_100"] == 10.0
+    assert arsenal["SL"]["run_value_per_100"] == -50.0
+    assert (
+        data["overall"]["run_value_per_100"]
+        != (arsenal["FF"]["run_value_per_100"] + arsenal["SL"]["run_value_per_100"]) / 2
+    )
+    filtered = profile_client.get(
+        "/api/v1/pitchers/100/profile?season=2026&batter_side=R&date_to=2026-04-30"
+    ).get_json()
+    assert filtered["overall"]["run_value_per_100"] == 10.0
+    assert filtered["overall"]["run_value_coverage_pct"] == 100.0
+    zero = profile_client.get(
+        "/api/v1/pitchers/100/profile?season=2026&balls=0&strikes=1"
+    ).get_json()
+    assert zero["overall"]["run_value_per_100"] == 0.0
+
+
+def test_run_value_missing_stays_missing(profile_client):
+    data = profile_client.get("/api/v1/pitchers/100/profile?season=2026").get_json()
+    assert data["overall"]["run_value_per_100"] is None
+    assert data["overall"]["run_value_pitch_count"] == 0
+    assert all(p["run_value_per_100"] is None for p in data["arsenal"])
+
+
+def test_run_value_matches_savant_published_2026_nola_arsenal(app):
+    import csv
+    from pathlib import Path
+
+    path = Path(__file__).parent / "fixtures" / "savant_nola_2026_rv.csv"
+    with path.open() as source:
+        source_rows = list(csv.DictReader(source))
+    with app.app_context():
+        db.session.add(Player(mlb_id=605400, player_name="Aaron Nola"))
+        db.session.add(
+            Game(
+                game_pk=1, game_date=date(2026, 9, 26), season=2026, home_team="PHI", away_team="TB"
+            )
+        )
+        db.session.flush()
+        rows = []
+        for index, row in enumerate(source_rows):
+            rows.append(
+                dict(
+                    pitch_id=str(index),
+                    game_pk=1,
+                    pitcher_id=605400,
+                    batter_id=605400,
+                    at_bat_number=index + 1,
+                    pitch_number=1,
+                    pitch_type=row["pitch_type"] or "UN",
+                    balls=0,
+                    strikes=0,
+                    delta_run_expectancy=(
+                        float(row["delta_run_exp"]) if row["delta_run_exp"] else None
+                    ),
+                )
+            )
+        db.session.execute(Pitch.__table__.insert(), rows)
+        db.session.commit()
+    data = app.test_client().get("/api/v1/pitchers/605400/profile?season=2026").get_json()
+    assert data["overall"]["run_value_pitch_count"] == 2946
+    assert data["overall"]["run_value"] == -22.272
+    assert data["overall"]["run_value_per_100"] == -0.8
+    expected = {"FF": -2.1, "SI": -2.8, "KC": 1.1, "CH": 1.0, "FC": -3.2, "SL": -3.8}
+    for pitch in data["arsenal"]:
+        if pitch["pitch_type"] in expected:
+            assert pitch["run_value_per_100"] == expected[pitch["pitch_type"]]

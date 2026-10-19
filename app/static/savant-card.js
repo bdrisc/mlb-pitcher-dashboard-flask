@@ -82,6 +82,10 @@ if (root) {
     if (value === null || value === undefined) return "—";
     if (percentageMetrics.has(key)) return `${formatNumber(value)}%`;
     if (key === "avg_spin" || ["stuff_plus", "location_plus", "pitching_plus"].includes(key)) return formatNumber(value, 0);
+    if (key === "run_value_per_100") {
+      const formatted = formatNumber(value);
+      return value > 0 ? `+${formatted}` : formatted;
+    }
     if (key === "xwoba_on_contact") return Number(value).toFixed(3).replace(/^0/, "");
     return formatNumber(value);
   }
@@ -266,7 +270,13 @@ if (root) {
     document.querySelectorAll("[data-metric]").forEach((element) => {
       const key = element.dataset.metric;
       element.textContent = formatMetric(key, overall[key]);
+      if (key === "run_value_per_100") element.title = runValueTitle(overall);
     });
+  }
+
+  function runValueTitle(metrics) {
+    const count = metrics.run_value_pitch_count || 0;
+    return `Context-neutral runs prevented per 100 pitches; higher is better. ${count.toLocaleString("en-US")} pitches with run-value data (${formatNumber(metrics.run_value_coverage_pct || 0)}% coverage).`;
   }
 
   function tableCell(row, value, className = "") {
@@ -274,6 +284,7 @@ if (root) {
     cell.textContent = value;
     if (className) cell.className = className;
     row.append(cell);
+    return cell;
   }
 
   function renderArsenal(arsenal) {
@@ -297,6 +308,7 @@ if (root) {
 
       tableCell(row, formatMetric("usage_pct", pitch.usage_pct), "emphasized-cell");
       tableCell(row, Number(pitch.pitch_count).toLocaleString("en-US"));
+      tableCell(row, formatMetric("run_value_per_100", pitch.run_value_per_100)).title = runValueTitle(pitch);
       tableCell(row, formatMetric("stuff_plus", pitch.stuff_plus));
       tableCell(row, formatMetric("location_plus", pitch.location_plus));
       tableCell(row, formatMetric("pitching_plus", pitch.pitching_plus));

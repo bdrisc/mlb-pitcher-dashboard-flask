@@ -68,6 +68,8 @@ OPTIONAL_COLUMNS = [
     "estimated_woba_using_speedangle",
     "woba_value",
     "delta_run_exp",
+    "delev_delta_run_exp",
+    "delev_delta_pitcher_run_exp",
     "bat_speed",
     "swing_length",
     "home_score",
@@ -119,6 +121,8 @@ FLOAT_COLUMNS = [
     "estimated_woba_using_speedangle",
     "woba_value",
     "delta_run_exp",
+    "delev_delta_run_exp",
+    "delev_delta_pitcher_run_exp",
     "bat_speed",
     "swing_length",
 ]
@@ -376,6 +380,12 @@ def clean_statcast(raw: pd.DataFrame) -> pd.DataFrame:
                 f"Column {column} contains {int(invalid_numeric.sum())} invalid numeric value(s)."
             )
         data[column] = numeric
+
+    # Explicit context-neutral export fields take precedence over the default CSV alias.
+    neutral_against = data["delev_delta_run_exp"].combine_first(
+        -data["delev_delta_pitcher_run_exp"]
+    )
+    data["delta_run_exp"] = neutral_against.combine_first(data["delta_run_exp"])
 
     if (~data["balls"].between(0, 3)).any():
         raise IngestionError("balls must be between 0 and 3.")

@@ -339,3 +339,15 @@ def test_cli_removes_only_the_bundled_fictional_sample(app):
         assert db.session.scalar(select(func.count()).select_from(Game)) == 0
         assert db.session.scalar(select(func.count()).select_from(Player)) == 0
         assert db.session.scalar(select(func.count()).select_from(IngestionRun)) == 1
+
+
+@pytest.mark.parametrize(
+    "neutral_field,neutral_value",
+    [("delev_delta_run_exp", -0.123), ("delev_delta_pitcher_run_exp", 0.123)],
+)
+def test_explicit_neutral_run_value_overrides_default_alias(neutral_field, neutral_value):
+    frame = statcast_rows()
+    frame["delta_run_exp"] = 0.999
+    frame[neutral_field] = neutral_value
+    result = clean_statcast(frame)
+    assert result["delta_run_exp"].eq(-0.123).all()

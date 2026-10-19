@@ -572,3 +572,28 @@ flask --app wsgi fangraphs import-csv fangraphs.csv --season 2026 --crosswalk re
 Imports validate before changing saved grades, replace each matched pitcher's
 season snapshot transactionally, and report unmapped pitchers. Missing pitch
 grades in a successful replacement are cleared instead of retaining stale values.
+
+## Run Value per 100 Pitches
+
+RV/100 appears immediately before Stuff+ in the main metrics and arsenal table.
+It uses Baseball Savant's context-neutral CSV run value, reverses the batter-facing
+sign to pitcher value, and divides by pitches with non-null run values. Positive
+values mean runs prevented. Zero is valid; entirely missing data display a dash.
+Overall RV/100 is weighted by valued pitch counts. Dates, handedness, count,
+team, home/away and pitch filters apply to the calculation. Hover shows coverage.
+
+The calculation was validated against Savant's neutral aggregate and all six
+pitch types for Aaron Nola; see [validation](docs/rv100-validation.md).
+Source pitch classifications are retained. A historical database snapshot may
+differ from a subsequently revised Savant export or a full-season leaderboard.
+
+For the full local PostgreSQL app, stop Flask with Ctrl+C, then run:
+
+```powershell
+git pull origin main
+.\.venv\Scripts\Activate.ps1
+python -m flask --app wsgi run --debug --port 8080
+```
+
+Open `http://127.0.0.1:8080/savant-card`. This feature needs no new migration,
+reimport or Docker commands and uses the existing local `.env` database connection.
