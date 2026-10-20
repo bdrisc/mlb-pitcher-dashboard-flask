@@ -26,7 +26,7 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
         in response.data
     )
     assert b"Performance metrics" in response.data
-    assert b"xwOBA (Against)" in response.data
+    assert b"xwOBA" in response.data
     assert b'class="metric-grid"' in response.data
     assert b"Plate-appearance results" not in response.data
     assert b"Movement is reported in inches." not in response.data

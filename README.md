@@ -611,7 +611,7 @@ commands use the existing `.env` connection to the full PostgreSQL database.
 
 ### Overall xwOBA Against
 
-The main pitcher card shows `xwOBA (Against)` to three decimals. It averages
+The main pitcher card shows `xwOBA` to three decimals. It averages
 Statcast's `estimated_woba_using_speedangle` on completed plate appearances,
 including the supplied strikeout, unintentional-walk and hit-by-pitch weights.
 Intentional walks, sacrifice bunts, catcher interference and truncated plate
