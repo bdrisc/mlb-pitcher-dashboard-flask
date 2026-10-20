@@ -607,3 +607,17 @@ maintenance on startup; `SYNC_RUN_VALUE_ON_STARTUP=0` disables it.
 
 Open `http://127.0.0.1:8080/savant-card`. No new migration is needed. The local
 commands use the existing `.env` connection to the full PostgreSQL database.
+
+
+### Overall xwOBA Against
+
+The main pitcher card shows `xwOBA (Against)` to three decimals. It averages
+Statcast's `estimated_woba_using_speedangle` on completed plate appearances,
+including the supplied strikeout, unintentional-walk and hit-by-pitch weights.
+Intentional walks, sacrifice bunts, catcher interference and truncated plate
+appearances are excluded. Missing expected values stay missing; they are not
+replaced with actual hit results or zero. This differs from xwOBAcon, which
+measures contact only. All dashboard filters apply before aggregation.
+
+This uses fields already stored in both databases. No migration, refresh or
+re-import is required: pull `main` and restart the native Flask app locally.

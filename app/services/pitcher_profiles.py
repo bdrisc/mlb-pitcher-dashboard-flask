@@ -92,6 +92,16 @@ def _metric_columns() -> list[Any]:
         Pitch.batted_ball_type != "",
         Pitch.estimated_woba.is_not(None),
     )
+    # Savant supplies expected weights for terminal PA outcomes, including
+    # strikeouts (0), unintentional walks and HBP. Nonterminal pitches and
+    # outcomes outside the wOBA denominator must not enter this average.
+    expected_pa = and_(
+        event_recorded,
+        event_name.notin_(
+            ("intent_walk", "sac_bunt", "sac_bunt_double_play", "catcher_interf", "truncated_pa")
+        ),
+        Pitch.estimated_woba.is_not(None),
+    )
     return [
         func.count(Pitch.pitch_id).label("pitch_count"),
         _count_where(strike).label("strikes"),
@@ -122,6 +132,7 @@ def _metric_columns() -> list[Any]:
         func.avg(Pitch.vertical_break_inches).label("vertical_break"),
         func.avg(Pitch.release_extension).label("release_extension"),
         func.avg(Pitch.exit_velocity).filter(tracked_batted_ball).label("avg_exit_velocity"),
+        func.avg(Pitch.estimated_woba).filter(expected_pa).label("xwoba_against"),
         func.avg(Pitch.estimated_woba).filter(expected_contact).label("xwoba_on_contact"),
     ]
 
@@ -181,6 +192,7 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         "strikeout_pct": _rate(_integer(row, "strikeouts"), plate_appearances),
         "walk_pct": _rate(_integer(row, "walks"), plate_appearances),
         "avg_exit_velocity": _rounded(row["avg_exit_velocity"]),
+        "xwoba_against": _rounded(row["xwoba_against"], 3),
         "xwoba_on_contact": _rounded(row["xwoba_on_contact"], 3),
     }
 

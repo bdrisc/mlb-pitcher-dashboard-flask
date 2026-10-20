@@ -456,3 +456,60 @@ def test_run_value_matches_savant_published_2026_nola_arsenal(app):
     for pitch in data["arsenal"]:
         if pitch["pitch_type"] in expected:
             assert pitch["run_value_per_100"] == expected[pitch["pitch_type"]]
+
+
+def test_xwoba_against_includes_terminal_outcomes_and_respects_filters(app, profile_client):
+    with app.app_context():
+        # One strikeout and one batted ball: contact-only stays .620, while
+        # overall includes the strikeout's zero weight and becomes .310.
+        db.session.get(Pitch, "1001_1_2").estimated_woba = 0.0
+        db.session.commit()
+    data = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile").json
+    assert data["overall"]["xwoba_against"] == 0.310
+    assert data["overall"]["xwoba_on_contact"] == 0.620
+    filtered = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile?batter_side=R").json
+    assert filtered["overall"]["xwoba_against"] == 0.0
+
+    outcomes = [
+        ("walk", 0.698223),
+        ("hit_by_pitch", 0.729169),
+        ("sac_fly", 0.120),
+        ("intent_walk", 0.9),
+        ("sac_bunt", 0.9),
+        ("sac_bunt_double_play", 0.9),
+        ("catcher_interf", 0.9),
+        ("truncated_pa", 0.9),
+        ("field_out", None),
+        (None, 0.9),
+    ]
+    with app.app_context():
+        for i, (event, weight) in enumerate(outcomes, start=10):
+            db.session.add(
+                _pitch(
+                    pitch_id=f"1001_{i}_1",
+                    game_pk=1001,
+                    batter_id=200,
+                    at_bat_number=i,
+                    pitch_number=1,
+                    inning_half="Top",
+                    batter_side="R",
+                    pitch_type="FF",
+                    pitch_name="Four-Seam Fastball",
+                    events=event,
+                    balls=0,
+                    strikes=0,
+                    estimated_woba=weight,
+                )
+            )
+        db.session.commit()
+    data = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile").json
+    assert data["overall"]["xwoba_against"] == round((0.620 + 0.698223 + 0.729169 + 0.120) / 5, 3)
+
+
+def test_xwoba_against_unavailable_is_not_zero(app, profile_client):
+    with app.app_context():
+        for pitch in db.session.query(Pitch):
+            pitch.estimated_woba = None
+        db.session.commit()
+    data = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile").json
+    assert data["overall"]["xwoba_against"] is None
