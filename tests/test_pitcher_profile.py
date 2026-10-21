@@ -513,3 +513,21 @@ def test_xwoba_against_unavailable_is_not_zero(app, profile_client):
         db.session.commit()
     data = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile").json
     assert data["overall"]["xwoba_against"] is None
+
+
+def test_k_minus_bb_uses_raw_counts_including_intentional_walks(app, profile_client):
+    url = f"/api/v1/pitchers/{PITCHER_ID}/profile"
+    assert profile_client.get(url).json["overall"]["k_minus_bb_pct"] == 50.0
+    with app.app_context():
+        db.session.get(Pitch, "1001_1_1").events = "walk"
+        db.session.get(Pitch, "1002_2_1").events = None
+        db.session.get(Pitch, "1002_3_1").events = "intent_walk"
+        db.session.commit()
+    assert profile_client.get(url).json["overall"]["k_minus_bb_pct"] == -33.3
+    assert profile_client.get(url + "?batter_side=R").json["overall"]["k_minus_bb_pct"] == 0.0
+    assert profile_client.get(url + "?batter_side=L").json["overall"]["k_minus_bb_pct"] == -100.0
+    with app.app_context():
+        for pitch in db.session.query(Pitch):
+            pitch.events = None
+        db.session.commit()
+    assert profile_client.get(url).json["overall"]["k_minus_bb_pct"] is None

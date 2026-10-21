@@ -191,6 +191,9 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         "hard_hit_pct": _rate(_integer(row, "hard_hits"), batted_balls),
         "strikeout_pct": _rate(_integer(row, "strikeouts"), plate_appearances),
         "walk_pct": _rate(_integer(row, "walks"), plate_appearances),
+        "k_minus_bb_pct": _rate(
+            _integer(row, "strikeouts") - _integer(row, "walks"), plate_appearances
+        ),
         "avg_exit_velocity": _rounded(row["avg_exit_velocity"]),
         "xwoba_against": _rounded(row["xwoba_against"], 3),
         "xwoba_on_contact": _rounded(row["xwoba_on_contact"], 3),

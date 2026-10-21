@@ -67,6 +67,7 @@ if (root) {
     "hard_hit_pct",
     "strikeout_pct",
     "walk_pct",
+    "k_minus_bb_pct",
     "usage_pct",
   ]);
 
