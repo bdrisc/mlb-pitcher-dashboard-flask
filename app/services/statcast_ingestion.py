@@ -16,6 +16,7 @@ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from app.extensions import db
 from app.models import Game, IngestionRun, Pitch, Player
+from app.services.approach_angles import ANGLE_FIELDS, TRAJECTORY_FIELDS, trajectory_record
 from app.services.pitch_data import PITCH_NAME_MAP
 
 REQUIRED_COLUMNS = {
@@ -38,6 +39,7 @@ REQUIRED_COLUMNS = {
 }
 
 OPTIONAL_COLUMNS = [
+    *TRAJECTORY_FIELDS,
     "game_type",
     "inning",
     "inning_topbot",
@@ -100,6 +102,7 @@ INTEGER_COLUMNS = [
 ]
 
 FLOAT_COLUMNS = [
+    *TRAJECTORY_FIELDS,
     "release_speed",
     "effective_speed",
     "release_spin_rate",
@@ -563,6 +566,7 @@ def _pitch_records(data: pd.DataFrame) -> list[dict[str, Any]]:
             record["horizontal_break_inches"] *= 12
         if record["vertical_break_inches"] is not None:
             record["vertical_break_inches"] *= 12
+        record.update(trajectory_record(row))
         records.append(record)
     return records
 
@@ -703,6 +707,7 @@ def ingest_statcast_file(
                     column.name for column in Pitch.__table__.columns if not column.primary_key
                 ],
                 batch_size=batch_size,
+                preserve_existing_on_null=set(ANGLE_FIELDS),
             )
 
             inserted_rows += len(pitch_rows) - len(existing)

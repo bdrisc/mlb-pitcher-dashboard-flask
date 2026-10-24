@@ -531,3 +531,24 @@ def test_k_minus_bb_uses_raw_counts_including_intentional_walks(app, profile_cli
             pitch.events = None
         db.session.commit()
     assert profile_client.get(url).json["overall"]["k_minus_bb_pct"] is None
+
+
+def test_approach_angles_average_individual_fits_and_follow_filters(app, profile_client):
+    with app.app_context():
+        db.session.get(Pitch, "1001_1_1").vaa = -4.0
+        db.session.get(Pitch, "1001_1_1").haa = 2.0
+        db.session.get(Pitch, "1001_1_2").vaa = -6.0
+        db.session.get(Pitch, "1001_1_2").haa = -1.0
+        db.session.get(Pitch, "1002_2_1").vaa = -9.0
+        db.session.commit()
+    url = f"/api/v1/pitchers/{PITCHER_ID}/profile"
+    arsenal = {p["pitch_type"]: p for p in profile_client.get(url).json["arsenal"]}
+    assert arsenal["FF"]["vaa"] == -5.0
+    assert arsenal["FF"]["haa"] == 0.5
+    assert arsenal["FF"]["vaa_pitch_count"] == 2
+    assert arsenal["SL"]["vaa"] == -9.0
+    assert arsenal["SL"]["vaa_pitch_count"] == 1
+    assert arsenal["SL"]["haa"] is None
+    assert arsenal["SL"]["haa_pitch_count"] == 0
+    filtered = profile_client.get(url + "?balls=0&strikes=0&pitch_type=FF").json
+    assert filtered["arsenal"][0]["vaa"] == -4.0

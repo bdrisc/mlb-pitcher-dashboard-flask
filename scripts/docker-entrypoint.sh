@@ -1,6 +1,12 @@
 #!/bin/sh
 set -eu
 
+# New code must never query new columns before the schema migration completes.
+if [ "${RUN_MIGRATIONS:-0}" = "1" ]; then
+    echo "Applying database migrations before starting the web server."
+    flask --app wsgi db upgrade
+fi
+
 echo "Starting web server on port ${PORT:-10000}."
 
 (
@@ -10,16 +16,6 @@ echo "Starting web server on port ${PORT:-10000}."
 
     maintenance_ok=1
 
-    if [ "${RUN_MIGRATIONS:-0}" = "1" ]; then
-        echo "Starting database migrations in the background."
-        if flask --app wsgi db upgrade; then
-            echo "Background database migrations finished successfully."
-        else
-            echo "Background database migrations failed; skipping data maintenance." >&2
-            maintenance_ok=0
-        fi
-    fi
-
     if [ "$maintenance_ok" = "1" ] && [ "${SEED_DATABASE:-${SEED_SAMPLE_DATA:-0}}" = "1" ]; then
         echo "Starting database seed check in the background."
         if flask --app wsgi statcast seed-if-needed \
@@ -28,6 +24,17 @@ echo "Starting web server on port ${PORT:-10000}."
         else
             echo "Background database seed check failed; skipping Statcast refresh." >&2
             maintenance_ok=0
+        fi
+    fi
+
+    if [ "$maintenance_ok" = "1" ] && [ "${SYNC_APPROACH_ANGLES_ON_STARTUP:-1}" = "1" ]; then
+        angle_source="${STATCAST_SEED_PATH:-data/production_statcast_2026.csv.gz}"
+        if [ -f "$angle_source" ]; then
+            if ! flask --app wsgi statcast backfill-approach-angles --csv-path "$angle_source"; then
+                echo "Some approach angles could not be backfilled; saved values retained." >&2
+            fi
+        elif ! flask --app wsgi statcast backfill-approach-angles; then
+            echo "Some approach angles could not be backfilled; saved values retained." >&2
         fi
     fi
 

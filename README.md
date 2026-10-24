@@ -621,3 +621,35 @@ measures contact only. All dashboard filters apply before aggregation.
 
 This uses fields already stored in both databases. No migration, refresh or
 re-import is required: pull `main` and restart the native Flask app locally.
+
+### VAA and HAA by pitch type
+
+The arsenal table includes raw VAA and HAA in degrees beside HB/IVB. They
+average each tracked pitch's calculated angle at the front of home plate,
+with all dashboard filters applied. VAA is negative for descending pitches;
+positive HAA points toward the catcher's right. Hover a cell for tracking
+coverage. Missing fits display as `—`. These are raw angles, without location
+or handedness normalization. See [the calculation and validation](docs/approach-angle-validation.md).
+
+For the existing native Windows app, stop Flask, activate your usual virtual
+environment and run against your existing full PostgreSQL database:
+
+```powershell
+git pull origin main
+.\.venv\Scripts\Activate.ps1
+python -m flask --app wsgi db upgrade
+python -m flask --app wsgi statcast backfill-approach-angles --season 2026
+python -m flask --app wsgi run --debug --port 8080
+```
+
+Backfill fetches trajectory data for your stored pitchers and updates only
+existing trajectory/angle fields. It preserves the full local pitcher cohort
+and all other metrics. It can take several minutes for a full season; rerun
+the same command after any download failure to resume unprocessed pitches.
+Use `--pitcher MLB_ID` for one pitcher. Optional `--csv-path PATH_TO_STATCAST_CSV`
+uses a previously downloaded complete Statcast CSV first, then fetches only
+remaining unprocessed pitches. No re-import of the public sample is required.
+
+On the public app, migrations run before the web process and the background
+backfill fills the existing cohort automatically. Future ingestion calculates
+these angles from `vx0`, `vy0`, `vz0`, `ax`, `ay`, and `az`.

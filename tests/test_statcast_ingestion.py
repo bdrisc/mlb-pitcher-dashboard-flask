@@ -351,3 +351,27 @@ def test_explicit_neutral_run_value_overrides_default_alias(neutral_field, neutr
     frame[neutral_field] = neutral_value
     result = clean_statcast(frame)
     assert result["delta_run_exp"].eq(-0.123).all()
+
+
+def test_trajectory_ingestion_calculates_angles_and_missing_csv_preserves_them(app, tmp_path):
+    frame = statcast_rows()
+    values = {"vx0": 8.0, "vy0": -140.0, "vz0": -4.0, "ax": -10.0, "ay": 25.0, "az": -20.0}
+    for key, value in values.items():
+        frame[key] = value
+    source = tmp_path / "trajectory.csv"
+    frame.to_csv(source, index=False)
+    from app.services.approach_angles import approach_angles
+
+    with app.app_context():
+        ingest_statcast_file(source)
+        row = db.session.scalars(select(Pitch)).first()
+        key = row.pitch_id
+        expected = approach_angles(**values)
+        assert (row.vaa, row.haa) == pytest.approx(expected)
+        assert row.vy0 == -140.0
+        frame.drop(columns=list(values)).to_csv(source, index=False)
+        ingest_statcast_file(source)
+        db.session.expire_all()
+        row = db.session.get(Pitch, key)
+        assert (row.vaa, row.haa) == pytest.approx(expected)
+        assert row.vy0 == -140.0

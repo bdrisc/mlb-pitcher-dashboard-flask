@@ -91,6 +91,15 @@ class Pitch(db.Model):
     plate_z: Mapped[float | None]
     strike_zone_top: Mapped[float | None]
     strike_zone_bottom: Mapped[float | None]
+    vx0: Mapped[float | None]
+    vy0: Mapped[float | None]
+    vz0: Mapped[float | None]
+    ax: Mapped[float | None]
+    ay: Mapped[float | None]
+    az: Mapped[float | None]
+    vaa: Mapped[float | None]
+    haa: Mapped[float | None]
+    approach_angle_version: Mapped[int | None] = mapped_column(db.SmallInteger)
     arm_angle: Mapped[float | None]
     description: Mapped[str | None] = mapped_column(db.String(50))
     events: Mapped[str | None] = mapped_column(db.String(50))

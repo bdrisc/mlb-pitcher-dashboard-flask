@@ -337,3 +337,30 @@ def refresh_run_values_command(pitcher_id, season, workers):
         raise click.ClickException(
             "Some pitcher-seasons could not be verified; saved values preserved."
         )
+
+
+@statcast_cli.command("backfill-approach-angles")
+@click.option("--season", type=click.IntRange(min=2015, max=2100))
+@click.option("--pitcher", "pitcher_id", type=int)
+@click.option("--workers", default=4, show_default=True, type=click.IntRange(min=1, max=8))
+@click.option("--csv-path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@with_appcontext
+def backfill_approach_angles_command(season, pitcher_id, workers, csv_path):
+    """Fill trajectory fields on existing pitches only; resumable and safe to repeat."""
+    from app.services.approach_angle_refresh import refresh_approach_angles
+
+    try:
+        result = refresh_approach_angles(
+            source_path=csv_path,
+            pitcher_id=pitcher_id,
+            season=season,
+            workers=workers,
+            progress=click.echo,
+        )
+    except Exception as error:
+        raise click.ClickException(str(error)) from error
+    click.echo(str(result))
+    if result["failed"]:
+        raise click.ClickException(
+            "Some pitcher-seasons could not be backfilled; saved values preserved."
+        )
