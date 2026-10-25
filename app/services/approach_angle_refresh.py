@@ -15,14 +15,14 @@ from app.services.approach_angles import ANGLE_VERSION, TRAJECTORY_FIELDS, traje
 from app.services.run_value_refresh import _download
 
 IDENTITY_FIELDS = ("game_pk", "at_bat_number", "pitch_number")
-SOURCE_FIELDS = (*IDENTITY_FIELDS, "pitcher", "game_year", *TRAJECTORY_FIELDS)
+SOURCE_FIELDS = (*IDENTITY_FIELDS, "pitcher", "game_year", *TRAJECTORY_FIELDS, "p_throws")
 
 
 def _source_records(frame):
-    missing = set(SOURCE_FIELDS) - set(frame.columns)
+    missing = (set(SOURCE_FIELDS) - {"p_throws"}) - set(frame.columns)
     if missing:
         raise ValueError("Trajectory source is missing columns: " + ", ".join(sorted(missing)))
-    for key in SOURCE_FIELDS:
+    for key in set(SOURCE_FIELDS) - {"p_throws"}:
         frame[key] = pd.to_numeric(frame[key], errors="raise")
     identity = frame[list(IDENTITY_FIELDS)]
     if identity.isna().any().any() or identity.duplicated().any():
@@ -33,10 +33,13 @@ def _source_records(frame):
     records = {}
     for row in frame.to_dict(orient="records"):
         key = "_".join(str(int(row[field])) for field in IDENTITY_FIELDS)
+        record = trajectory_record(row, checked=True)
+        if row.get("p_throws") in ("R", "L"):
+            record["pitcher_throws"] = row["p_throws"]
         records[key] = (
             int(row["pitcher"]),
             int(row["game_year"]),
-            trajectory_record(row, checked=True),
+            record,
         )
     return records
 
@@ -106,7 +109,7 @@ def refresh_approach_angles(
             owner, year, record = records[key]
             if (owner, year) != pending[key][:2]:
                 raise ValueError("Source pitch ownership differs from the existing database.")
-            updates.append({"pitch_id": key, **record})
+            updates.append({"pitch_id": key, **record, "haaaa_model_id": None})
         for start in range(0, len(updates), 2000):
             db.session.execute(update(Pitch), updates[start : start + 2000])
         return updates

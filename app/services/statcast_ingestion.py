@@ -17,6 +17,7 @@ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from app.extensions import db
 from app.models import Game, IngestionRun, Pitch, Player
 from app.services.approach_angles import ANGLE_FIELDS, TRAJECTORY_FIELDS, trajectory_record
+from app.services.haaaa import HAAAA_FIELDS, score_haaaa
 from app.services.pitch_data import PITCH_NAME_MAP
 
 REQUIRED_COLUMNS = {
@@ -506,6 +507,7 @@ def _pitch_records(data: pd.DataFrame) -> list[dict[str, Any]]:
         "inning_half": "inning_topbot",
         "outs_when_up": "outs_when_up",
         "batter_side": "stand",
+        "pitcher_throws": "p_throws",
         "pitch_type": "pitch_type",
         "pitch_name": "pitch_name",
         "balls": "balls",
@@ -567,6 +569,19 @@ def _pitch_records(data: pd.DataFrame) -> list[dict[str, Any]]:
         if record["vertical_break_inches"] is not None:
             record["vertical_break_inches"] *= 12
         record.update(trajectory_record(row))
+        prediction = score_haaaa(
+            season=row["season"],
+            pitch_type=row["pitch_type"],
+            throws=row["p_throws"],
+            release_pos_x=record["release_pos_x"],
+            plate_x=record["plate_x"],
+            haa=record["haa"],
+            **{key: record[key] for key in ("vx0", "vy0", "ax", "ay")},
+        )
+        if prediction["haaaa"] is None:
+            # A sparse re-import must not label a retained older score as a new model.
+            prediction["haaaa_model_id"] = None
+        record.update(prediction)
         records.append(record)
     return records
 
@@ -707,7 +722,7 @@ def ingest_statcast_file(
                     column.name for column in Pitch.__table__.columns if not column.primary_key
                 ],
                 batch_size=batch_size,
-                preserve_existing_on_null=set(ANGLE_FIELDS),
+                preserve_existing_on_null=set(ANGLE_FIELDS) | set(HAAAA_FIELDS),
             )
 
             inserted_rows += len(pitch_rows) - len(existing)

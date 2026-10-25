@@ -364,3 +364,18 @@ def backfill_approach_angles_command(season, pitcher_id, workers, csv_path):
         raise click.ClickException(
             "Some pitcher-seasons could not be backfilled; saved values preserved."
         )
+
+
+@statcast_cli.command("backfill-haaaa")
+@click.option("--season", type=click.IntRange(min=2015, max=2100))
+@click.option("--pitcher", "pitcher_id", type=int)
+@with_appcontext
+def backfill_haaaa_command(season, pitcher_id):
+    """Score existing pitches against the frozen prior-season MLB reference."""
+    from app.services.haaaa import backfill_haaaa
+
+    try:
+        result = backfill_haaaa(season=season, pitcher_id=pitcher_id, progress=click.echo)
+    except Exception as error:
+        raise click.ClickException(str(error)) from error
+    click.echo(str(result))

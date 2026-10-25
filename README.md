@@ -653,3 +653,28 @@ remaining unprocessed pitches. No re-import of the public sample is required.
 On the public app, migrations run before the web process and the background
 backfill fills the existing cohort automatically. Future ingestion calculates
 these angles from `vx0`, `vy0`, `vz0`, `ax`, `ay`, and `az`.
+
+### HAA Above Expected (HAAAA)
+
+HAAAA appears directly beside HAA in each pitch-type row. It is signed
+`observed HAA - expected HAA`, with expected HAA modeled by pitch type and
+throwing hand from release side and front-plane horizontal location. The
+frozen reference is trained on 2025 MLB data and evaluated on 2026. Both
+installations use the same coefficients. See [method and validation](docs/haaaa.md).
+
+In your usual activated virtual environment, stop the native Flask app and run:
+
+```powershell
+git pull origin main
+python -m flask --app wsgi db upgrade
+python -m flask --app wsgi statcast backfill-approach-angles --season 2026
+python -m flask --app wsgi statcast backfill-haaaa --season 2026
+python -m flask --app wsgi run --debug --port 8080
+```
+
+The raw-angle command skips already processed pitches. HAAAA scoring runs
+locally from the stored trajectories and frozen reference, preserving your
+full pitcher database. No league training download is required locally.
+Missing data or unsupported pitch-type/hand groups display as `—`; hover for
+coverage. Positive/negative HAAAA retains raw HAA's coordinate direction,
+not a universal better/worse ranking. The public app backfills automatically.

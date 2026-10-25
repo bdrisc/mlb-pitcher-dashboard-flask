@@ -99,6 +99,10 @@ class Pitch(db.Model):
     az: Mapped[float | None]
     vaa: Mapped[float | None]
     haa: Mapped[float | None]
+    pitcher_throws: Mapped[str | None] = mapped_column(db.String(1))
+    expected_haa: Mapped[float | None]
+    haaaa: Mapped[float | None]
+    haaaa_model_id: Mapped[str | None] = mapped_column(db.String(64))
     approach_angle_version: Mapped[int | None] = mapped_column(db.SmallInteger)
     arm_angle: Mapped[float | None]
     description: Mapped[str | None] = mapped_column(db.String(50))
