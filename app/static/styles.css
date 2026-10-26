@@ -1208,6 +1208,11 @@ summary,
 }
 
 
+#separation-heading {
+  position: relative;
+  top: -8px;
+}
+
 .separation-selector {
   width: min(100%, 260px);
   min-width: 180px;
