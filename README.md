@@ -678,3 +678,24 @@ full pitcher database. No league training download is required locally.
 Missing data or unsupported pitch-type/hand groups display as `—`; hover for
 coverage. Positive/negative HAAAA retains raw HAA's coordinate direction,
 not a universal better/worse ranking. The public app backfills automatically.
+
+### Pitch separation: velocity and movement
+
+The Pitch separation table below Arsenal performance compares pitch-type
+averages in the active sample. It shows the absolute velocity gap in mph,
+signed ΔHB/ΔIVB in inches (B minus A), and the distance between the two mean
+movement vectors. The reference selector starts with the most-used fastball;
+choose another pitch or All pitch pairs. Hover cells for tracking coverage.
+
+All global filters apply. Choose All pitch types to compare a full arsenal;
+a one-type sample has no pair to compare. Larger gaps are descriptive, not a
+universal quality grade. See [formulas, samples and repository context](docs/pitch-separation.md).
+
+This update uses existing database fields and needs no new migration,
+backfill or data download. In the activated native Flask environment, stop
+the server, pull and restart:
+
+```powershell
+git pull origin main
+python -m flask --app wsgi run --debug --port 8080
+```

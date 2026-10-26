@@ -34,6 +34,10 @@ if (root) {
     samplePa: document.querySelector("#sample-pa"),
     playerId: document.querySelector("#player-id"),
     arsenal: document.querySelector("#arsenal-body"),
+    separationReference: document.querySelector("#separation-reference"),
+    separationBody: document.querySelector("#separation-body"),
+    separationTable: document.querySelector("#separation-table"),
+    separationEmpty: document.querySelector("#separation-empty"),
     splits: document.querySelector("#platoon-splits"),
     databaseFreshness: document.querySelector("#database-freshness"),
   };
@@ -41,6 +45,8 @@ if (root) {
   const state = {
     pitchers: [],
     requestController: null,
+    separation: null,
+    separationPitcherId: null,
   };
 
   const pitchColors = {
@@ -335,6 +341,57 @@ if (root) {
     });
   }
 
+  function signedSeparation(value) {
+    if (value === null || value === undefined) return "—";
+    const rounded = Number(Number(value).toFixed(1)) || 0;
+    return `${rounded > 0 ? "+" : ""}${formatNumber(rounded)}`;
+  }
+
+  function renderSeparation(data, pitcherId) {
+    const previous = state.separationPitcherId === pitcherId ? elements.separationReference.value : null;
+    state.separation = data;
+    state.separationPitcherId = pitcherId;
+    elements.separationReference.replaceChildren();
+    appendOption(elements.separationReference, "", "All pitch pairs");
+    data.pitch_types.forEach((pitch) => {
+      appendOption(elements.separationReference, pitch.pitch_type, `${pitch.pitch_name} (${pitch.pitch_type})`);
+    });
+    const keepPrevious = previous !== null && (previous === "" || data.pitch_types.some((pitch) => pitch.pitch_type === previous));
+    elements.separationReference.value = keepPrevious ? previous : data.reference_pitch_type || "";
+    elements.separationReference.disabled = data.pitch_types.length < 2;
+    renderSeparationRows();
+  }
+
+  function renderSeparationRows() {
+    const data = state.separation;
+    if (!data) return;
+    const reference = elements.separationReference.value;
+    const pitches = new Map(data.pitch_types.map((pitch) => [pitch.pitch_type, pitch]));
+    const pairs = data.pairs.filter((pair) => !reference || [pair.pitch_a, pair.pitch_b].includes(reference));
+    elements.separationBody.replaceChildren();
+    setVisible(elements.separationEmpty, pairs.length === 0);
+    setVisible(elements.separationTable, pairs.length > 0);
+    pairs.forEach((pair) => {
+      const reverse = reference && pair.pitch_b === reference;
+      const a = pitches.get(reverse ? pair.pitch_b : pair.pitch_a);
+      const b = pitches.get(reverse ? pair.pitch_a : pair.pitch_b);
+      const sign = reverse ? -1 : 1;
+      const row = document.createElement("tr");
+      const label = document.createElement("th");
+      label.scope = "row";
+      label.textContent = `${a.pitch_name} (${a.pitch_type})`;
+      row.append(label);
+      tableCell(row, `${b.pitch_name} (${b.pitch_type})`);
+      const velocity = tableCell(row, formatNumber(pair.velocity_gap_mph));
+      velocity.title = `Mean velocity gap. ${a.pitch_type}: ${a.velocity_pitch_count.toLocaleString("en-US")} of ${a.pitch_count.toLocaleString("en-US")} pitches; ${b.pitch_type}: ${b.velocity_pitch_count.toLocaleString("en-US")} of ${b.pitch_count.toLocaleString("en-US")} pitches. B minus A: ${signedSeparation(pair.velocity_difference_mph === null ? null : sign * pair.velocity_difference_mph)} mph.`;
+      const coverage = `Joint HB/IVB tracking: ${a.pitch_type} ${a.movement_pitch_count.toLocaleString("en-US")}/${a.pitch_count.toLocaleString("en-US")}; ${b.pitch_type} ${b.movement_pitch_count.toLocaleString("en-US")}/${b.pitch_count.toLocaleString("en-US")}. Differences are B minus A in catcher-perspective coordinates.`;
+      tableCell(row, signedSeparation(pair.horizontal_difference_inches === null ? null : sign * pair.horizontal_difference_inches)).title = coverage;
+      tableCell(row, signedSeparation(pair.vertical_difference_inches === null ? null : sign * pair.vertical_difference_inches)).title = coverage;
+      tableCell(row, formatNumber(pair.movement_gap_inches)).title = `Distance between mean movement vectors, not the difference of their magnitudes. ${coverage}`;
+      elements.separationBody.append(row);
+    });
+  }
+
   function splitMetric(label, key, value) {
     const wrapper = document.createElement("div");
     const term = document.createElement("dt");
@@ -385,6 +442,7 @@ if (root) {
     elements.summary.textContent = `${sample.pitches.toLocaleString("en-US")} pitches across ${sample.games.toLocaleString("en-US")} games`;
     renderMetricCards(overall);
     renderArsenal(profile.arsenal);
+    renderSeparation(profile.pitch_separation, pitcher.mlb_id);
     renderSplits(profile.platoon_splits);
     setVisible(elements.content, true);
   }
@@ -467,6 +525,8 @@ if (root) {
       setLoading(false);
     }
   }
+
+  elements.separationReference.addEventListener("change", renderSeparationRows);
 
   elements.form.addEventListener("submit", (event) => {
     event.preventDefault();

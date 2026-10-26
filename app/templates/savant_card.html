@@ -234,6 +234,34 @@
         </div>
       </section>
 
+      <section class="dashboard-section" aria-labelledby="separation-heading">
+        <div class="section-heading">
+          <div>
+            <h2 id="separation-heading">Pitch separation</h2>
+          </div>
+          <label class="field separation-selector" for="separation-reference">
+            <span>Compare with</span>
+            <select id="separation-reference" aria-controls="separation-body"></select>
+          </label>
+        </div>
+        <p id="separation-empty" class="separation-note" hidden>Choose All pitch types or broaden the filters to compare at least two pitch types.</p>
+        <div id="separation-table" class="table-shell" tabindex="0" aria-label="Scrollable pitch separation table">
+          <table class="arsenal-table separation-table">
+            <thead>
+              <tr>
+                <th scope="col">Pitch A</th>
+                <th scope="col">Pitch B</th>
+                <th scope="col" title="Absolute difference between pitch-type mean velocities">Velocity gap (mph)</th>
+                <th scope="col" title="Pitch B minus Pitch A horizontal movement, in catcher-perspective coordinates">ΔHB (in)</th>
+                <th scope="col" title="Pitch B minus Pitch A induced vertical movement">ΔIVB (in)</th>
+                <th scope="col" title="Distance between mean HB/IVB vectors: sqrt(ΔHB² + ΔIVB²). Both movement means use jointly tracked pitches.">Movement gap (in)</th>
+              </tr>
+            </thead>
+            <tbody id="separation-body"></tbody>
+          </table>
+        </div>
+      </section>
+
       <section class="dashboard-section chart-section" aria-labelledby="charts-heading">
         <div class="section-heading">
           <div>

@@ -14,6 +14,7 @@ from app.services.database_queries import pitch_filter_conditions, pitcher_team_
 from app.services.fangraphs_stuff import profile_grades
 from app.services.filters import PitchFilters
 from app.services.pitch_data import PITCH_NAME_MAP
+from app.services.pitch_separation import build_pitch_separation
 
 
 class PitcherNotFoundError(LookupError):
@@ -412,5 +413,6 @@ def build_pitcher_profile(pitcher_id: int, filters: PitchFilters) -> dict[str, A
             "pitching_plus": stuff["pitching_plus"],
         },
         "arsenal": arsenal,
+        "pitch_separation": build_pitch_separation(conditions),
         "platoon_splits": _platoon_rows(conditions),
     }

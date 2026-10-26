@@ -1206,3 +1206,19 @@ summary,
     animation-iteration-count: 1 !important;
   }
 }
+
+
+.separation-selector {
+  width: min(100%, 260px);
+  min-width: 180px;
+}
+
+.separation-table {
+  min-width: 760px;
+}
+
+.separation-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
