@@ -552,3 +552,110 @@ def test_approach_angles_average_individual_fits_and_follow_filters(app, profile
     assert arsenal["SL"]["haa_pitch_count"] == 0
     filtered = profile_client.get(url + "?balls=0&strikes=0&pitch_type=FF").json
     assert filtered["arsenal"][0]["vaa"] == -4.0
+
+
+def test_swstr_uses_pooled_physical_pitch_counts_and_shared_filters(app, profile_client):
+    # Unequal pitch-type samples ensure the overall rate cannot be an average
+    # of the per-type rates. Stored whiff flags deliberately remain false.
+    with app.app_context():
+        db.session.query(Pitch).delete()
+        descriptions = {
+            "FF": [
+                "swinging_strike",
+                "SWINGING_STRIKE_BLOCKED",
+                "foul_tip",
+                "missed_bunt",
+                "foul_bunt",
+                "bunt_foul_tip",
+                "ball",
+                None,
+            ],
+            "SL": ["swinging_strike", "hit_into_play", "automatic_ball", "automatic_strike"],
+        }
+        for code, outcomes in descriptions.items():
+            for number, description in enumerate(outcomes, 1):
+                db.session.add(
+                    _pitch(
+                        pitch_id=f"swstr_{code}_{number}",
+                        batter_id=200,
+                        balls=0,
+                        strikes=0,
+                        game_pk=1001 if code == "FF" else 1002,
+                        pitch_type=code,
+                        pitch_name=code,
+                        batter_side="R" if code == "FF" else "L",
+                        at_bat_number=number,
+                        pitch_number=1,
+                        description=description,
+                    )
+                )
+        db.session.commit()
+    payload = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile").json
+    overall = payload["overall"]
+    assert (overall["swinging_strike_count"], overall["swstr_pitch_count"]) == (3, 10)
+    assert overall["swstr_pct"] == 30.0
+    arsenal = {pitch["pitch_type"]: pitch for pitch in payload["arsenal"]}
+    assert arsenal["FF"]["swstr_pct"] == 25.0
+    assert arsenal["SL"]["swstr_pct"] == 50.0
+    for query, rate, denominator in [
+        ({"pitch_type": "FF"}, 25.0, 8),
+        ({"batter_side": "L"}, 50.0, 2),
+        ({"date_from": "2026-05-01"}, 50.0, 2),
+    ]:
+        filtered = profile_client.get(
+            f"/api/v1/pitchers/{PITCHER_ID}/profile", query_string=query
+        ).json
+        assert filtered["overall"]["swstr_pct"] == rate
+        assert filtered["overall"]["swstr_pitch_count"] == denominator
+        assert filtered["arsenal"][0]["swstr_pct"] == rate
+
+
+@pytest.mark.parametrize(
+    "description,expected",
+    [
+        ("swinging_strike", 100.0),
+        ("swinging_strike_blocked", 100.0),
+        ("foul_tip", 0.0),
+        ("missed_bunt", 0.0),
+        ("foul_bunt", 0.0),
+        ("bunt_foul_tip", 0.0),
+        ("called_strike", 0.0),
+        (None, 0.0),
+        ("automatic_ball", None),
+        ("automatic_strike", None),
+    ],
+)
+def test_swstr_event_classification_and_zero_denominator(
+    app, profile_client, description, expected
+):
+    with app.app_context():
+        db.session.query(Pitch).delete()
+        db.session.add(
+            _pitch(
+                pitch_id="swstr_only",
+                batter_id=200,
+                balls=0,
+                strikes=0,
+                game_pk=1001,
+                pitch_type="UN",
+                pitch_name="Unknown",
+                description=description,
+                at_bat_number=1,
+                pitch_number=1,
+            )
+        )
+        db.session.commit()
+    payload = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile").json
+    assert payload["overall"]["swstr_pct"] == expected
+    assert payload["arsenal"][0]["swstr_pct"] == expected
+    assert payload["overall"]["swstr_pitch_count"] == (0 if expected is None else 1)
+
+
+def test_swstr_display_keeps_fangraphs_metrics_last(profile_client):
+    html = profile_client.get("/savant-card").get_data(as_text=True)
+    assert 'data-metric="swstr_pct"' in html
+    assert "SwStr%</th>" in html
+    assert html.index('data-metric="whiff_pct"') < html.index('data-metric="swstr_pct"')
+    assert html.index('data-metric="swstr_pct"') < html.index('data-metric="stuff_plus"')
+    assert html.index('data-metric="stuff_plus"') < html.index('data-metric="location_plus"')
+    assert html.index('data-metric="location_plus"') < html.index('data-metric="pitching_plus"')

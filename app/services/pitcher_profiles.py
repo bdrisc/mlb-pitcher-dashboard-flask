@@ -70,6 +70,10 @@ def _metric_columns() -> list[Any]:
     whiff = description.in_(
         ("swinging_strike", "swinging_strike_blocked", "foul_tip", "missed_bunt")
     )
+    # SwStr% counts only full swings and misses, independently of the existing
+    # Savant-style whiff grouping (which also includes foul tips/missed bunts).
+    swinging_strike = description.in_(("swinging_strike", "swinging_strike_blocked"))
+    physical_pitch = func.coalesce(description, "").notin_(("automatic_ball", "automatic_strike"))
     strike = description.in_(
         (
             "called_strike",
@@ -108,6 +112,8 @@ def _metric_columns() -> list[Any]:
         _count_where(strike).label("strikes"),
         _count_where(swing).label("swings"),
         _count_where(whiff).label("whiffs"),
+        _count_where(swinging_strike).label("swinging_strikes"),
+        _count_where(physical_pitch).label("swstr_pitches"),
         _count_where(or_(description == "called_strike", whiff)).label("csw"),
         _count_where(location_known).label("location_tracked"),
         _count_where(and_(location_known, Pitch.is_in_zone.is_(True))).label("in_zone"),
@@ -200,6 +206,9 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         "strike_pct": _rate(_integer(row, "strikes"), pitches),
         "swing_pct": _rate(swings, pitches),
         "whiff_pct": _rate(_integer(row, "whiffs"), swings),
+        "swstr_pct": _rate(_integer(row, "swinging_strikes"), _integer(row, "swstr_pitches")),
+        "swinging_strike_count": _integer(row, "swinging_strikes"),
+        "swstr_pitch_count": _integer(row, "swstr_pitches"),
         "csw_pct": _rate(_integer(row, "csw"), pitches),
         "zone_pct": _rate(_integer(row, "in_zone"), location_tracked),
         "chase_pct": _rate(_integer(row, "chases"), out_of_zone),

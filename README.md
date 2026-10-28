@@ -699,3 +699,21 @@ the server, pull and restart:
 git pull origin main
 python -m flask --app wsgi run --debug --port 8080
 ```
+
+
+### Swinging-strike rate (SwStr%)
+
+The main card and each arsenal row show SwStr% beside Whiff%. SwStr% is
+100 × (`swinging_strike` + `swinging_strike_blocked`) / pitches thrown.
+Foul tips and bunt attempts do not enter the numerator; their thrown pitches
+remain in the denominator. Automatic balls and automatic strikes are excluded
+from the denominator. Physical pitches with an unknown pitch type or missing
+tracking measurements remain eligible. This is separate from the existing
+Whiff% grouping and denominator (per swing).
+
+The API exposes `swstr_pct`, `swinging_strike_count`, and `swstr_pitch_count`
+overall, by pitch type, and in platoon split data. All active filters apply before
+aggregation, and the overall rate uses pooled counts rather than an average of
+pitch-type percentages. Rates display to one decimal; zero swinging strikes is
+0.0%, while a zero denominator is unavailable. Both deployments calculate this
+from their existing databases; no migration, download, or backfill is required.

@@ -67,6 +67,7 @@ if (root) {
     "strike_pct",
     "swing_pct",
     "whiff_pct",
+    "swstr_pct",
     "csw_pct",
     "zone_pct",
     "chase_pct",
@@ -334,6 +335,7 @@ if (root) {
       tableCell(row, formatMetric("haa", pitch.haa)).title = `Raw HAA at the front of home plate; positive is toward the catcher's right. ${pitch.haa_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches tracked.`;
       tableCell(row, formatMetric("haaaa", pitch.haaaa)).title = `HAA Above Expected: observed minus expected HAA, adjusted for pitch type, throwing hand, release side and horizontal location. Frozen 2025 MLB baseline; signed like HAA, not a better/worse grade. ${pitch.haaaa_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches scored.`;
       tableCell(row, formatMetric("whiff_pct", pitch.whiff_pct));
+      tableCell(row, formatMetric("swstr_pct", pitch.swstr_pct)).title = `${pitch.swinging_strike_count.toLocaleString("en-US")} swinging strikes / ${pitch.swstr_pitch_count.toLocaleString("en-US")} pitches thrown. Foul tips and bunt attempts are not swinging strikes; automatic calls are not pitches thrown.`;
       tableCell(row, formatMetric("csw_pct", pitch.csw_pct));
       tableCell(row, formatMetric("zone_pct", pitch.zone_pct));
       tableCell(row, formatMetric("chase_pct", pitch.chase_pct));
