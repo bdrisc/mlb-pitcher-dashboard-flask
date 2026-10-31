@@ -109,7 +109,9 @@ def refresh_approach_angles(
             owner, year, record = records[key]
             if (owner, year) != pending[key][:2]:
                 raise ValueError("Source pitch ownership differs from the existing database.")
-            updates.append({"pitch_id": key, **record, "haaaa_model_id": None})
+            updates.append(
+                {"pitch_id": key, **record, "haaaa_model_id": None, "vaa_adj_model_id": None}
+            )
         for start in range(0, len(updates), 2000):
             db.session.execute(update(Pitch), updates[start : start + 2000])
         return updates

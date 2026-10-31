@@ -88,7 +88,7 @@ if (root) {
 
   function formatMetric(key, value) {
     if (value === null || value === undefined) return "—";
-    if (key === "haaaa") {
+    if (key === "haaaa" || key === "vaa_adj") {
       const number = Number(value) === 0 ? 0 : Number(value);
       return `${number > 0 ? "+" : ""}${formatNumber(number, 2)}°`;
     }
@@ -332,6 +332,7 @@ if (root) {
       tableCell(row, formatMetric("horizontal_break", pitch.horizontal_break));
       tableCell(row, formatMetric("vertical_break", pitch.vertical_break));
       tableCell(row, formatMetric("vaa", pitch.vaa)).title = `Raw VAA at the front of home plate; negative means descending. ${pitch.vaa_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches tracked.`;
+      tableCell(row, formatMetric("vaa_adj", pitch.vaa_adj)).title = `VAA minus expected VAA for this pitch type and front-plane height. Positive = flatter; negative = steeper. Frozen 2025 MLB baseline. ${pitch.vaa_adj_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches scored.`;
       tableCell(row, formatMetric("haa", pitch.haa)).title = `Raw HAA at the front of home plate; positive is toward the catcher's right. ${pitch.haa_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches tracked.`;
       tableCell(row, formatMetric("haaaa", pitch.haaaa)).title = `HAA Above Expected: observed minus expected HAA, adjusted for pitch type, throwing hand, release side and horizontal location. Frozen 2025 MLB baseline; signed like HAA, not a better/worse grade. ${pitch.haaaa_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches scored.`;
       tableCell(row, formatMetric("whiff_pct", pitch.whiff_pct));

@@ -19,6 +19,7 @@ from app.models import Game, IngestionRun, Pitch, Player
 from app.services.approach_angles import ANGLE_FIELDS, TRAJECTORY_FIELDS, trajectory_record
 from app.services.haaaa import HAAAA_FIELDS, score_haaaa
 from app.services.pitch_data import PITCH_NAME_MAP
+from app.services.vaa_adj import VAA_ADJ_FIELDS, score_vaa_adj
 
 REQUIRED_COLUMNS = {
     "game_date",
@@ -582,6 +583,16 @@ def _pitch_records(data: pd.DataFrame) -> list[dict[str, Any]]:
             # A sparse re-import must not label a retained older score as a new model.
             prediction["haaaa_model_id"] = None
         record.update(prediction)
+        vertical_prediction = score_vaa_adj(
+            season=row["season"],
+            pitch_type=row["pitch_type"],
+            plate_z=record["plate_z"],
+            vaa=record["vaa"],
+            **{key: record[key] for key in ("vz0", "vy0", "az", "ay")},
+        )
+        if vertical_prediction["vaa_adj"] is None:
+            vertical_prediction["vaa_adj_model_id"] = None
+        record.update(vertical_prediction)
         records.append(record)
     return records
 
@@ -722,7 +733,9 @@ def ingest_statcast_file(
                     column.name for column in Pitch.__table__.columns if not column.primary_key
                 ],
                 batch_size=batch_size,
-                preserve_existing_on_null=set(ANGLE_FIELDS) | set(HAAAA_FIELDS),
+                preserve_existing_on_null=set(ANGLE_FIELDS)
+                | set(HAAAA_FIELDS)
+                | set(VAA_ADJ_FIELDS),
             )
 
             inserted_rows += len(pitch_rows) - len(existing)

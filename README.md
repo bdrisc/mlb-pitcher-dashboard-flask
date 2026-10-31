@@ -717,3 +717,29 @@ aggregation, and the overall rate uses pooled counts rather than an average of
 pitch-type percentages. Rates display to one decimal; zero swinging strikes is
 0.0%, while a zero denominator is unavailable. Both deployments calculate this
 from their existing databases; no migration, download, or backfill is required.
+
+### VAA Above Expected (VAAAdj)
+
+The arsenal table shows **VAAAdj** beside VAA. It is actual VAA minus expected
+VAA at the pitch's vertical location, using a separate frozen 2025 MLB regression
+for each pitch type. Positive means flatter than expected; negative means steeper.
+It retains release-height and velocity effects rather than adjusting them away.
+Both apps use the same checked-in reference, validated separately on 2026 data.
+The main metric cards and existing raw VAA/HAA/HAAAA are unchanged.
+
+For an existing native local installation, stop Flask and run in the activated
+virtual environment against the existing full database:
+
+```powershell
+git pull origin main
+python -m flask --app wsgi db upgrade
+python -m flask --app wsgi statcast backfill-vaa-adj --season 2026
+python -m flask --app wsgi run --debug --port 8080
+```
+
+This scoring step does not download pitches or replace the local database.
+It requires the raw trajectory/VAA backfill from the earlier approach-angle
+update. If that has not been run, run
+`python -m flask --app wsgi statcast backfill-approach-angles --season 2026`
+before the VAAAdj command. Public startup migrates and scores automatically.
+Details, equations, training scope and reproduction: [VAAAdj](docs/vaa-adj.md).

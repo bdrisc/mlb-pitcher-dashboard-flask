@@ -379,3 +379,18 @@ def backfill_haaaa_command(season, pitcher_id):
     except Exception as error:
         raise click.ClickException(str(error)) from error
     click.echo(str(result))
+
+
+@statcast_cli.command("backfill-vaa-adj")
+@click.option("--season", type=click.IntRange(min=2015, max=2100))
+@click.option("--pitcher", "pitcher_id", type=int)
+@with_appcontext
+def backfill_vaa_adj_command(season, pitcher_id):
+    """Score existing pitches with the frozen location-adjusted VAA reference."""
+    from app.services.vaa_adj import backfill_vaa_adj
+
+    try:
+        result = backfill_vaa_adj(season=season, pitcher_id=pitcher_id, progress=click.echo)
+    except Exception as error:
+        raise click.ClickException(str(error)) from error
+    click.echo(str(result))

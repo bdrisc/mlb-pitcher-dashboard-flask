@@ -38,6 +38,12 @@ echo "Starting web server on port ${PORT:-10000}."
         fi
     fi
 
+    if [ "$maintenance_ok" = "1" ] && [ "${SYNC_VAA_ADJ_ON_STARTUP:-1}" = "1" ]; then
+        if ! flask --app wsgi statcast backfill-vaa-adj; then
+            echo "VAAAdj backfill unavailable; saved values retained." >&2
+        fi
+    fi
+
     if [ "$maintenance_ok" = "1" ] && [ "${SYNC_HAAAA_ON_STARTUP:-1}" = "1" ]; then
         if ! flask --app wsgi statcast backfill-haaaa; then
             echo "HAAAA backfill unavailable; saved values retained." >&2
