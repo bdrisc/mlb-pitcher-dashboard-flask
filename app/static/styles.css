@@ -1227,3 +1227,23 @@ summary,
   color: var(--muted);
   font-size: 0.85rem;
 }
+
+
+.tunneling-heading {
+  align-items: flex-start;
+}
+
+.tunneling-table {
+  min-width: 760px;
+}
+
+.tunneling-note {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.tunneling-overall {
+  font-weight: 700;
+}

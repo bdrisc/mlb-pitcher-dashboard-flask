@@ -743,3 +743,21 @@ update. If that has not been run, run
 `python -m flask --app wsgi statcast backfill-approach-angles --season 2026`
 before the VAAAdj command. Public startup migrates and scores automatically.
 Details, equations, training scope and reproduction: [VAAAdj](docs/vaa-adj.md).
+
+### Pitch tunneling
+
+The **Pitch tunneling** section compares actual consecutive pitches to the same
+batter. It shows overall and ordered-sequence averages for release-point gap,
+path separation 23.8 feet in front of home plate, front-of-plate location gap,
+and release-to-plate flight-time difference. Switch “Group by” to “Second pitch
+type” for summaries of each pitch following its real predecessor.
+
+Filters apply to the second pitch, retaining its actual previous pitch as context.
+Same-type sequences are included; missing pitches/tracking never create false
+neighbors. Pair counts and metric-specific hover counts show coverage. These
+are geometric estimates, not a standalone quality grade or BP PREMAX replica.
+
+Both apps use their existing databases with no additional migration, data
+import or model training. For local, stop Flask, run `git pull origin main`,
+then restart with `python -m flask --app wsgi run --debug --port 8080` in the
+activated virtual environment. [Method and validation](docs/pitch-tunneling.md).

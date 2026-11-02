@@ -265,6 +265,39 @@
         </div>
       </section>
 
+      <section class="dashboard-section" aria-labelledby="tunneling-heading">
+        <div class="section-heading tunneling-heading">
+          <div>
+            <h2 id="tunneling-heading">Pitch tunneling</h2>
+          </div>
+          <label class="field separation-selector" for="tunneling-group">
+            <span>Group by</span>
+            <select id="tunneling-group" aria-controls="tunneling-body">
+              <option value="sequence">Pitch sequence</option>
+              <option value="pitch">Second pitch type</option>
+            </select>
+          </label>
+        </div>
+        <p id="tunneling-coverage" class="tunneling-note" aria-live="polite"></p>
+        <p id="tunneling-empty" class="tunneling-note" hidden>No eligible consecutive pitch pairs match these filters.</p>
+        <div id="tunneling-table" class="table-shell" tabindex="0" aria-label="Scrollable pitch tunneling table">
+          <table class="arsenal-table tunneling-table">
+            <thead>
+              <tr>
+                <th scope="col" id="tunneling-label">Pitch sequence</th>
+                <th scope="col">Pairs</th>
+                <th scope="col" title="Mean three-dimensional distance between measured release points">Release gap (in)</th>
+                <th scope="col" title="Mean physical distance between paths at a plane 23.8 feet in front of home plate. Smaller gaps mean closer paths at that plane; this is not a batter-perspective PREMAX metric or a pitch-quality grade.">Tunnel gap (in)</th>
+                <th scope="col" title="Mean distance between locations at the front of home plate">Plate gap (in)</th>
+                <th scope="col" title="Mean absolute difference in release-to-front-of-plate flight times">Flight-time gap (ms)</th>
+              </tr>
+            </thead>
+            <tbody id="tunneling-body"></tbody>
+          </table>
+        </div>
+        <p class="tunneling-note">Consecutive pitches to the same batter. Filters apply to the second pitch; tunnel gap is measured 23.8 ft before the front of the plate.</p>
+      </section>
+
       <section class="dashboard-section chart-section" aria-labelledby="charts-heading">
         <div class="section-heading">
           <div>
