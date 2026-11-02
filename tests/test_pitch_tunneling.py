@@ -255,10 +255,9 @@ def test_existing_global_filters_and_empty_sample(tunnel_client):
     html = tunnel_client.get("/savant-card").get_data(as_text=True)
     assert 'id="tunneling-body"' not in html
     assert 'id="tunneling-heading"' not in html
-    assert 'Release gap (in)' in html
-    assert 'Late separation (in)' in html
+    assert "Release gap (in)" in html
+    assert "Late separation (in)" in html
     assert html.index('id="separation-heading"') < html.index('id="charts-heading"')
-
 
 
 def test_only_first_pitches_can_match_filters_without_tunneling_pairs(app, tunnel_client):
@@ -308,17 +307,29 @@ def test_pooling_uses_metric_specific_counts_and_missing_pairs():
     from app.services.pitch_tunneling import add_tunneling_to_separation
 
     def sequence(a, b, release, release_count, late, late_count):
-        return {"pitch_a": a, "pitch_b": b, "observed_pair_count": 3,
-                "release_gap_inches": release, "late_separation_inches": late,
-                "metric_pair_counts": {"release_gap_inches": release_count,
-                                       "late_separation_inches": late_count}}
+        return {
+            "pitch_a": a,
+            "pitch_b": b,
+            "observed_pair_count": 3,
+            "release_gap_inches": release,
+            "late_separation_inches": late,
+            "metric_pair_counts": {
+                "release_gap_inches": release_count,
+                "late_separation_inches": late_count,
+            },
+        }
 
-    data = {"pairs": [{"pitch_a": "FF", "pitch_b": "SL"},
-                      {"pitch_a": "FF", "pitch_b": "CH"}]}
-    result = add_tunneling_to_separation(data, {"pairs": [
-        sequence("FF", "SL", 4, 1, -1, 2),
-        sequence("SL", "FF", 10, 2, 5, 2),
-        sequence("FF", "FF", 100, 3, 100, 3)]})
+    data = {"pairs": [{"pitch_a": "FF", "pitch_b": "SL"}, {"pitch_a": "FF", "pitch_b": "CH"}]}
+    result = add_tunneling_to_separation(
+        data,
+        {
+            "pairs": [
+                sequence("FF", "SL", 4, 1, -1, 2),
+                sequence("SL", "FF", 10, 2, 5, 2),
+                sequence("FF", "FF", 100, 3, 100, 3),
+            ]
+        },
+    )
     pair, missing = result["pairs"]
     assert pair["release_gap_inches"] == 8
     assert pair["late_separation_inches"] == 2
