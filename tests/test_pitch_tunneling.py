@@ -253,12 +253,12 @@ def test_existing_global_filters_and_empty_sample(tunnel_client):
             == 4
         )
     html = tunnel_client.get("/savant-card").get_data(as_text=True)
-    assert 'id="tunneling-body"' in html
-    assert (
-        html.index('id="separation-heading"')
-        < html.index('id="tunneling-heading"')
-        < html.index('id="charts-heading"')
-    )
+    assert 'id="tunneling-body"' not in html
+    assert 'id="tunneling-heading"' not in html
+    assert 'Release gap (in)' in html
+    assert 'Late separation (in)' in html
+    assert html.index('id="separation-heading"') < html.index('id="charts-heading"')
+
 
 
 def test_only_first_pitches_can_match_filters_without_tunneling_pairs(app, tunnel_client):
@@ -283,3 +283,47 @@ def test_two_paths_can_cross_at_tunnel_but_separate_at_plate():
     gaps = pair_metrics(a, b)
     assert gaps["tunnel_gap_inches"] == pytest.approx(0, abs=1e-12)
     assert gaps["plate_gap_inches"] == pytest.approx(12 * 10 * 23.8 / 100)
+
+
+def test_late_separation_keeps_convergence_sign():
+    a = {"tunnel": (0, 0), "plate": (0, 0), "release": None, "flight": None}
+    b = {**a, "tunnel": (2, 0), "plate": (1, 0)}
+    assert pair_metrics(a, b)["late_separation_inches"] == -12
+    assert pair_metrics(b, a)["late_separation_inches"] == -12
+    assert pair_metrics(a, {**b, "plate": (3, 0)})["late_separation_inches"] == 12
+    assert pair_metrics(a, a)["late_separation_inches"] == 0
+
+
+def test_separation_pools_sequence_directions(tunnel_client):
+    pair = tunnel_client.get(URL).json["pitch_separation"]["pairs"][0]
+    assert {pair["pitch_a"], pair["pitch_b"]} == {"FF", "SL"}
+    assert pair["release_gap_inches"] == pytest.approx(4)
+    assert pair["release_pair_count"] == 3
+    assert pair["late_separation_inches"] == pytest.approx(0)
+    assert pair["late_separation_pair_count"] == 3
+    assert pair["observed_sequence_pair_count"] == 3
+
+
+def test_pooling_uses_metric_specific_counts_and_missing_pairs():
+    from app.services.pitch_tunneling import add_tunneling_to_separation
+
+    def sequence(a, b, release, release_count, late, late_count):
+        return {"pitch_a": a, "pitch_b": b, "observed_pair_count": 3,
+                "release_gap_inches": release, "late_separation_inches": late,
+                "metric_pair_counts": {"release_gap_inches": release_count,
+                                       "late_separation_inches": late_count}}
+
+    data = {"pairs": [{"pitch_a": "FF", "pitch_b": "SL"},
+                      {"pitch_a": "FF", "pitch_b": "CH"}]}
+    result = add_tunneling_to_separation(data, {"pairs": [
+        sequence("FF", "SL", 4, 1, -1, 2),
+        sequence("SL", "FF", 10, 2, 5, 2),
+        sequence("FF", "FF", 100, 3, 100, 3)]})
+    pair, missing = result["pairs"]
+    assert pair["release_gap_inches"] == 8
+    assert pair["late_separation_inches"] == 2
+    assert pair["release_pair_count"] == 3
+    assert pair["late_separation_pair_count"] == 4
+    assert missing["release_gap_inches"] is None
+    assert missing["late_separation_inches"] is None
+    assert missing["release_pair_count"] == missing["late_separation_pair_count"] == 0

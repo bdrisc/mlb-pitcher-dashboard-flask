@@ -13,6 +13,9 @@ For each ordered pair A → B, the API reports:
 - Tunnel gap: x/z distance between fitted paths at a common plane **23.8 feet
   in front of the front of home plate**, multiplied by 12.
 - Plate gap: x/z distance at the front of home plate, multiplied by 12.
+- Late separation: Plate Gap minus Tunnel Gap for each pair, in inches. Positive
+  values mean paths spread apart; negative values mean convergence. This includes
+  trajectory direction and location effects, so it is not pure late break.
 - Flight-time gap: absolute difference between the two fitted release-to-front
   flight times, multiplied by 1,000 to convert seconds to milliseconds.
 
@@ -64,22 +67,28 @@ pitch. Automatic calls and unknown/unclassified types are excluded. Same-type
 pairs are included and are identified separately, such as FF → FF.
 
 All normal filters apply to the second pitch. Its predecessor remains context.
-FF → SL and SL → FF are different observed sequence populations. The “Second
-pitch type” view pools every eligible predecessor of that pitch type.
+FF → SL and SL → FF are different observed sequence populations in the API.
+The Pitch separation table pools both directions into one unordered A/B row.
+Each displayed value is an arithmetic mean of individual pair measurements,
+using the metric-specific count to weight the ordered-sequence means. It is
+not a distance between averaged release points or trajectories. Same-type
+sequences remain in the API but do not create comparison-table rows.
 
-Every displayed metric is the arithmetic mean of individual pair measurements,
-not the distance between averaged trajectories or an unweighted mean of sequence
-averages. The overall row pools individual eligible pairs. Exact zeros remain
-zero, missing values remain null, and each metric includes its own tracking
-count. The table's pair count counts complete path pairs; coverage reports these
-against observed eligible sequences, including those without sufficient tracking.
-Display rounding occurs only in the browser.
+Release gap and signed late separation do not change when the reference pitch
+is reversed. Their sample counts are available on hover. Missing measurements
+or unobserved combinations remain null/dashes, never zero. Existing velocity
+and HB/IVB columns still compare filtered pitch-type centroids; their samples
+can differ from these sequence-derived columns. Display rounding occurs only
+in the browser. The separate Pitch tunneling section has been removed.
 
 ## Integration and verification
 
 `app/services/pitch_tunneling.py` adds a read-only `pitch_tunneling` section to
 the existing profile API, with `overall`, ordered `pairs`, `by_pitch_type`,
-method metadata and metric sample counts. Both installations run identical code
+method metadata and metric sample counts. The existing `pitch_tunneling` API
+is retained; the compact UI reads enriched `pitch_separation.pairs` fields
+`release_gap_inches`, `late_separation_inches`, `release_pair_count`,
+`late_separation_pair_count`, and `observed_sequence_pair_count`. Both installations run identical code
 on their own stored pitches. Existing sequence indexes and trajectory columns
 are sufficient: no new migration, training, season download or backfill is
 required for this feature. Historic rows lacking inputs are shown as unavailable.

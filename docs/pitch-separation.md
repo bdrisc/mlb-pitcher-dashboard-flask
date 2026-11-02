@@ -56,6 +56,7 @@ sample changes for the same pitcher when that type remains available.
 There is one backend record for each unordered pair. The table places a chosen
 reference in column A, reversing signed B-minus-A differences as needed.
 Unsigned velocity and movement gaps do not change when the pair is reversed.
+Release gap and signed late separation are also invariant to reference reversal.
 
 `pitch_separation` in the existing profile API contains:
 
@@ -85,4 +86,23 @@ tracking, nonfinite readings, pitch-name aliases, full-precision calculations
 and global-filter behavior. An additional DOM integration check ran the actual
 Flask page and JavaScript against SQL-backed API fixtures and verified the
 initial reference, reversed-reference signs, selection persistence, all-pairs
-mode and the one-pitch empty state. The complete Python suite has 113 tests.
+mode and the one-pitch empty state. The compact integration passes the complete 169-test Python suite.
+
+## Consecutive-pitch columns
+
+Release gap is mean 3D measured release-point distance. Late separation is mean
+Plate Gap minus Tunnel Gap, with the tunnel plane 23.8 feet before the front
+of the plate. Positive means paths spread apart; negative means convergence.
+It measures path separation rather than pure pitch break.
+
+These columns pool genuine consecutive A → B and B → A sequences to the same
+batter, weighting by each metric's own tracked pair count. They are not distances
+between pitch-type centroids. Filters apply to the second pitch while retaining
+its actual predecessor. Hover values show coverage; unobserved combinations or
+missing tracking display dashes. Only distinct-type pairs enter this table.
+
+The profile API adds `release_gap_inches`, `late_separation_inches`,
+`release_pair_count`, `late_separation_pair_count`, and
+`observed_sequence_pair_count` to each `pitch_separation.pairs` record.
+The separate Pitch tunneling UI is removed; its underlying API is retained.
+See [trajectory method](pitch-tunneling.md) for equations and eligibility.

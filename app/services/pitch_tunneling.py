@@ -18,7 +18,13 @@ TUNNEL_DISTANCE_FT = 23.8
 TUNNEL_Y = FRONT_Y + TUNNEL_DISTANCE_FT
 GEOMETRY_FIELDS = ("plate_x", "plate_z", "vx0", "vy0", "vz0", "ax", "ay", "az")
 RELEASE_FIELDS = ("release_pos_x", "release_pos_y", "release_pos_z")
-METRICS = ("release_gap_inches", "tunnel_gap_inches", "plate_gap_inches", "flight_time_gap_ms")
+METRICS = (
+    "release_gap_inches",
+    "tunnel_gap_inches",
+    "plate_gap_inches",
+    "flight_time_gap_ms",
+    "late_separation_inches",
+)
 
 
 def _finite(*values):
@@ -94,6 +100,7 @@ def pair_metrics(a, b):
         "release_gap_inches": distance(a["release"], b["release"]),
         "tunnel_gap_inches": tunnel_gap,
         "plate_gap_inches": plate_gap,
+        "late_separation_inches": plate_gap - tunnel_gap,
         "flight_time_gap_ms": flight if _finite(flight) else None,
     }
 
@@ -193,3 +200,24 @@ def build_pitch_tunneling(pitcher_id, filters):
         "pairs": sorted(pairs, key=lambda p: (-p["pair_count"], p["pitch_a"], p["pitch_b"])),
         "by_pitch_type": sorted(by_pitch, key=lambda p: (-p["pair_count"], p["pitch_type"])),
     }
+
+
+def add_tunneling_to_separation(separation, tunneling):
+    """Pool both sequence directions using each measurement's own coverage."""
+    grouped = {}
+    for sequence in tunneling["pairs"]:
+        key = tuple(sorted((sequence["pitch_a"], sequence["pitch_b"])))
+        grouped.setdefault(key, []).append(sequence)
+    for pair in separation["pairs"]:
+        sequences = grouped.get(tuple(sorted((pair["pitch_a"], pair["pitch_b"]))), [])
+        pair["observed_sequence_pair_count"] = sum(s["observed_pair_count"] for s in sequences)
+        for metric, count_key in (
+            ("release_gap_inches", "release_pair_count"),
+            ("late_separation_inches", "late_separation_pair_count"),
+        ):
+            samples = [(s[metric], s["metric_pair_counts"][metric]) for s in sequences]
+            samples = [(value, count) for value, count in samples if count and _finite(value)]
+            count = sum(n for _, n in samples)
+            pair[count_key] = count
+            pair[metric] = sum(value * n for value, n in samples) / count if count else None
+    return separation

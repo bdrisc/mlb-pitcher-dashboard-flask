@@ -38,12 +38,6 @@ if (root) {
     separationBody: document.querySelector("#separation-body"),
     separationTable: document.querySelector("#separation-table"),
     separationEmpty: document.querySelector("#separation-empty"),
-    tunnelingGroup: document.querySelector("#tunneling-group"),
-    tunnelingBody: document.querySelector("#tunneling-body"),
-    tunnelingTable: document.querySelector("#tunneling-table"),
-    tunnelingLabel: document.querySelector("#tunneling-label"),
-    tunnelingEmpty: document.querySelector("#tunneling-empty"),
-    tunnelingCoverage: document.querySelector("#tunneling-coverage"),
     splits: document.querySelector("#platoon-splits"),
     databaseFreshness: document.querySelector("#database-freshness"),
   };
@@ -52,7 +46,6 @@ if (root) {
     pitchers: [],
     requestController: null,
     separation: null,
-    tunneling: null,
     separationPitcherId: null,
   };
 
@@ -398,42 +391,10 @@ if (root) {
       tableCell(row, signedSeparation(pair.horizontal_difference_inches === null ? null : sign * pair.horizontal_difference_inches)).title = coverage;
       tableCell(row, signedSeparation(pair.vertical_difference_inches === null ? null : sign * pair.vertical_difference_inches)).title = coverage;
       tableCell(row, formatNumber(pair.movement_gap_inches)).title = `Distance between mean movement vectors, not the difference of their magnitudes. ${coverage}`;
+      const sequenceCoverage = `Consecutive ${pair.pitch_a} ↔ ${pair.pitch_b} pitches to the same batter, pooling both directions. ${pair.observed_sequence_pair_count.toLocaleString("en-US")} observed pairs. Filters apply to the second pitch.`;
+      tableCell(row, formatNumber(pair.release_gap_inches)).title = `Mean 3D release-point distance over ${pair.release_pair_count.toLocaleString("en-US")} tracked pairs. ${sequenceCoverage}`;
+      tableCell(row, signedSeparation(pair.late_separation_inches)).title = `Mean Plate Gap minus Tunnel Gap over ${pair.late_separation_pair_count.toLocaleString("en-US")} tracked pairs. Tunnel point: 23.8 ft before the front of the plate. Positive: paths spread apart; negative: they converge. Not pure pitch break. ${sequenceCoverage}`;
       elements.separationBody.append(row);
-    });
-  }
-
-  function renderTunneling(data) {
-    state.tunneling = data;
-    renderTunnelingRows();
-  }
-
-  function renderTunnelingRows() {
-    const data = state.tunneling;
-    if (!data) return;
-    const overall = data.overall;
-    const byPitch = elements.tunnelingGroup.value === "pitch";
-    elements.tunnelingLabel.textContent = byPitch ? "Second pitch" : "Pitch sequence";
-    elements.tunnelingBody.replaceChildren();
-    setVisible(elements.tunnelingTable, overall.observed_pair_count > 0);
-    setVisible(elements.tunnelingEmpty, overall.observed_pair_count === 0);
-    elements.tunnelingCoverage.textContent = `${overall.pair_count.toLocaleString("en-US")} of ${overall.observed_pair_count.toLocaleString("en-US")} consecutive pairs have complete trajectory data.`;
-    if (!overall.observed_pair_count) return;
-    const rows = [
-      { ...overall, label: "Overall", overall: true },
-      ...(byPitch ? data.by_pitch_type.map((row) => ({ ...row, label: `${row.pitch_name} (${row.pitch_type})` })) : data.pairs.map((row) => ({ ...row, label: `${row.pitch_a} → ${row.pitch_b}` }))),
-    ];
-    rows.forEach((summary) => {
-      const row = document.createElement("tr");
-      if (summary.overall) row.className = "tunneling-overall";
-      const label = document.createElement("th");
-      label.scope = "row";
-      label.textContent = summary.label;
-      row.append(label);
-      tableCell(row, summary.pair_count.toLocaleString("en-US")).title = `${summary.pair_count.toLocaleString("en-US")} tracked pairs / ${summary.observed_pair_count.toLocaleString("en-US")} observed consecutive pairs.`;
-      ["release_gap_inches", "tunnel_gap_inches", "plate_gap_inches", "flight_time_gap_ms"].forEach((metric) => {
-        tableCell(row, formatNumber(summary[metric])).title = `Mean over ${summary.metric_pair_counts[metric].toLocaleString("en-US")} pairs with this measurement. Overall values pool individual pairs; same-type sequences are included.`;
-      });
-      elements.tunnelingBody.append(row);
     });
   }
 
@@ -488,7 +449,6 @@ if (root) {
     renderMetricCards(overall);
     renderArsenal(profile.arsenal);
     renderSeparation(profile.pitch_separation, pitcher.mlb_id);
-    renderTunneling(profile.pitch_tunneling);
     renderSplits(profile.platoon_splits);
     setVisible(elements.content, true);
   }
@@ -573,7 +533,6 @@ if (root) {
   }
 
   elements.separationReference.addEventListener("change", renderSeparationRows);
-  elements.tunnelingGroup.addEventListener("change", renderTunnelingRows);
 
   elements.form.addEventListener("submit", (event) => {
     event.preventDefault();

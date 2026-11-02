@@ -744,18 +744,20 @@ update. If that has not been run, run
 before the VAAAdj command. Public startup migrates and scores automatically.
 Details, equations, training scope and reproduction: [VAAAdj](docs/vaa-adj.md).
 
-### Pitch tunneling
+### Release gap and late separation
 
-The **Pitch tunneling** section compares actual consecutive pitches to the same
-batter. It shows overall and ordered-sequence averages for release-point gap,
-path separation 23.8 feet in front of home plate, front-of-plate location gap,
-and release-to-plate flight-time difference. Switch “Group by” to “Second pitch
-type” for summaries of each pitch following its real predecessor.
+The **Pitch separation** table also shows two measurements from actual consecutive
+A/B pitches to the same batter, pooling A → B and B → A sequences:
 
-Filters apply to the second pitch, retaining its actual previous pitch as context.
-Same-type sequences are included; missing pitches/tracking never create false
-neighbors. Pair counts and metric-specific hover counts show coverage. These
-are geometric estimates, not a standalone quality grade or BP PREMAX replica.
+- **Release gap (in):** mean three-dimensional release-point distance.
+- **Late separation (in):** mean Plate Gap minus Tunnel Gap. Positive values mean
+  the paths spread apart after the tunnel plane; negative values mean they converge.
+  This describes path separation, not pure pitch break or a quality grade.
+
+Tunnel gap is measured 23.8 feet before the front of the plate. Filters apply
+to the second pitch of each sequence. Hover values for measurement-specific
+sample counts. Missing tracking or unobserved combinations display a dash.
+These columns replace the separate Pitch tunneling section.
 
 Both apps use their existing databases with no additional migration, data
 import or model training. For local, stop Flask, run `git pull origin main`,
