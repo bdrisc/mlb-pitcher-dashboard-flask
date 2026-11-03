@@ -763,3 +763,25 @@ Both apps use their existing databases with no additional migration, data
 import or model training. For local, stop Flask, run `git pull origin main`,
 then restart with `python -m flask --app wsgi run --debug --port 8080` in the
 activated virtual environment. [Method and validation](docs/pitch-tunneling.md).
+
+### Putaway rate
+
+**PutAway%** appears beside SwStr% in the overall cards and pitch arsenal table.
+It follows [Savant's definition](https://www.mlb.com/glossary/statcast/putaway-percentage):
+strikeout pitches divided by pitches thrown with two strikes before the pitch,
+multiplied by 100. Both called and swinging strikeouts count, including the
+`strikeout_double_play` event. Automatic balls/strikes are not pitches thrown
+and are excluded from both counts. A foul, ball or ball in play with two strikes
+still counts as an opportunity; a nonterminal swing-and-miss is not a strikeout.
+
+The overall rate pools counts, rather than averaging pitch-type percentages.
+Each strikeout is credited to its finishing pitch type. Existing filters apply
+to both numerator and denominator. Zero opportunities display a dash; zero
+strikeouts with opportunities display 0.0%. Hover the overall value or pitch
+value to see the strikeout and two-strike pitch counts.
+
+The profile API exposes `putaway_pct`, `putaway_strikeout_count` and
+`putaway_pitch_count` in overall, arsenal and platoon summaries. Both apps
+calculate from existing records. No migration, data download or backfill is
+needed. Update local with `git pull origin main` and restart Flask in the
+existing virtual environment against the existing database.

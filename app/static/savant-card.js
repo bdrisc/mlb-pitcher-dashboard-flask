@@ -68,6 +68,7 @@ if (root) {
     "swing_pct",
     "whiff_pct",
     "swstr_pct",
+    "putaway_pct",
     "csw_pct",
     "zone_pct",
     "chase_pct",
@@ -285,7 +286,12 @@ if (root) {
       element.textContent = formatMetric(key, overall[key]);
       if (key === "xwoba_against") element.title = "Expected wOBA allowed, including strikeouts, unintentional walks and hit-by-pitches; lower is better. Recalculates with the active filters.";
       if (key === "run_value_per_100") element.title = runValueTitle(overall);
+      if (key === "putaway_pct") element.title = putawayTitle(overall);
     });
+  }
+
+  function putawayTitle(metrics) {
+    return `${metrics.putaway_strikeout_count.toLocaleString("en-US")} strikeouts / ${metrics.putaway_pitch_count.toLocaleString("en-US")} two-strike pitches thrown. Count is before the pitch; called and swinging strikeouts count. Automatic calls are excluded.`;
   }
 
   function runValueTitle(metrics) {
@@ -337,6 +343,7 @@ if (root) {
       tableCell(row, formatMetric("haaaa", pitch.haaaa)).title = `HAA Above Expected: observed minus expected HAA, adjusted for pitch type, throwing hand, release side and horizontal location. Frozen 2025 MLB baseline; signed like HAA, not a better/worse grade. ${pitch.haaaa_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches scored.`;
       tableCell(row, formatMetric("whiff_pct", pitch.whiff_pct));
       tableCell(row, formatMetric("swstr_pct", pitch.swstr_pct)).title = `${pitch.swinging_strike_count.toLocaleString("en-US")} swinging strikes / ${pitch.swstr_pitch_count.toLocaleString("en-US")} pitches thrown. Foul tips and bunt attempts are not swinging strikes; automatic calls are not pitches thrown.`;
+      tableCell(row, formatMetric("putaway_pct", pitch.putaway_pct)).title = putawayTitle(pitch);
       tableCell(row, formatMetric("csw_pct", pitch.csw_pct));
       tableCell(row, formatMetric("zone_pct", pitch.zone_pct));
       tableCell(row, formatMetric("chase_pct", pitch.chase_pct));
