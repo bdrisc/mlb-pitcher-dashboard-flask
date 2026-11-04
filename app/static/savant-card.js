@@ -249,7 +249,9 @@ if (root) {
     elements.dateTo.value = params.get("date_to") || "";
     const balls = params.get("balls");
     const strikes = params.get("strikes");
-    setValueIfAvailable(elements.count, balls !== null && strikes !== null ? `${balls}-${strikes}` : "");
+    const count = params.get("count_group") ||
+      (balls !== null && strikes !== null ? `${balls}-${strikes}` : strikes === "2" && balls === null ? "two_strikes" : "");
+    setValueIfAvailable(elements.count, count);
   }
 
   function profileParameters() {
@@ -265,10 +267,13 @@ if (root) {
     ].forEach(([key, value]) => {
       if (value) params.set(key, value);
     });
-    if (elements.count.value) {
-      const [balls, strikes] = elements.count.value.split("-");
+    const count = elements.count.value;
+    if (/^[0-3]-[0-2]$/.test(count)) {
+      const [balls, strikes] = count.split("-");
       params.set("balls", balls);
       params.set("strikes", strikes);
+    } else if (count) {
+      params.set("count_group", count);
     }
     return params;
   }

@@ -12,7 +12,14 @@ from werkzeug.datastructures import MultiDict
 from app.services.pitch_data import PITCH_NAME_MAP
 
 MIN_STATCAST_SEASON = 2008
+COUNT_GROUPS = {
+    "ahead": ((0, 1), (0, 2), (1, 2)),
+    "behind": ((1, 0), (2, 0), (2, 1), (3, 0), (3, 1)),
+    "even": ((0, 0), (1, 1), (2, 2)),
+    "two_strikes": ((0, 2), (1, 2), (2, 2), (3, 2)),
+}
 ALLOWED_FILTERS = {
+    "count_group",
     "pitcher",
     "team",
     "pitch_type",
@@ -55,9 +62,16 @@ class PitchFilters:
     strikes: int | None = None
     home_away: str | None = None
 
+    count_group: str | None = None
+
+    @property
+    def count_pairs(self) -> tuple[tuple[int, int], ...]:
+        return COUNT_GROUPS[self.count_group] if self.count_group else ()
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize only active filters for API responses and logging."""
         values: dict[str, Any] = {
+            "count_group": self.count_group,
             "pitcher": self.pitcher,
             "team": self.team,
             "pitch_type": list(self.pitch_types) or None,
@@ -74,6 +88,7 @@ class PitchFilters:
     def dataframe_kwargs(self) -> dict[str, Any]:
         """Translate the canonical object into the in-memory store's interface."""
         return {
+            "count_pairs": self.count_pairs,
             "pitcher": self.pitcher,
             "team": self.team,
             "pitch_types": self.pitch_types,
@@ -230,6 +245,13 @@ def parse_pitch_filters(
         errors=errors,
     )
 
+    count_group = _single_value(args, "count_group", errors)
+    if count_group:
+        if count_group not in COUNT_GROUPS:
+            _add_error(errors, "count_group", "must be ahead, behind, even or two_strikes")
+        if balls is not None or strikes is not None:
+            _add_error(errors, "count_group", "cannot be combined with balls or strikes")
+
     home_away_value = _single_value(args, "home_away", errors)
     home_away = None
     if home_away_value:
@@ -251,4 +273,5 @@ def parse_pitch_filters(
         balls=balls,
         strikes=strikes,
         home_away=home_away,
+        count_group=count_group,
     )

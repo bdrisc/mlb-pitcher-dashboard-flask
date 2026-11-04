@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import case, func
+from sqlalchemy import case, func, tuple_
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.models import Game, Pitch
@@ -42,6 +42,8 @@ def pitch_filter_conditions(
         conditions.append(Pitch.balls == filters.balls)
     if filters.strikes is not None:
         conditions.append(Pitch.strikes == filters.strikes)
+    if filters.count_pairs:
+        conditions.append(tuple_(Pitch.balls, Pitch.strikes).in_(filters.count_pairs))
     if filters.home_away == "home":
         conditions.append(func.lower(Pitch.inning_half) == "top")
     elif filters.home_away == "away":

@@ -785,3 +785,14 @@ The profile API exposes `putaway_pct`, `putaway_strikeout_count` and
 calculate from existing records. No migration, data download or backfill is
 needed. Update local with `git pull origin main` and restart Flask in the
 existing virtual environment against the existing database.
+
+### Count presets
+
+The Count dropdown supports **Pitcher ahead** (0–1, 0–2, 1–2),
+**Pitcher behind** (1–0, 2–0, 2–1, 3–0, 3–1), **Even count**
+(0–0, 1–1, 2–2), and **Any two-strike count** (0–2, 1–2, 2–2, 3–2).
+Full counts also remain available as an exact 3–2 selection.
+Presets apply to both the profile and charts and combine with other filters.
+Shareable links use `count_group=ahead|behind|even|two_strikes` (choose one).
+Exact count links still use `balls` and `strikes`; do not combine these with
+`count_group`. No new data or database migration is needed.

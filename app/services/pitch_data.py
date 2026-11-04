@@ -218,6 +218,7 @@ class PitchDataStore:
         balls: int | None = None,
         strikes: int | None = None,
         home_away: str | None = None,
+        count_pairs: tuple[tuple[int, int], ...] = (),
     ) -> pd.DataFrame:
         filtered = self.data
         if pitcher:
@@ -240,6 +241,10 @@ class PitchDataStore:
             filtered = filtered[filtered["balls"].eq(balls)]
         if strikes is not None:
             filtered = filtered[filtered["strikes"].eq(strikes)]
+        if count_pairs:
+            allowed = pd.MultiIndex.from_tuples(count_pairs)
+            counts = pd.MultiIndex.from_frame(filtered[["balls", "strikes"]])
+            filtered = filtered[counts.isin(allowed)]
         if home_away:
             filtered = filtered[filtered["home_away"].eq(home_away)]
 

@@ -76,11 +76,19 @@
             <span>Count</span>
             <select id="count-filter" name="count">
               <option value="">All counts</option>
+              <optgroup label="Count groups">
+                <option value="ahead">Pitcher ahead</option>
+                <option value="behind">Pitcher behind</option>
+                <option value="even">Even count</option>
+                <option value="two_strikes">Any two-strike count</option>
+              </optgroup>
+              <optgroup label="Exact counts">
               {% for balls in range(4) %}
                 {% for strikes in range(3) %}
                   <option value="{{ balls }}-{{ strikes }}">{{ balls }}–{{ strikes }}</option>
                 {% endfor %}
               {% endfor %}
+              </optgroup>
             </select>
           </label>
 
