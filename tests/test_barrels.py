@@ -201,7 +201,7 @@ def test_ingestion_retains_classification_when_sparse_source_reimported(app, tmp
 
 def test_barrel_display_and_cli(app, barrel_client, tmp_path):
     html = barrel_client.get("/savant-card").get_data(as_text=True)
-    assert "Barrel% Allowed" in html
+    assert "Barrel%" in html
     assert html.index('data-metric="hard_hit_pct"') < html.index('data-metric="barrel_pct"')
     assert html.index('data-metric="barrel_pct"') < html.index('data-metric="stuff_plus"')
     mark_pending(app)

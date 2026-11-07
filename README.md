@@ -797,9 +797,9 @@ Shareable links use `count_group=ahead|behind|even|two_strikes` (choose one).
 Exact count links still use `balls` and `strikes`; do not combine these with
 `count_group`. No new data or database migration is needed.
 
-### Barrel% Allowed
+### Barrel%
 
-The overall cards and pitch arsenal table show **Barrel% Allowed**, calculated
+The overall cards and pitch arsenal table show **Barrel%**, calculated
 as official Savant barrels (`launch_speed_angle = 6`) divided by **all batted-ball
 events**, times 100. Overall values pool the counts, rather than averaging the
 pitch-type rates. Lower is better. Every existing filter applies.
