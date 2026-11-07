@@ -73,6 +73,7 @@ if (root) {
     "zone_pct",
     "chase_pct",
     "hard_hit_pct",
+    "barrel_pct",
     "strikeout_pct",
     "walk_pct",
     "k_minus_bb_pct",
@@ -292,7 +293,16 @@ if (root) {
       if (key === "xwoba_against") element.title = "Expected wOBA allowed, including strikeouts, unintentional walks and hit-by-pitches; lower is better. Recalculates with the active filters.";
       if (key === "run_value_per_100") element.title = runValueTitle(overall);
       if (key === "putaway_pct") element.title = putawayTitle(overall);
+      if (key === "barrel_pct") element.title = barrelTitle(overall);
     });
+  }
+
+  function barrelTitle(metrics) {
+    const total = metrics.barrel_bbe_count;
+    const checked = metrics.barrel_checked_bbe_count;
+    const classified = metrics.barrel_classified_bbe_count;
+    const pending = total - checked;
+    return `${metrics.barrel_count.toLocaleString("en-US")} official barrels / ${total.toLocaleString("en-US")} batted-ball events allowed. Lower is better. ${classified.toLocaleString("en-US")} classified; ${(checked - classified).toLocaleString("en-US")} source-checked events lack classification. ${pending.toLocaleString("en-US")} events awaiting backfill. All batted-ball events remain in the denominator; the rate is withheld until backfill is complete and at least one event is classified.`;
   }
 
   function putawayTitle(metrics) {
@@ -352,6 +362,7 @@ if (root) {
       tableCell(row, formatMetric("csw_pct", pitch.csw_pct));
       tableCell(row, formatMetric("zone_pct", pitch.zone_pct));
       tableCell(row, formatMetric("chase_pct", pitch.chase_pct));
+      tableCell(row, formatMetric("barrel_pct", pitch.barrel_pct)).title = barrelTitle(pitch);
       elements.arsenal.append(row);
     });
   }

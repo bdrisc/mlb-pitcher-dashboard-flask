@@ -796,3 +796,44 @@ Presets apply to both the profile and charts and combine with other filters.
 Shareable links use `count_group=ahead|behind|even|two_strikes` (choose one).
 Exact count links still use `balls` and `strikes`; do not combine these with
 `count_group`. No new data or database migration is needed.
+
+### Barrel% Allowed
+
+The overall cards and pitch arsenal table show **Barrel% Allowed**, calculated
+as official Savant barrels (`launch_speed_angle = 6`) divided by **all batted-ball
+events**, times 100. Overall values pool the counts, rather than averaging the
+pitch-type rates. Lower is better. Every existing filter applies.
+
+Hover the value for barrel/BBE counts, classification coverage and pending
+backfill counts. Source-checked BBE without a classification remain in the BBE
+denominator and are explicitly reported as unclassified. No EV/LA approximation
+is substituted. The rate displays a dash if there are no BBE or any BBE still
+await source backfill, or none have a classification; zero barrels with a completed sample displays 0.0%.
+
+New ingestions retain the official contact class and a source-checked flag.
+Sparse imports without that field preserve prior saved classifications. The
+backfill updates only these two fields on existing BBE: it never inserts pitches,
+replaces the database, or recalculates existing metrics. It checks natural pitch
+identities and pitcher/season ownership. Failed downloads or incomplete sources
+preserve saved data; rerunning resumes only unfinished BBE.
+
+For an existing **native local** installation, stop Flask, activate the existing
+virtual environment, and run against the existing full database:
+
+```powershell
+git pull origin main
+python -m flask --app wsgi db upgrade
+python -m flask --app wsgi statcast backfill-barrels --season 2026
+python -m flask --app wsgi run --debug --port 8080
+```
+
+The command tries `data/cache/statcast/2026` and the bundled snapshot first,
+then downloads the remaining stored pitcher/date ranges from Savant. If your
+full CSV/cache lives elsewhere, add `--csv-path "C:\path\to\cache"`; a file,
+`.csv.gz`, or directory is accepted, and the option may be repeated. Omit
+`--season` to process every stored season. Public startup migrates the schema
+before serving and performs the resumable backfill in background maintenance.
+
+Definition and source field:
+[Barrel](https://www.mlb.com/glossary/statcast/barrel),
+[Savant CSV documentation](https://baseballsavant.mlb.com/csv-docs).

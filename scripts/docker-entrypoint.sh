@@ -27,6 +27,12 @@ echo "Starting web server on port ${PORT:-10000}."
         fi
     fi
 
+    if [ "$maintenance_ok" = "1" ] && [ "${SYNC_BARRELS_ON_STARTUP:-1}" = "1" ]; then
+        if ! flask --app wsgi statcast backfill-barrels; then
+            echo "Some barrel classifications remain unavailable; saved data retained." >&2
+        fi
+    fi
+
     if [ "$maintenance_ok" = "1" ] && [ "${SYNC_APPROACH_ANGLES_ON_STARTUP:-1}" = "1" ]; then
         angle_source="${STATCAST_SEED_PATH:-data/production_statcast_2026.csv.gz}"
         if [ -f "$angle_source" ]; then

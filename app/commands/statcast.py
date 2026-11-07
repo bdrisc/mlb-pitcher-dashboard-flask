@@ -394,3 +394,43 @@ def backfill_vaa_adj_command(season, pitcher_id):
     except Exception as error:
         raise click.ClickException(str(error)) from error
     click.echo(str(result))
+
+
+@statcast_cli.command("backfill-barrels")
+@click.option("--season", type=int)
+@click.option("--pitcher-id", type=int)
+@click.option("--workers", default=4, type=click.IntRange(1, 8), show_default=True)
+@click.option(
+    "--csv-path",
+    multiple=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Optional CSV, gzip CSV or cache directory; may be supplied more than once.",
+)
+@with_appcontext
+def backfill_barrels_command(season, pitcher_id, workers, csv_path):
+    """Fill official classifications on existing BBE only, using caches before Savant."""
+    from app.services.barrel_refresh import refresh_barrels
+
+    sources = list(csv_path)
+    if not sources:
+        for source in (
+            Path("data/cache/statcast") / str(season) if season else Path("data/cache/statcast"),
+            Path("data/production_statcast_2026.csv.gz"),
+        ):
+            if source.exists():
+                sources.append(source)
+    try:
+        result = refresh_barrels(
+            source_paths=sources,
+            season=season,
+            pitcher_id=pitcher_id,
+            workers=workers,
+            progress=click.echo,
+        )
+    except (ValueError, OSError) as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(str(result))
+    if result["failed"]:
+        raise click.ClickException(
+            "Some barrel classifications could not be verified; saved data preserved."
+        )

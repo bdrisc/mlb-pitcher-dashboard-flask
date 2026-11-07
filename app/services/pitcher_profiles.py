@@ -91,6 +91,8 @@ def _metric_columns() -> list[Any]:
             "hit_into_play",
         )
     )
+    bbe = description.in_(("hit_into_play", "hit_into_play_no_out", "hit_into_play_score"))
+    classified_bbe = and_(bbe, Pitch.launch_speed_angle.between(1, 6))
     tracked_batted_ball = and_(
         Pitch.batted_ball_type.is_not(None),
         Pitch.batted_ball_type != "",
@@ -126,6 +128,10 @@ def _metric_columns() -> list[Any]:
         _count_where(and_(location_known, Pitch.is_in_zone.is_(False))).label("out_of_zone"),
         _count_where(Pitch.is_chase.is_(True)).label("chases"),
         _count_where(tracked_batted_ball).label("batted_balls"),
+        _count_where(bbe).label("barrel_bbe_count"),
+        _count_where(and_(bbe, Pitch.barrel_checked.is_(True))).label("barrel_checked_count"),
+        _count_where(classified_bbe).label("barrel_classified_count"),
+        _count_where(and_(bbe, Pitch.launch_speed_angle == 6)).label("barrel_count"),
         _count_where(and_(tracked_batted_ball, Pitch.exit_velocity >= 95)).label("hard_hits"),
         _count_where(event_recorded).label("plate_appearances"),
         _count_where(event_name.in_(("strikeout", "strikeout_double_play"))).label("strikeouts"),
@@ -228,6 +234,21 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         "zone_pct": _rate(_integer(row, "in_zone"), location_tracked),
         "chase_pct": _rate(_integer(row, "chases"), out_of_zone),
         "hard_hit_pct": _rate(_integer(row, "hard_hits"), batted_balls),
+        "barrel_pct": (
+            _rate(_integer(row, "barrel_count"), _integer(row, "barrel_bbe_count"))
+            if (
+                _integer(row, "barrel_checked_count") == _integer(row, "barrel_bbe_count")
+                and _integer(row, "barrel_classified_count") > 0
+            )
+            else None
+        ),
+        "barrel_count": _integer(row, "barrel_count"),
+        "barrel_bbe_count": _integer(row, "barrel_bbe_count"),
+        "barrel_checked_bbe_count": _integer(row, "barrel_checked_count"),
+        "barrel_classified_bbe_count": _integer(row, "barrel_classified_count"),
+        "barrel_coverage_pct": _rate(
+            _integer(row, "barrel_classified_count"), _integer(row, "barrel_bbe_count")
+        ),
         "strikeout_pct": _rate(_integer(row, "strikeouts"), plate_appearances),
         "walk_pct": _rate(_integer(row, "walks"), plate_appearances),
         "k_minus_bb_pct": _rate(

@@ -64,6 +64,7 @@ OPTIONAL_COLUMNS = [
     "arm_angle",
     "events",
     "bb_type",
+    "launch_speed_angle",
     "n_thruorder_pitcher",
     "launch_speed",
     "launch_angle",
@@ -96,6 +97,7 @@ INTEGER_COLUMNS = [
     "inning",
     "outs_when_up",
     "zone",
+    "launch_speed_angle",
     "n_thruorder_pitcher",
     "home_score",
     "away_score",
@@ -340,6 +342,7 @@ def clean_statcast(raw: pd.DataFrame) -> pd.DataFrame:
     if raw.empty:
         raise IngestionError("Statcast CSV contains no pitch rows.")
 
+    barrel_checked = "launch_speed_angle" in raw.columns
     data = raw.copy()
     for column in OPTIONAL_COLUMNS:
         if column not in data:
@@ -375,6 +378,11 @@ def clean_statcast(raw: pd.DataFrame) -> pd.DataFrame:
         if non_integer.any():
             raise IngestionError(f"Column {column} contains non-integer values.")
         data[column] = numeric.astype("Int64")
+
+    classifications = data["launch_speed_angle"].dropna()
+    if not classifications.between(1, 6).all():
+        raise IngestionError("launch_speed_angle must be between 1 and 6 when supplied.")
+    data["barrel_checked"] = True if barrel_checked else None
 
     for column in FLOAT_COLUMNS:
         numeric = pd.to_numeric(data[column], errors="coerce")
@@ -529,6 +537,8 @@ def _pitch_records(data: pd.DataFrame) -> list[dict[str, Any]]:
         "description": "description",
         "events": "events",
         "batted_ball_type": "bb_type",
+        "launch_speed_angle": "launch_speed_angle",
+        "barrel_checked": "barrel_checked",
         "is_strike": "is_strike",
         "is_swing": "is_swing",
         "is_contact": "is_contact",
@@ -733,7 +743,8 @@ def ingest_statcast_file(
                     column.name for column in Pitch.__table__.columns if not column.primary_key
                 ],
                 batch_size=batch_size,
-                preserve_existing_on_null=set(ANGLE_FIELDS)
+                preserve_existing_on_null={"launch_speed_angle", "barrel_checked"}
+                | set(ANGLE_FIELDS)
                 | set(HAAAA_FIELDS)
                 | set(VAA_ADJ_FIELDS),
             )

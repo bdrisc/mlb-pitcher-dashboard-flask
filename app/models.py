@@ -110,6 +110,8 @@ class Pitch(db.Model):
     arm_angle: Mapped[float | None]
     description: Mapped[str | None] = mapped_column(db.String(50))
     events: Mapped[str | None] = mapped_column(db.String(50))
+    launch_speed_angle: Mapped[int | None] = mapped_column(db.SmallInteger)
+    barrel_checked: Mapped[bool | None] = mapped_column(db.Boolean)
     batted_ball_type: Mapped[str | None] = mapped_column(db.String(30))
     is_strike: Mapped[bool] = mapped_column(default=False, nullable=False)
     is_swing: Mapped[bool] = mapped_column(default=False, nullable=False)
