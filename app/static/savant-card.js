@@ -34,6 +34,7 @@ if (root) {
     samplePa: document.querySelector("#sample-pa"),
     playerId: document.querySelector("#player-id"),
     arsenal: document.querySelector("#arsenal-body"),
+    arsenalView: document.querySelector("#arsenal-view"),
     separationReference: document.querySelector("#separation-reference"),
     separationBody: document.querySelector("#separation-body"),
     separationTable: document.querySelector("#separation-table"),
@@ -328,6 +329,35 @@ if (root) {
     return cell;
   }
 
+  function tableHeadings(body) {
+    return Array.from(body.closest("table").tHead.rows[0].cells);
+  }
+
+  function prepareResponsiveRows(body) {
+    const headings = tableHeadings(body);
+    for (const row of body.rows) {
+      row.setAttribute("role", "row");
+      Array.from(row.cells).forEach((cell, index) => {
+        cell.setAttribute("role", index === 0 ? "rowheader" : "cell");
+        if (index === 0) return;
+        const label = document.createElement("span");
+        label.className = "responsive-cell-label";
+        label.setAttribute("aria-hidden", "true");
+        label.textContent = headings[index].dataset.mobileLabel || headings[index].textContent;
+        cell.prepend(label);
+      });
+    }
+  }
+
+  function updateArsenalView() {
+    const view = elements.arsenalView.value;
+    tableHeadings(elements.arsenal).forEach((heading, index) => {
+      const hidden = Boolean(heading.dataset.view && heading.dataset.view !== view);
+      heading.hidden = hidden;
+      for (const row of elements.arsenal.rows) row.cells[index].hidden = hidden;
+    });
+  }
+
   function renderArsenal(arsenal) {
     elements.arsenal.replaceChildren();
     arsenal.forEach((pitch) => {
@@ -372,6 +402,8 @@ if (root) {
       tableCell(row, formatMetric("barrel_pct", pitch.barrel_pct)).title = barrelTitle(pitch);
       elements.arsenal.append(row);
     });
+    prepareResponsiveRows(elements.arsenal);
+    updateArsenalView();
   }
 
   function signedSeparation(value) {
@@ -426,6 +458,7 @@ if (root) {
       tableCell(row, signedSeparation(pair.late_separation_inches)).title = `Mean Plate Gap minus Tunnel Gap over ${pair.late_separation_pair_count.toLocaleString("en-US")} tracked pairs. Tunnel point: 23.8 ft before the front of the plate. Positive: paths spread apart; negative: they converge. Not pure pitch break. ${sequenceCoverage}`;
       elements.separationBody.append(row);
     });
+    prepareResponsiveRows(elements.separationBody);
   }
 
   function splitMetric(label, key, value) {
@@ -562,6 +595,7 @@ if (root) {
     }
   }
 
+  elements.arsenalView.addEventListener("change", updateArsenalView);
   elements.separationReference.addEventListener("change", renderSeparationRows);
 
   elements.form.addEventListener("submit", (event) => {

@@ -478,6 +478,7 @@ summary,
 
 .field {
   display: grid;
+  min-width: 0;
   align-content: start;
   gap: 6px;
 }
@@ -497,6 +498,7 @@ summary,
 .field input,
 .field select {
   width: 100%;
+  min-width: 0;
   min-height: 42px;
   padding: 9px 11px;
   color: var(--ink);
@@ -628,6 +630,7 @@ summary,
 
 #profile-content {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
 }
 
@@ -653,6 +656,10 @@ summary,
   min-width: 0;
 }
 
+.player-identity > div {
+  min-width: 0;
+}
+
 .player-monogram {
   display: grid;
   flex: 0 0 auto;
@@ -670,6 +677,7 @@ summary,
 
 .identity-flags {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 7px;
   margin-bottom: 5px;
@@ -1213,14 +1221,86 @@ summary,
   top: -8px;
 }
 
-.separation-selector {
-  width: min(100%, 260px);
-  min-width: 180px;
+.separation-selector,
+.arsenal-view-selector {
+  width: min(100%, 240px);
 }
 
-.separation-table {
-  min-width: 960px;
+.arsenal-table.responsive-table {
+  min-width: 0;
+  table-layout: fixed;
 }
+
+.responsive-table th,
+.responsive-table td {
+  padding: 11px 8px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.responsive-table th:first-child {
+  position: static;
+  width: 17%;
+  min-width: 0;
+  box-shadow: none;
+}
+
+.responsive-table.separation-table td:nth-child(2) {
+  text-align: left;
+}
+
+.responsive-cell-label {
+  display: none;
+}
+
+@media (max-width: 960px) {
+  .responsive-table,
+  .responsive-table tbody {
+    display: block;
+  }
+
+  .responsive-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .responsive-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 110px), 1fr));
+    gap: 4px 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .responsive-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .responsive-table tbody th:first-child {
+    grid-column: 1 / -1;
+    width: 100%;
+    padding: 4px 0 8px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .responsive-table tbody td {
+    padding: 5px 0;
+    text-align: left;
+    border-bottom: 0;
+  }
+
+  .responsive-cell-label {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--muted);
+    font-size: 0.67rem;
+    font-weight: 800;
+  }
+}
+
 
 .separation-note {
   margin: 0;

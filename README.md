@@ -847,3 +847,10 @@ location classification. Unknown pitch locations and takes do not count.
 Hover for whiffs and in-zone swings; samples with no in-zone swings display a
 dash. The overall rate pools counts across pitch types, and all active filters
 apply. No schema change or data backfill is needed.
+
+### Arsenal table views
+
+Use **View** in Arsenal performance to switch between Results, Pitch shape,
+and FanGraphs grades. Each view keeps pitch, usage and pitch count visible.
+Changing views preserves the current filters and sample. On narrow screens,
+arsenal and separation rows stack their labeled values to fit the page.

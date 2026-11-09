@@ -181,8 +181,8 @@ def test_model_metric_order_and_removed_notes(client):
     assert "fangraphs-note" not in html
     assert "Stuff+ source:" not in html
     assert "Full-season reference;" not in html
-    assert html.index('scope="col">Stuff+') < html.index('scope="col">Location+')
-    assert html.index('scope="col">Location+') < html.index('scope="col">Pitching+')
+    assert html.index(">Stuff+</th>") < html.index(">Location+</th>")
+    assert html.index(">Location+</th>") < html.index(">Pitching+</th>")
 
 
 def test_seed_upgrades_existing_stuff_only_snapshot(app):

@@ -215,38 +215,46 @@
           <div>
             <h2 id="arsenal-heading">Arsenal performance</h2>
           </div>
+          <label class="field arsenal-view-selector" for="arsenal-view">
+            <span>View</span>
+            <select id="arsenal-view" aria-controls="arsenal-body">
+              <option value="results">Results</option>
+              <option value="shape">Pitch shape</option>
+              <option value="grades">FanGraphs grades</option>
+            </select>
+          </label>
         </div>
-        <div class="table-shell" tabindex="0" aria-label="Scrollable arsenal table">
-          <table class="arsenal-table">
-            <thead>
-              <tr>
-                <th scope="col">Pitch</th>
-                <th scope="col">Usage</th>
-                <th scope="col">#</th>
-                <th scope="col" title="Context-neutral runs prevented per 100 pitches; higher is better">RV/100</th>
-                <th scope="col">Stuff+</th>
-                <th scope="col">Location+</th>
-                <th scope="col">Pitching+</th>
-                <th scope="col">Velo</th>
-                <th scope="col">Max</th>
-                <th scope="col">Spin</th>
-                <th scope="col">HB</th>
-                <th scope="col">IVB</th>
-                <th scope="col" title="Raw vertical approach angle at the front of home plate; negative means descending">VAA</th>
-                <th scope="col" title="VAA minus expected VAA for this pitch type and front-plane height. Positive is flatter, negative is steeper; frozen 2025 MLB reference">VAAAdj</th>
-                <th scope="col" title="Raw horizontal approach angle at the front of home plate; positive is toward the catcher’s right">HAA</th>
-                <th scope="col" title="HAA Above Expected: observed minus expected HAA, adjusted for pitch type, throwing hand, release side and front-plane horizontal location against a frozen 2025 MLB baseline">HAAAA</th>
-                <th scope="col">Whiff</th>
-                <th scope="col" title="Whiffs divided by swings on pitches in the strike zone. Uses the same whiff and zone definitions as the overall report.">Z-Whiff%</th>
-                <th scope="col" title="Swinging strikes divided by pitches thrown; excludes foul tips and bunt attempts from swinging strikes, and automatic calls from pitches thrown">SwStr%</th>
-                <th scope="col" title="Strikeouts divided by pitches thrown with two strikes before the pitch. Includes called and swinging strikeouts; excludes automatic calls.">PutAway%</th>
-                <th scope="col">CSW</th>
-                <th scope="col">Zone</th>
-                <th scope="col">Chase</th>
-                <th scope="col" title="Official Savant barrels allowed divided by all batted-ball events. Lower is better. Hover for counts and classification coverage.">Barrel%</th>
+        <div class="table-shell">
+          <table class="arsenal-table responsive-table" role="table" aria-labelledby="arsenal-heading">
+            <thead role="rowgroup">
+              <tr role="row">
+                <th scope="col" role="columnheader">Pitch</th>
+                <th scope="col" role="columnheader">Usage</th>
+                <th scope="col" role="columnheader" data-mobile-label="Pitches">#</th>
+                <th scope="col" role="columnheader" data-view="results" title="Context-neutral runs prevented per 100 pitches; higher is better">RV/100</th>
+                <th scope="col" role="columnheader" data-view="grades" hidden>Stuff+</th>
+                <th scope="col" role="columnheader" data-view="grades" hidden>Location+</th>
+                <th scope="col" role="columnheader" data-view="grades" hidden>Pitching+</th>
+                <th scope="col" role="columnheader" data-view="shape" hidden>Velo</th>
+                <th scope="col" role="columnheader" data-view="shape" hidden>Max</th>
+                <th scope="col" role="columnheader" data-view="shape" hidden>Spin</th>
+                <th scope="col" role="columnheader" data-view="shape" hidden>HB</th>
+                <th scope="col" role="columnheader" data-view="shape" hidden>IVB</th>
+                <th scope="col" role="columnheader" data-view="shape" hidden title="Raw vertical approach angle at the front of home plate; negative means descending">VAA</th>
+                <th scope="col" role="columnheader" data-view="shape" hidden title="VAA minus expected VAA for this pitch type and front-plane height. Positive is flatter, negative is steeper; frozen 2025 MLB reference">VAAAdj</th>
+                <th scope="col" role="columnheader" data-view="shape" hidden title="Raw horizontal approach angle at the front of home plate; positive is toward the catcher’s right">HAA</th>
+                <th scope="col" role="columnheader" data-view="shape" hidden title="HAA Above Expected: observed minus expected HAA, adjusted for pitch type, throwing hand, release side and front-plane horizontal location against a frozen 2025 MLB baseline">HAAAA</th>
+                <th scope="col" role="columnheader" data-view="results">Whiff</th>
+                <th scope="col" role="columnheader" data-view="results" title="Whiffs divided by swings on pitches in the strike zone. Uses the same whiff and zone definitions as the overall report.">Z-Whiff%</th>
+                <th scope="col" role="columnheader" data-view="results" title="Swinging strikes divided by pitches thrown; excludes foul tips and bunt attempts from swinging strikes, and automatic calls from pitches thrown">SwStr%</th>
+                <th scope="col" role="columnheader" data-view="results" title="Strikeouts divided by pitches thrown with two strikes before the pitch. Includes called and swinging strikeouts; excludes automatic calls.">PutAway%</th>
+                <th scope="col" role="columnheader" data-view="results">CSW</th>
+                <th scope="col" role="columnheader" data-view="results">Zone</th>
+                <th scope="col" role="columnheader" data-view="results">Chase</th>
+                <th scope="col" role="columnheader" data-view="results" title="Official Savant barrels allowed divided by all batted-ball events. Lower is better. Hover for counts and classification coverage.">Barrel%</th>
               </tr>
             </thead>
-            <tbody id="arsenal-body"></tbody>
+            <tbody role="rowgroup" id="arsenal-body"></tbody>
           </table>
         </div>
       </section>
@@ -262,21 +270,21 @@
           </label>
         </div>
         <p id="separation-empty" class="separation-note" hidden>Choose All pitch types or broaden the filters to compare at least two pitch types.</p>
-        <div id="separation-table" class="table-shell" tabindex="0" aria-label="Scrollable pitch separation table">
-          <table class="arsenal-table separation-table">
-            <thead>
-              <tr>
-                <th scope="col">Pitch A</th>
-                <th scope="col">Pitch B</th>
-                <th scope="col" title="Absolute difference between pitch-type mean velocities">Velocity gap (mph)</th>
-                <th scope="col" title="Pitch B minus Pitch A horizontal movement, in catcher-perspective coordinates">ΔHB (in)</th>
-                <th scope="col" title="Pitch B minus Pitch A induced vertical movement">ΔIVB (in)</th>
-                <th scope="col" title="Distance between mean HB/IVB vectors: sqrt(ΔHB² + ΔIVB²). Both movement means use jointly tracked pitches.">Movement gap (in)</th>
-                <th scope="col" title="Mean 3D release-point distance for consecutive A/B pitches, pooling both sequence directions. Hover values for sample counts.">Release gap (in)</th>
-                <th scope="col" title="Mean Plate Gap minus Tunnel Gap for consecutive A/B pitches. Tunnel point: 23.8 ft before the front of the plate. Positive: paths spread apart; negative: they converge. This is path separation, not pure pitch break.">Late separation (in)</th>
+        <div id="separation-table" class="table-shell">
+          <table class="arsenal-table responsive-table separation-table" role="table" aria-labelledby="separation-heading">
+            <thead role="rowgroup">
+              <tr role="row">
+                <th scope="col" role="columnheader">Pitch A</th>
+                <th scope="col" role="columnheader">Pitch B</th>
+                <th scope="col" role="columnheader" title="Absolute difference between pitch-type mean velocities">Velocity gap (mph)</th>
+                <th scope="col" role="columnheader" title="Pitch B minus Pitch A horizontal movement, in catcher-perspective coordinates">ΔHB (in)</th>
+                <th scope="col" role="columnheader" title="Pitch B minus Pitch A induced vertical movement">ΔIVB (in)</th>
+                <th scope="col" role="columnheader" title="Distance between mean HB/IVB vectors: sqrt(ΔHB² + ΔIVB²). Both movement means use jointly tracked pitches.">Movement gap (in)</th>
+                <th scope="col" role="columnheader" title="Mean 3D release-point distance for consecutive A/B pitches, pooling both sequence directions. Hover values for sample counts.">Release gap (in)</th>
+                <th scope="col" role="columnheader" title="Mean Plate Gap minus Tunnel Gap for consecutive A/B pitches. Tunnel point: 23.8 ft before the front of the plate. Positive: paths spread apart; negative: they converge. This is path separation, not pure pitch break.">Late separation (in)</th>
               </tr>
             </thead>
-            <tbody id="separation-body"></tbody>
+            <tbody role="rowgroup" id="separation-body"></tbody>
           </table>
         </div>
       </section>
