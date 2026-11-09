@@ -177,36 +177,68 @@
           </div>
         </div>
 
-        {% set metrics = [
-          ('strikeout_pct', 'K%', 'plate appearances'),
-          ('walk_pct', 'BB%', 'plate appearances'),
-          ('k_minus_bb_pct', 'K-BB%', 'K% minus BB%'),
-          ('strike_pct', 'Strike%', 'all pitches'),
-          ('whiff_pct', 'Whiff%', 'per swing'),
-          ('zone_whiff_pct', 'Z-Whiff%', 'per in-zone swing'),
-          ('swstr_pct', 'SwStr%', 'swinging strikes / pitches'),
-          ('putaway_pct', 'PutAway%', 'strikeouts / two-strike pitches'),
-          ('csw_pct', 'CSW%', 'all pitches'),
-          ('zone_pct', 'Zone%', 'tracked locations'),
-          ('chase_pct', 'Chase%', 'out-of-zone pitches'),
-          ('avg_exit_velocity', 'Avg exit velo', 'mph on batted balls'),
-          ('hard_hit_pct', 'Hard-Hit%', 'batted balls'),
-          ('barrel_pct', 'Barrel%', 'barrels / batted balls'),
-          ('xwoba_against', 'xwOBA', 'expected wOBA allowed'),
-          ('xwoba_on_contact', 'xwOBAcon', 'contact only'),
-          ('run_value_per_100', 'RV/100', 'runs prevented / 100'),
-          ('stuff_plus', 'Stuff+', 'FanGraphs · full season'),
-          ('location_plus', 'Location+', 'FanGraphs · full season'),
-          ('pitching_plus', 'Pitching+', 'FanGraphs · full season')
-        ] %}
-        <div class="metric-grid">
-          {% for key, label, context in metrics %}
-            <article class="metric-card">
-              <span>{{ label }}</span>
+        {% macro metric(key, label, context='', featured=false) %}
+          <div class="{{ 'metric-card' if featured else 'compact-metric' }}">
+            <dt>{{ label }}</dt>
+            <dd>
               <strong data-metric="{{ key }}">—</strong>
-              <small>{{ context }}</small>
-            </article>
-          {% endfor %}
+              {% if context %}<small>{{ context }}</small>{% endif %}
+            </dd>
+          </div>
+        {% endmacro %}
+        <div class="overview-groups">
+          <section class="overview-results" aria-labelledby="overall-results-heading">
+            <h3 id="overall-results-heading">Overall results</h3>
+            <div class="overview-results-grid">
+              <dl class="overview-featured">
+                {{ metric('k_minus_bb_pct', 'K-BB%', 'K% minus BB%', featured=true) }}
+                {{ metric('xwoba_against', 'xwOBA', 'expected wOBA allowed', featured=true) }}
+                {{ metric('run_value_per_100', 'RV/100', 'runs prevented / 100', featured=true) }}
+              </dl>
+              <dl class="overview-values overview-supporting">
+                {{ metric('strikeout_pct', 'K%', 'plate appearances') }}
+                {{ metric('walk_pct', 'BB%', 'plate appearances') }}
+              </dl>
+            </div>
+          </section>
+          <section class="overview-group" aria-labelledby="whiff-finishing-heading">
+            <h3 id="whiff-finishing-heading">Whiff and finishing</h3>
+            <dl class="overview-values">
+              {{ metric('whiff_pct', 'Whiff%', 'per swing') }}
+              {{ metric('zone_whiff_pct', 'Z-Whiff%', 'per in-zone swing') }}
+              {{ metric('swstr_pct', 'SwStr%', 'per pitch') }}
+              {{ metric('putaway_pct', 'PutAway%', 'per two-strike pitch') }}
+            </dl>
+          </section>
+          <section class="overview-group" aria-labelledby="strike-chase-heading">
+            <h3 id="strike-chase-heading">Strike throwing and chase</h3>
+            <dl class="overview-values">
+              {{ metric('strike_pct', 'Strike%', 'all pitches') }}
+              {{ metric('csw_pct', 'CSW%', 'all pitches') }}
+              {{ metric('zone_pct', 'Zone%', 'tracked locations') }}
+              {{ metric('chase_pct', 'Chase%', 'out-of-zone pitches') }}
+            </dl>
+          </section>
+          <section class="overview-group" aria-labelledby="contact-quality-heading">
+            <h3 id="contact-quality-heading">Contact quality allowed</h3>
+            <dl class="overview-values">
+              {{ metric('avg_exit_velocity', 'Avg exit velo', 'mph on batted balls') }}
+              {{ metric('hard_hit_pct', 'Hard-Hit%', 'batted balls') }}
+              {{ metric('barrel_pct', 'Barrel%', 'batted balls') }}
+              {{ metric('xwoba_on_contact', 'xwOBAcon', 'contact only') }}
+            </dl>
+          </section>
+          <section class="overview-group" aria-labelledby="fangraphs-grades-heading">
+            <div class="overview-group-heading">
+              <h3 id="fangraphs-grades-heading">FanGraphs grades</h3>
+              <small>Full season</small>
+            </div>
+            <dl class="overview-values overview-grades">
+              {{ metric('stuff_plus', 'Stuff+') }}
+              {{ metric('location_plus', 'Location+') }}
+              {{ metric('pitching_plus', 'Pitching+') }}
+            </dl>
+          </section>
         </div>
       </section>
 
