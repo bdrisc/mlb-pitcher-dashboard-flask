@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Statistical Pitcher Report · MLB Pitcher Dashboard{% endblock %}
+{% block title %}Statistical pitcher report · MLB Pitcher Dashboard{% endblock %}
 {% block body_class %}savant-page{% endblock %}
 
 {% block content %}
@@ -13,7 +13,7 @@
   >
     <section class="dashboard-intro">
       <div>
-        <h1>Pitcher Report</h1>
+        <h1>Pitcher report</h1>
         <p>A filterable dashboard built from pitch-level Statcast data in PostgreSQL.</p>
       </div>
       <div class="data-status">
@@ -192,40 +192,40 @@
             <div class="overview-results-grid">
               <dl class="overview-featured">
                 {{ metric('k_minus_bb_pct', 'K-BB%', 'K% minus BB%', featured=true) }}
-                {{ metric('xwoba_against', 'xwOBA', 'expected wOBA allowed', featured=true) }}
-                {{ metric('run_value_per_100', 'RV/100', 'runs prevented / 100', featured=true) }}
+                {{ metric('xwoba_against', 'xwOBA', 'Expected wOBA allowed', featured=true) }}
+                {{ metric('run_value_per_100', 'RV/100', 'Runs prevented / 100', featured=true) }}
               </dl>
               <dl class="overview-values overview-supporting">
-                {{ metric('strikeout_pct', 'K%', 'plate appearances') }}
-                {{ metric('walk_pct', 'BB%', 'plate appearances') }}
+                {{ metric('strikeout_pct', 'K%', 'Plate appearances') }}
+                {{ metric('walk_pct', 'BB%', 'Plate appearances') }}
               </dl>
             </div>
           </section>
           <section class="overview-group" aria-labelledby="whiff-finishing-heading">
             <h3 id="whiff-finishing-heading">Whiff and finishing</h3>
             <dl class="overview-values">
-              {{ metric('whiff_pct', 'Whiff%', 'per swing') }}
-              {{ metric('zone_whiff_pct', 'Z-Whiff%', 'per in-zone swing') }}
-              {{ metric('swstr_pct', 'SwStr%', 'per pitch') }}
-              {{ metric('putaway_pct', 'PutAway%', 'per two-strike pitch') }}
+              {{ metric('whiff_pct', 'Whiff%', 'Per swing') }}
+              {{ metric('zone_whiff_pct', 'Z-Whiff%', 'Per in-zone swing') }}
+              {{ metric('swstr_pct', 'SwStr%', 'Per pitch') }}
+              {{ metric('putaway_pct', 'PutAway%', 'Per two-strike pitch') }}
             </dl>
           </section>
           <section class="overview-group" aria-labelledby="strike-chase-heading">
             <h3 id="strike-chase-heading">Strike throwing and chase</h3>
             <dl class="overview-values">
-              {{ metric('strike_pct', 'Strike%', 'all pitches') }}
-              {{ metric('csw_pct', 'CSW%', 'all pitches') }}
-              {{ metric('zone_pct', 'Zone%', 'tracked locations') }}
-              {{ metric('chase_pct', 'Chase%', 'out-of-zone pitches') }}
+              {{ metric('strike_pct', 'Strike%', 'All pitches') }}
+              {{ metric('csw_pct', 'CSW%', 'All pitches') }}
+              {{ metric('zone_pct', 'Zone%', 'Tracked locations') }}
+              {{ metric('chase_pct', 'Chase%', 'Out-of-zone pitches') }}
             </dl>
           </section>
           <section class="overview-group" aria-labelledby="contact-quality-heading">
             <h3 id="contact-quality-heading">Contact quality allowed</h3>
             <dl class="overview-values">
               {{ metric('avg_exit_velocity', 'Avg exit velo', 'mph on batted balls') }}
-              {{ metric('hard_hit_pct', 'Hard-Hit%', 'batted balls') }}
-              {{ metric('barrel_pct', 'Barrel%', 'batted balls') }}
-              {{ metric('xwoba_on_contact', 'xwOBAcon', 'contact only') }}
+              {{ metric('hard_hit_pct', 'Hard-Hit%', 'Batted balls') }}
+              {{ metric('barrel_pct', 'Barrel%', 'Batted balls') }}
+              {{ metric('xwoba_on_contact', 'xwOBAcon', 'Contact only') }}
             </dl>
           </section>
           <section class="overview-group" aria-labelledby="fangraphs-grades-heading">
@@ -275,7 +275,7 @@
                 <th scope="col" role="columnheader" data-view="shape" hidden title="Raw vertical approach angle at the front of home plate; negative means descending">VAA</th>
                 <th scope="col" role="columnheader" data-view="shape" hidden title="VAA minus expected VAA for this pitch type and front-plane height. Positive is flatter, negative is steeper; frozen 2025 MLB reference">VAAAdj</th>
                 <th scope="col" role="columnheader" data-view="shape" hidden title="Raw horizontal approach angle at the front of home plate; positive is toward the catcher’s right">HAA</th>
-                <th scope="col" role="columnheader" data-view="shape" hidden title="HAA Above Expected: observed minus expected HAA, adjusted for pitch type, throwing hand, release side and front-plane horizontal location against a frozen 2025 MLB baseline">HAAAA</th>
+                <th scope="col" role="columnheader" data-view="shape" hidden title="HAA above expected: observed minus expected HAA, adjusted for pitch type, throwing hand, release side and front-plane horizontal location against a frozen 2025 MLB baseline">HAAAA</th>
                 <th scope="col" role="columnheader" data-view="results">Whiff</th>
                 <th scope="col" role="columnheader" data-view="results" title="Whiffs divided by swings on pitches in the strike zone. Uses the same whiff and zone definitions as the overall report.">Z-Whiff%</th>
                 <th scope="col" role="columnheader" data-view="results" title="Swinging strikes divided by pitches thrown; excludes foul tips and bunt attempts from swinging strikes, and automatic calls from pitches thrown">SwStr%</th>

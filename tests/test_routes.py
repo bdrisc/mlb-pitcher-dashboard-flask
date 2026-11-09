@@ -20,7 +20,7 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     response = client.get("/savant-card")
 
     assert response.status_code == 200
-    assert b"Pitcher Report" in response.data
+    assert b"<h1>Pitcher report</h1>" in response.data
     assert (
         b"A filterable dashboard built from pitch-level Statcast data in PostgreSQL."
         in response.data

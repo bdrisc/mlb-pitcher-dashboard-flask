@@ -189,7 +189,6 @@ summary,
   font-size: 0.68rem;
   font-weight: 850;
   letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
 .hero-actions,
@@ -248,7 +247,6 @@ summary,
   font-size: 0.7rem;
   font-weight: 850;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .status {
@@ -295,7 +293,6 @@ summary,
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.07em;
-  text-transform: uppercase;
 }
 
 .card strong {
@@ -492,7 +489,6 @@ summary,
   font-size: 0.69rem;
   font-weight: 850;
   letter-spacing: 0.055em;
-  text-transform: uppercase;
 }
 
 .field input,
@@ -731,7 +727,6 @@ summary,
   font-size: 0.61rem;
   font-weight: 800;
   letter-spacing: 0.07em;
-  text-transform: uppercase;
 }
 
 .sample-strip dd {
@@ -832,7 +827,6 @@ summary,
   font-size: 0.66rem;
   font-weight: 850;
   letter-spacing: 0.045em;
-  text-transform: uppercase;
   overflow-wrap: anywhere;
 }
 
@@ -891,7 +885,6 @@ summary,
   font-size: 0.64rem;
   font-weight: 850;
   letter-spacing: 0.055em;
-  text-transform: uppercase;
 }
 
 .arsenal-table th:first-child,
@@ -997,7 +990,6 @@ summary,
   color: #77818b;
   font-size: 0.6rem;
   font-weight: 800;
-  text-transform: uppercase;
 }
 
 .split-card dd {
@@ -1116,7 +1108,6 @@ summary,
   font-size: 0.58rem;
   font-weight: 850;
   letter-spacing: 0.07em;
-  text-transform: uppercase;
 }
 
 .plotly-chart {

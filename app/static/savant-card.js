@@ -391,7 +391,7 @@ if (root) {
       tableCell(row, formatMetric("vaa", pitch.vaa)).title = `Raw VAA at the front of home plate; negative means descending. ${pitch.vaa_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches tracked.`;
       tableCell(row, formatMetric("vaa_adj", pitch.vaa_adj)).title = `VAA minus expected VAA for this pitch type and front-plane height. Positive = flatter; negative = steeper. Frozen 2025 MLB baseline. ${pitch.vaa_adj_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches scored.`;
       tableCell(row, formatMetric("haa", pitch.haa)).title = `Raw HAA at the front of home plate; positive is toward the catcher's right. ${pitch.haa_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches tracked.`;
-      tableCell(row, formatMetric("haaaa", pitch.haaaa)).title = `HAA Above Expected: observed minus expected HAA, adjusted for pitch type, throwing hand, release side and horizontal location. Frozen 2025 MLB baseline; signed like HAA, not a better/worse grade. ${pitch.haaaa_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches scored.`;
+      tableCell(row, formatMetric("haaaa", pitch.haaaa)).title = `HAA above expected: observed minus expected HAA, adjusted for pitch type, throwing hand, release side and horizontal location. Frozen 2025 MLB baseline; signed like HAA, not a better/worse grade. ${pitch.haaaa_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches scored.`;
       tableCell(row, formatMetric("whiff_pct", pitch.whiff_pct));
       tableCell(row, formatMetric("zone_whiff_pct", pitch.zone_whiff_pct)).title = zoneWhiffTitle(pitch);
       tableCell(row, formatMetric("swstr_pct", pitch.swstr_pct)).title = `${pitch.swinging_strike_count.toLocaleString("en-US")} swinging strikes / ${pitch.swstr_pitch_count.toLocaleString("en-US")} pitches thrown. Foul tips and bunt attempts are not swinging strikes; automatic calls are not pitches thrown.`;
@@ -455,7 +455,7 @@ if (root) {
       tableCell(row, formatNumber(pair.movement_gap_inches)).title = `Distance between mean movement vectors, not the difference of their magnitudes. ${coverage}`;
       const sequenceCoverage = `Consecutive ${pair.pitch_a} ↔ ${pair.pitch_b} pitches to the same batter, pooling both directions. ${pair.observed_sequence_pair_count.toLocaleString("en-US")} observed pairs. Filters apply to the second pitch.`;
       tableCell(row, formatNumber(pair.release_gap_inches)).title = `Mean 3D release-point distance over ${pair.release_pair_count.toLocaleString("en-US")} tracked pairs. ${sequenceCoverage}`;
-      tableCell(row, signedSeparation(pair.late_separation_inches)).title = `Mean Plate Gap minus Tunnel Gap over ${pair.late_separation_pair_count.toLocaleString("en-US")} tracked pairs. Tunnel point: 23.8 ft before the front of the plate. Positive: paths spread apart; negative: they converge. Not pure pitch break. ${sequenceCoverage}`;
+      tableCell(row, signedSeparation(pair.late_separation_inches)).title = `Mean plate gap minus tunnel gap over ${pair.late_separation_pair_count.toLocaleString("en-US")} tracked pairs. Tunnel point: 23.8 ft before the front of the plate. Positive: paths spread apart; negative: they converge. Not pure pitch break. ${sequenceCoverage}`;
       elements.separationBody.append(row);
     });
     prepareResponsiveRows(elements.separationBody);
@@ -479,7 +479,7 @@ if (root) {
       const heading = document.createElement("div");
       const title = document.createElement("h3");
       const sample = document.createElement("span");
-      title.textContent = split.label;
+      title.textContent = split.label.replace(/^vs /, "Vs ");
       sample.textContent = `${split.pitch_count.toLocaleString("en-US")} pitches · ${split.plate_appearances.toLocaleString("en-US")} PA`;
       heading.append(title, sample);
 

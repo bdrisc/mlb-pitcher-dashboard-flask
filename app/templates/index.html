@@ -15,7 +15,7 @@
           <a class="button button-secondary" href="{{ url_for('api.pitchers') }}">View pitcher API</a>
         </div>
       </div>
-      <span class="status status-{{ data_status }}">{{ data_status }}</span>
+      <span class="status status-{{ data_status }}">{{ 'OK' if data_status == 'ok' else data_status|capitalize }}</span>
     </section>
 
     <section class="card-grid" aria-label="Application status">
