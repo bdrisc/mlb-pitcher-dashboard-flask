@@ -255,8 +255,8 @@ def test_existing_global_filters_and_empty_sample(tunnel_client):
     html = tunnel_client.get("/savant-card").get_data(as_text=True)
     assert 'id="tunneling-body"' not in html
     assert 'id="tunneling-heading"' not in html
-    assert "Release gap (in)" in html
-    assert "Late separation (in)" in html
+    assert "Release Gap (in)" in html
+    assert "Late Separation (in)" in html
     assert html.index('id="separation-heading"') < html.index('id="charts-heading"')
 
 

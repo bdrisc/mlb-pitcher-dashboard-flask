@@ -20,17 +20,17 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     response = client.get("/savant-card")
 
     assert response.status_code == 200
-    assert b"<h1>Pitcher report</h1>" in response.data
+    assert b"<h1>Pitcher Report</h1>" in response.data
     assert (
         b"A filterable dashboard built from pitch-level Statcast data in PostgreSQL."
         in response.data
     )
-    assert b"Performance metrics" in response.data
+    assert b"Performance Metrics" in response.data
     assert b"K-BB%" in response.data
     assert b"xwOBA" in response.data
     assert b'class="overview-groups"' in response.data
-    assert b"Whiff and finishing" in response.data
-    assert b"Contact quality allowed" in response.data
+    assert b"Whiff and Finishing" in response.data
+    assert b"Contact Quality Allowed" in response.data
     assert b"Plate-appearance results" not in response.data
     assert b"Movement is reported in inches." not in response.data
     assert b"Results against right- and left-handed batters." not in response.data
@@ -43,7 +43,7 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b'id="platoon-splits"' in response.data
     assert response.data.count(b'data-metric="') == 20
     assert response.data.count(b'class="plotly-chart"') == 5
-    assert b"Avg exit velo" in response.data
+    assert b"Avg Exit Velo" in response.data
     assert b"Pitch-type performance" not in response.data
     assert b"Metric definitions and sample notes" not in response.data
     assert b'data-charts-url-template="/api/v1/pitchers/0/charts"' in response.data

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Statistical pitcher report · MLB Pitcher Dashboard{% endblock %}
+{% block title %}Statistical Pitcher Report · MLB Pitcher Dashboard{% endblock %}
 {% block body_class %}savant-page{% endblock %}
 
 {% block content %}
@@ -13,11 +13,11 @@
   >
     <section class="dashboard-intro">
       <div>
-        <h1>Pitcher report</h1>
+        <h1>Pitcher Report</h1>
         <p>A filterable dashboard built from pitch-level Statcast data in PostgreSQL.</p>
       </div>
       <div class="data-status">
-        <span class="data-badge">Database backed</span>
+        <span class="data-badge">Database Backed</span>
         <span class="data-freshness" id="database-freshness">Checking data coverage…</span>
       </div>
     </section>
@@ -25,9 +25,9 @@
     <section class="filter-panel" aria-labelledby="filter-heading">
       <div class="section-heading compact-heading">
         <div>
-          <h2 id="filter-heading">Choose a pitcher and sample</h2>
+          <h2 id="filter-heading">Choose a Pitcher and Sample</h2>
         </div>
-        <button class="text-button" id="reset-filters" type="button">Reset filters</button>
+        <button class="text-button" id="reset-filters" type="button">Reset Filters</button>
       </div>
 
       <form id="profile-filters">
@@ -35,28 +35,28 @@
           <label class="field field-wide" for="pitcher-select">
             <span>Pitcher</span>
             <select id="pitcher-select" name="pitcher_id" required disabled>
-              <option value="">Loading pitchers…</option>
+              <option value="">Loading Pitchers…</option>
             </select>
           </label>
 
           <label class="field" for="season-filter">
             <span>Season</span>
             <select id="season-filter" name="season" disabled>
-              <option value="">All seasons</option>
+              <option value="">All Seasons</option>
             </select>
           </label>
 
           <label class="field" for="team-filter">
             <span>Team</span>
             <select id="team-filter" name="team" disabled>
-              <option value="">All teams</option>
+              <option value="">All Teams</option>
             </select>
           </label>
 
           <label class="field" for="pitch-type-filter">
-            <span>Pitch type</span>
+            <span>Pitch Type</span>
             <select id="pitch-type-filter" name="pitch_type">
-              <option value="">All pitch types</option>
+              <option value="">All Pitch Types</option>
               {% for code, name in pitch_types %}
                 <option value="{{ code }}">{{ name }} ({{ code }})</option>
               {% endfor %}
@@ -64,25 +64,25 @@
           </label>
 
           <label class="field" for="batter-side-filter">
-            <span>Batter side</span>
+            <span>Batter Side</span>
             <select id="batter-side-filter" name="batter_side">
-              <option value="">All batters</option>
-              <option value="R">Right-handed</option>
-              <option value="L">Left-handed</option>
+              <option value="">All Batters</option>
+              <option value="R">Right-Handed</option>
+              <option value="L">Left-Handed</option>
             </select>
           </label>
 
           <label class="field" for="count-filter">
             <span>Count</span>
             <select id="count-filter" name="count">
-              <option value="">All counts</option>
-              <optgroup label="Count groups">
-                <option value="ahead">Pitcher ahead</option>
-                <option value="behind">Pitcher behind</option>
-                <option value="even">Even count</option>
-                <option value="two_strikes">Any two-strike count</option>
+              <option value="">All Counts</option>
+              <optgroup label="Count Groups">
+                <option value="ahead">Pitcher Ahead</option>
+                <option value="behind">Pitcher Behind</option>
+                <option value="even">Even Count</option>
+                <option value="two_strikes">Any Two-Strike Count</option>
               </optgroup>
-              <optgroup label="Exact counts">
+              <optgroup label="Exact Counts">
               {% for balls in range(4) %}
                 {% for strikes in range(3) %}
                   <option value="{{ balls }}-{{ strikes }}">{{ balls }}–{{ strikes }}</option>
@@ -95,7 +95,7 @@
           <label class="field" for="home-away-filter">
             <span>Venue</span>
             <select id="home-away-filter" name="home_away">
-              <option value="">Home and away</option>
+              <option value="">Home and Away</option>
               <option value="home">Home</option>
               <option value="away">Away</option>
             </select>
@@ -115,7 +115,7 @@
         <div class="filter-actions">
           <p id="filter-summary">Select a pitcher to load a profile.</p>
           <button class="button button-primary" id="apply-filters" type="submit" disabled>
-            Apply filters
+            Apply Filters
           </button>
         </div>
       </form>
@@ -124,7 +124,7 @@
     <section class="ui-message loading-message" id="loading-state" aria-live="polite" hidden>
       <span class="spinner" aria-hidden="true"></span>
       <div>
-        <strong>Building pitcher profile</strong>
+        <strong>Building Pitcher Profile</strong>
         <p>Aggregating the selected sample in the database…</p>
       </div>
     </section>
@@ -141,7 +141,7 @@
     <section class="ui-message empty-message" id="empty-state" hidden>
       <span class="message-icon" aria-hidden="true">i</span>
       <div>
-        <strong>No database pitchers yet</strong>
+        <strong>No Database Pitchers Yet</strong>
         <p>
           Ingest the bundled sample or an MLB Statcast export, then refresh this page.
         </p>
@@ -159,7 +159,7 @@
               <span id="team-list">BOS</span>
             </div>
             <h2 id="pitcher-name">Sample Pitcher</h2>
-            <p id="profile-coverage">2026 season</p>
+            <p id="profile-coverage">2026 Season</p>
           </div>
         </div>
         <dl class="sample-strip">
@@ -173,7 +173,7 @@
       <section class="dashboard-section" aria-labelledby="overview-heading">
         <div class="section-heading">
           <div>
-            <h2 id="overview-heading">Performance metrics</h2>
+            <h2 id="overview-heading">Performance Metrics</h2>
           </div>
         </div>
 
@@ -188,50 +188,50 @@
         {% endmacro %}
         <div class="overview-groups">
           <section class="overview-results" aria-labelledby="overall-results-heading">
-            <h3 id="overall-results-heading">Overall results</h3>
+            <h3 id="overall-results-heading">Overall Results</h3>
             <div class="overview-results-grid">
               <dl class="overview-featured">
-                {{ metric('k_minus_bb_pct', 'K-BB%', 'K% minus BB%', featured=true) }}
-                {{ metric('xwoba_against', 'xwOBA', 'Expected wOBA allowed', featured=true) }}
-                {{ metric('run_value_per_100', 'RV/100', 'Runs prevented / 100', featured=true) }}
+                {{ metric('k_minus_bb_pct', 'K-BB%', 'K% Minus BB%', featured=true) }}
+                {{ metric('xwoba_against', 'xwOBA', 'Expected wOBA Allowed', featured=true) }}
+                {{ metric('run_value_per_100', 'RV/100', 'Runs Prevented / 100', featured=true) }}
               </dl>
               <dl class="overview-values overview-supporting">
-                {{ metric('strikeout_pct', 'K%', 'Plate appearances') }}
-                {{ metric('walk_pct', 'BB%', 'Plate appearances') }}
+                {{ metric('strikeout_pct', 'K%', 'Plate Appearances') }}
+                {{ metric('walk_pct', 'BB%', 'Plate Appearances') }}
               </dl>
             </div>
           </section>
           <section class="overview-group" aria-labelledby="whiff-finishing-heading">
-            <h3 id="whiff-finishing-heading">Whiff and finishing</h3>
+            <h3 id="whiff-finishing-heading">Whiff and Finishing</h3>
             <dl class="overview-values">
-              {{ metric('whiff_pct', 'Whiff%', 'Per swing') }}
-              {{ metric('zone_whiff_pct', 'Z-Whiff%', 'Per in-zone swing') }}
-              {{ metric('swstr_pct', 'SwStr%', 'Per pitch') }}
-              {{ metric('putaway_pct', 'PutAway%', 'Per two-strike pitch') }}
+              {{ metric('whiff_pct', 'Whiff%', 'Per Swing') }}
+              {{ metric('zone_whiff_pct', 'Z-Whiff%', 'Per In-Zone Swing') }}
+              {{ metric('swstr_pct', 'SwStr%', 'Per Pitch') }}
+              {{ metric('putaway_pct', 'PutAway%', 'Per Two-Strike Pitch') }}
             </dl>
           </section>
           <section class="overview-group" aria-labelledby="strike-chase-heading">
-            <h3 id="strike-chase-heading">Strike throwing and chase</h3>
+            <h3 id="strike-chase-heading">Strike Throwing and Chase</h3>
             <dl class="overview-values">
-              {{ metric('strike_pct', 'Strike%', 'All pitches') }}
-              {{ metric('csw_pct', 'CSW%', 'All pitches') }}
-              {{ metric('zone_pct', 'Zone%', 'Tracked locations') }}
-              {{ metric('chase_pct', 'Chase%', 'Out-of-zone pitches') }}
+              {{ metric('strike_pct', 'Strike%', 'All Pitches') }}
+              {{ metric('csw_pct', 'CSW%', 'All Pitches') }}
+              {{ metric('zone_pct', 'Zone%', 'Tracked Locations') }}
+              {{ metric('chase_pct', 'Chase%', 'Out-of-Zone Pitches') }}
             </dl>
           </section>
           <section class="overview-group" aria-labelledby="contact-quality-heading">
-            <h3 id="contact-quality-heading">Contact quality allowed</h3>
+            <h3 id="contact-quality-heading">Contact Quality Allowed</h3>
             <dl class="overview-values">
-              {{ metric('avg_exit_velocity', 'Avg exit velo', 'mph on batted balls') }}
-              {{ metric('hard_hit_pct', 'Hard-Hit%', 'Batted balls') }}
-              {{ metric('barrel_pct', 'Barrel%', 'Batted balls') }}
-              {{ metric('xwoba_on_contact', 'xwOBAcon', 'Contact only') }}
+              {{ metric('avg_exit_velocity', 'Avg Exit Velo', 'mph on Batted Balls') }}
+              {{ metric('hard_hit_pct', 'Hard-Hit%', 'Batted Balls') }}
+              {{ metric('barrel_pct', 'Barrel%', 'Batted Balls') }}
+              {{ metric('xwoba_on_contact', 'xwOBAcon', 'Contact Only') }}
             </dl>
           </section>
           <section class="overview-group" aria-labelledby="fangraphs-grades-heading">
             <div class="overview-group-heading">
-              <h3 id="fangraphs-grades-heading">FanGraphs grades</h3>
-              <small>Full season</small>
+              <h3 id="fangraphs-grades-heading">FanGraphs Grades</h3>
+              <small>Full Season</small>
             </div>
             <dl class="overview-values overview-grades">
               {{ metric('stuff_plus', 'Stuff+') }}
@@ -245,14 +245,14 @@
       <section class="dashboard-section" aria-labelledby="arsenal-heading">
         <div class="section-heading">
           <div>
-            <h2 id="arsenal-heading">Arsenal performance</h2>
+            <h2 id="arsenal-heading">Arsenal Performance</h2>
           </div>
           <label class="field arsenal-view-selector" for="arsenal-view">
             <span>View</span>
             <select id="arsenal-view" aria-controls="arsenal-body">
               <option value="results">Results</option>
-              <option value="shape">Pitch shape</option>
-              <option value="grades">FanGraphs grades</option>
+              <option value="shape">Pitch Shape</option>
+              <option value="grades">FanGraphs Grades</option>
             </select>
           </label>
         </div>
@@ -294,26 +294,26 @@
       <section class="dashboard-section" aria-labelledby="separation-heading">
         <div class="section-heading">
           <div>
-            <h2 id="separation-heading">Pitch separation</h2>
+            <h2 id="separation-heading">Pitch Separation</h2>
           </div>
           <label class="field separation-selector" for="separation-reference">
-            <span>Compare with</span>
+            <span>Compare With</span>
             <select id="separation-reference" aria-controls="separation-body"></select>
           </label>
         </div>
-        <p id="separation-empty" class="separation-note" hidden>Choose All pitch types or broaden the filters to compare at least two pitch types.</p>
+        <p id="separation-empty" class="separation-note" hidden>Choose All Pitch Types or broaden the filters to compare at least two pitch types.</p>
         <div id="separation-table" class="table-shell">
           <table class="arsenal-table responsive-table separation-table" role="table" aria-labelledby="separation-heading">
             <thead role="rowgroup">
               <tr role="row">
                 <th scope="col" role="columnheader">Pitch A</th>
                 <th scope="col" role="columnheader">Pitch B</th>
-                <th scope="col" role="columnheader" title="Absolute difference between pitch-type mean velocities">Velocity gap (mph)</th>
+                <th scope="col" role="columnheader" title="Absolute difference between pitch-type mean velocities">Velocity Gap (mph)</th>
                 <th scope="col" role="columnheader" title="Pitch B minus Pitch A horizontal movement, in catcher-perspective coordinates">ΔHB (in)</th>
                 <th scope="col" role="columnheader" title="Pitch B minus Pitch A induced vertical movement">ΔIVB (in)</th>
-                <th scope="col" role="columnheader" title="Distance between mean HB/IVB vectors: sqrt(ΔHB² + ΔIVB²). Both movement means use jointly tracked pitches.">Movement gap (in)</th>
-                <th scope="col" role="columnheader" title="Mean 3D release-point distance for consecutive A/B pitches, pooling both sequence directions. Hover values for sample counts.">Release gap (in)</th>
-                <th scope="col" role="columnheader" title="Mean Plate Gap minus Tunnel Gap for consecutive A/B pitches. Tunnel point: 23.8 ft before the front of the plate. Positive: paths spread apart; negative: they converge. This is path separation, not pure pitch break.">Late separation (in)</th>
+                <th scope="col" role="columnheader" title="Distance between mean HB/IVB vectors: sqrt(ΔHB² + ΔIVB²). Both movement means use jointly tracked pitches.">Movement Gap (in)</th>
+                <th scope="col" role="columnheader" title="Mean 3D release-point distance for consecutive A/B pitches, pooling both sequence directions. Hover values for sample counts.">Release Gap (in)</th>
+                <th scope="col" role="columnheader" title="Mean Plate Gap minus Tunnel Gap for consecutive A/B pitches. Tunnel point: 23.8 ft before the front of the plate. Positive: paths spread apart; negative: they converge. This is path separation, not pure pitch break.">Late Separation (in)</th>
               </tr>
             </thead>
             <tbody role="rowgroup" id="separation-body"></tbody>
@@ -324,7 +324,7 @@
       <section class="dashboard-section chart-section" aria-labelledby="charts-heading">
         <div class="section-heading">
           <div>
-            <h2 id="charts-heading">Shape, command, and usage</h2>
+            <h2 id="charts-heading">Shape, Command, and Usage</h2>
           </div>
           <p>Hover, zoom, pan, isolate pitch types, or download any chart.</p>
         </div>
@@ -334,7 +334,7 @@
           <article class="chart-card">
             <div class="chart-card-heading">
               <div>
-                <h3>Movement profile</h3>
+                <h3>Movement Profile</h3>
                 <p>Horizontal break and induced vertical break by pitch type.</p>
               </div>
               <span>Shape</span>
@@ -350,7 +350,7 @@
           <article class="chart-card">
             <div class="chart-card-heading">
               <div>
-                <h3>Velocity trend</h3>
+                <h3>Velocity Trend</h3>
                 <p>Average velocity by game date, separated by pitch type.</p>
               </div>
               <span>Trend</span>
@@ -366,7 +366,7 @@
           <article class="chart-card">
             <div class="chart-card-heading">
               <div>
-                <h3>Release-point consistency</h3>
+                <h3>Release-Point Consistency</h3>
                 <p>Horizontal and vertical release location for every tracked pitch.</p>
               </div>
               <span>Delivery</span>
@@ -382,7 +382,7 @@
           <article class="chart-card">
             <div class="chart-card-heading">
               <div>
-                <h3>Pitch location</h3>
+                <h3>Pitch Location</h3>
                 <p>Plate location from the catcher’s perspective with the average zone.</p>
               </div>
               <span>Command</span>
@@ -398,7 +398,7 @@
           <article class="chart-card">
             <div class="chart-card-heading">
               <div>
-                <h3>Usage by count</h3>
+                <h3>Usage by Count</h3>
                 <p>Pitch mix within each count; every displayed column totals 100%.</p>
               </div>
               <span>Approach</span>
@@ -417,7 +417,7 @@
       <section class="dashboard-section" aria-labelledby="splits-heading">
         <div class="section-heading">
           <div>
-            <h2 id="splits-heading">Platoon splits</h2>
+            <h2 id="splits-heading">Platoon Splits</h2>
           </div>
         </div>
         <div class="split-grid" id="platoon-splits"></div>

@@ -7,12 +7,12 @@
   <main class="home-main">
     <section class="hero home-hero">
       <div>
-        <p class="eyebrow">Statcast metrics and trends</p>
+        <p class="eyebrow">Statcast Metrics and Trends</p>
         <h1>MLB Pitcher Dashboard</h1>
         <p>Evaluate outcomes and arsenals.</p>
         <div class="hero-actions">
-          <a class="button button-primary" href="{{ url_for('main.savant_card') }}">Open pitcher report</a>
-          <a class="button button-secondary" href="{{ url_for('api.pitchers') }}">View pitcher API</a>
+          <a class="button button-primary" href="{{ url_for('main.savant_card') }}">Open Pitcher Report</a>
+          <a class="button button-secondary" href="{{ url_for('api.pitchers') }}">View Pitcher API</a>
         </div>
       </div>
       <span class="status status-{{ data_status }}">{{ 'OK' if data_status == 'ok' else data_status|capitalize }}</span>
@@ -20,15 +20,15 @@
 
     <section class="card-grid" aria-label="Application status">
       <article class="card featured">
-        <span>Loaded CSV pitches</span>
+        <span>Loaded CSV Pitches</span>
         <strong>{{ "{:,}".format(pitch_count) }}</strong>
       </article>
       <article class="card">
-        <span>Data source</span>
+        <span>Data Source</span>
         <strong>{{ data_source }}</strong>
       </article>
       <article class="card">
-        <span>API version</span>
+        <span>API Version</span>
         <strong>v1</strong>
       </article>
     </section>
@@ -41,13 +41,13 @@
     {% endif %}
 
     <section class="panel">
-      <p class="eyebrow">Available routes</p>
-      <h2>Development endpoints</h2>
+      <p class="eyebrow">Available Routes</p>
+      <h2>Development Endpoints</h2>
       <div class="route-list">
-        <a href="{{ url_for('api.health') }}"><code>GET /api/v1/health</code><span>Application and dataset status</span></a>
-        <a href="{{ url_for('api.pitchers') }}"><code>GET /api/v1/pitchers</code><span>Database-backed pitcher directory</span></a>
-        <a href="{{ url_for('api.pitch_summary') }}"><code>GET /api/v1/pitches</code><span>Filterable pitch-type summary</span></a>
-        <a href="{{ url_for('main.savant_card') }}"><code>GET /savant-card</code><span>Interactive statistical pitcher report</span></a>
+        <a href="{{ url_for('api.health') }}"><code>GET /api/v1/health</code><span>Application and Dataset Status</span></a>
+        <a href="{{ url_for('api.pitchers') }}"><code>GET /api/v1/pitchers</code><span>Database-Backed Pitcher Directory</span></a>
+        <a href="{{ url_for('api.pitch_summary') }}"><code>GET /api/v1/pitches</code><span>Filterable Pitch-Type Summary</span></a>
+        <a href="{{ url_for('main.savant_card') }}"><code>GET /savant-card</code><span>Interactive Statistical Pitcher Report</span></a>
       </div>
     </section>
   </main>

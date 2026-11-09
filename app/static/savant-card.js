@@ -141,7 +141,7 @@ if (root) {
     elements.errorDetails.replaceChildren();
   }
 
-  function showError(error, title = "Profile unavailable") {
+  function showError(error, title = "Profile Unavailable") {
     setVisible(elements.content, false);
     setVisible(elements.loading, false);
     setVisible(elements.empty, false);
@@ -185,7 +185,7 @@ if (root) {
 
   function populatePitchers() {
     elements.pitcher.replaceChildren();
-    appendOption(elements.pitcher, "", "Select a pitcher");
+    appendOption(elements.pitcher, "", "Select a Pitcher");
     state.pitchers.forEach((pitcher) => {
       const hand = pitcher.throws ? `${pitcher.throws}HP` : "Throwing hand N/A";
       const teams = pitcher.teams.length ? pitcher.teams.join("/") : "Team N/A";
@@ -212,9 +212,9 @@ if (root) {
   function configureDependentFilters({ selectLatestSeason = false } = {}) {
     const pitcher = selectedPitcher();
     elements.season.replaceChildren();
-    appendOption(elements.season, "", "All seasons");
+    appendOption(elements.season, "", "All Seasons");
     elements.team.replaceChildren();
-    appendOption(elements.team, "", "All teams");
+    appendOption(elements.team, "", "All Teams");
 
     if (!pitcher) {
       elements.season.disabled = true;
@@ -417,7 +417,7 @@ if (root) {
     state.separation = data;
     state.separationPitcherId = pitcherId;
     elements.separationReference.replaceChildren();
-    appendOption(elements.separationReference, "", "All pitch pairs");
+    appendOption(elements.separationReference, "", "All Pitch Pairs");
     data.pitch_types.forEach((pitch) => {
       appendOption(elements.separationReference, pitch.pitch_type, `${pitch.pitch_name} (${pitch.pitch_type})`);
     });
@@ -552,7 +552,7 @@ if (root) {
       }
     } catch (error) {
       if (error.name !== "AbortError") {
-        const title = error.status === 404 ? "No matching pitches" : "Profile unavailable";
+        const title = error.status === 404 ? "No Matching Pitches" : "Profile Unavailable";
         showError(error, title);
       }
     } finally {
@@ -572,7 +572,7 @@ if (root) {
       renderDataFreshness(directory.data_freshness);
       if (!state.pitchers.length) {
         elements.pitcher.replaceChildren();
-        appendOption(elements.pitcher, "", "No pitchers in database");
+        appendOption(elements.pitcher, "", "No Pitchers in Database");
         setVisible(elements.empty, true);
         elements.summary.textContent = "Ingest data to begin.";
         return;
@@ -589,7 +589,7 @@ if (root) {
       applyUrlState();
       await loadProfile();
     } catch (error) {
-      showError(error, "Could not load pitcher directory");
+      showError(error, "Could Not Load Pitcher Directory");
     } finally {
       setLoading(false);
     }
