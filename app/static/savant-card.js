@@ -67,6 +67,7 @@ if (root) {
     "strike_pct",
     "swing_pct",
     "whiff_pct",
+    "zone_whiff_pct",
     "swstr_pct",
     "putaway_pct",
     "csw_pct",
@@ -294,7 +295,12 @@ if (root) {
       if (key === "run_value_per_100") element.title = runValueTitle(overall);
       if (key === "putaway_pct") element.title = putawayTitle(overall);
       if (key === "barrel_pct") element.title = barrelTitle(overall);
+      if (key === "zone_whiff_pct") element.title = zoneWhiffTitle(overall);
     });
+  }
+
+  function zoneWhiffTitle(metrics) {
+    return `${metrics.zone_whiff_count.toLocaleString("en-US")} whiffs / ${metrics.zone_swing_count.toLocaleString("en-US")} in-zone swings. Uses the same swing and whiff definitions as Whiff%; excludes pitches without known location.`;
   }
 
   function barrelTitle(metrics) {
@@ -357,6 +363,7 @@ if (root) {
       tableCell(row, formatMetric("haa", pitch.haa)).title = `Raw HAA at the front of home plate; positive is toward the catcher's right. ${pitch.haa_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches tracked.`;
       tableCell(row, formatMetric("haaaa", pitch.haaaa)).title = `HAA Above Expected: observed minus expected HAA, adjusted for pitch type, throwing hand, release side and horizontal location. Frozen 2025 MLB baseline; signed like HAA, not a better/worse grade. ${pitch.haaaa_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches scored.`;
       tableCell(row, formatMetric("whiff_pct", pitch.whiff_pct));
+      tableCell(row, formatMetric("zone_whiff_pct", pitch.zone_whiff_pct)).title = zoneWhiffTitle(pitch);
       tableCell(row, formatMetric("swstr_pct", pitch.swstr_pct)).title = `${pitch.swinging_strike_count.toLocaleString("en-US")} swinging strikes / ${pitch.swstr_pitch_count.toLocaleString("en-US")} pitches thrown. Foul tips and bunt attempts are not swinging strikes; automatic calls are not pitches thrown.`;
       tableCell(row, formatMetric("putaway_pct", pitch.putaway_pct)).title = putawayTitle(pitch);
       tableCell(row, formatMetric("csw_pct", pitch.csw_pct));

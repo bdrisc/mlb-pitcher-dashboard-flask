@@ -53,6 +53,7 @@ def _location_known():
 
 def _metric_columns() -> list[Any]:
     location_known = _location_known()
+    in_zone = and_(location_known, Pitch.is_in_zone.is_(True))
     event_recorded = and_(Pitch.events.is_not(None), Pitch.events != "")
     event_name = func.lower(Pitch.events)
     description = func.lower(Pitch.description)
@@ -124,7 +125,9 @@ def _metric_columns() -> list[Any]:
         _count_where(putaway).label("putaway_strikeouts"),
         _count_where(or_(description == "called_strike", whiff)).label("csw"),
         _count_where(location_known).label("location_tracked"),
-        _count_where(and_(location_known, Pitch.is_in_zone.is_(True))).label("in_zone"),
+        _count_where(in_zone).label("in_zone"),
+        _count_where(in_zone, swing).label("zone_swings"),
+        _count_where(in_zone, whiff).label("zone_whiffs"),
         _count_where(and_(location_known, Pitch.is_in_zone.is_(False))).label("out_of_zone"),
         _count_where(Pitch.is_chase.is_(True)).label("chases"),
         _count_where(tracked_batted_ball).label("batted_balls"),
@@ -224,6 +227,9 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         "strike_pct": _rate(_integer(row, "strikes"), pitches),
         "swing_pct": _rate(swings, pitches),
         "whiff_pct": _rate(_integer(row, "whiffs"), swings),
+        "zone_whiff_pct": _rate(_integer(row, "zone_whiffs"), _integer(row, "zone_swings")),
+        "zone_whiff_count": _integer(row, "zone_whiffs"),
+        "zone_swing_count": _integer(row, "zone_swings"),
         "swstr_pct": _rate(_integer(row, "swinging_strikes"), _integer(row, "swstr_pitches")),
         "swinging_strike_count": _integer(row, "swinging_strikes"),
         "swstr_pitch_count": _integer(row, "swstr_pitches"),

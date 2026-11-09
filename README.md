@@ -837,3 +837,13 @@ before serving and performs the resumable backfill in background maintenance.
 Definition and source field:
 [Barrel](https://www.mlb.com/glossary/statcast/barrel),
 [Savant CSV documentation](https://baseballsavant.mlb.com/csv-docs).
+
+### Z-Whiff%
+
+**Z-Whiff%** is in-zone whiffs divided by in-zone swings. It appears beside
+Whiff% in the overall cards and pitch arsenal. It uses the existing Whiff%
+classification, including foul tips and missed bunts, and the existing Zone%
+location classification. Unknown pitch locations and takes do not count.
+Hover for whiffs and in-zone swings; samples with no in-zone swings display a
+dash. The overall rate pools counts across pitch types, and all active filters
+apply. No schema change or data backfill is needed.
