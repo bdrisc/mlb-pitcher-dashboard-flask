@@ -854,3 +854,9 @@ Use **View** in Arsenal performance to switch between Results, Pitch shape,
 and FanGraphs grades. Each view keeps pitch, usage and pitch count visible.
 Changing views preserves the current filters and sample. On narrow screens,
 arsenal and separation rows stack their labeled values to fit the page.
+
+**O-Whiff%** is the complementary out-of-zone rate: whiffs divided by swings
+outside the strike zone. It appears beside Z-Whiff% under Whiff and Finishing
+and in the arsenal's Results view. It uses the same classifications and active
+filters. Takes and pitches without known location do not count; zero qualifying
+swings display a dash. Hover for the whiff and swing counts.
