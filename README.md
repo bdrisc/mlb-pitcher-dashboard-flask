@@ -609,6 +609,33 @@ Open `http://127.0.0.1:8080/savant-card`. No new migration is needed. The local
 commands use the existing `.env` connection to the full PostgreSQL database.
 
 
+### Overall wOBA
+
+The Overall Results card shows actual **wOBA** allowed beside **xwOBA**.
+Actual wOBA divides the sum of Baseball Savant's exact actual outcome weights
+by its eligible plate appearances on the selected terminal pitches. The
+backfill verifies Savant's numerator and rate against Statcast Search before
+matching the records to the stored pitches. Intentional walks and sacrifice
+bunts contribute neither weight nor an eligible appearance. Filters restrict
+the calculation to the tracked pitch sample; it can differ from a Savant
+leaderboard using a different sample. A dash means no eligible appearances or
+some selected outcomes still need verification.
+
+For a native local installation, stop Flask and use the existing virtual
+environment and database:
+
+```powershell
+git pull origin main
+python -m flask --app wsgi db upgrade
+python -m flask --app wsgi statcast backfill-woba --season 2026
+python -m flask --app wsgi run --debug --port 8080
+```
+
+The backfill updates only the two actual wOBA fields on existing pitches and
+can be resumed by repeating the command. Omit `--season` to process all stored
+seasons. The public app runs the migration and backfills in the background.
+`SYNC_WOBA_ON_STARTUP=0` disables automatic backfill.
+
 ### Overall xwOBA Against
 
 The main pitcher card shows `xwOBA` to three decimals. It averages

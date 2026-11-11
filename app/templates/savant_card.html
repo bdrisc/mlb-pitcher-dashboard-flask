@@ -177,24 +177,32 @@
           </div>
         </div>
 
+        {% macro metric_value(key, label, context='') %}
+          <dt>{{ label }}</dt>
+          <dd>
+            <strong data-metric="{{ key }}">—</strong>
+            {% if context %}<small>{{ context }}</small>{% endif %}
+          </dd>
+        {% endmacro %}
         {% macro metric(key, label, context='', featured=false) %}
-          <div class="{{ 'metric-card' if featured else 'compact-metric' }}">
-            <dt>{{ label }}</dt>
-            <dd>
-              <strong data-metric="{{ key }}">—</strong>
-              {% if context %}<small>{{ context }}</small>{% endif %}
-            </dd>
-          </div>
+          {% if featured %}
+            <dl class="metric-card">{{ metric_value(key, label, context) }}</dl>
+          {% else %}
+            <div class="compact-metric">{{ metric_value(key, label, context) }}</div>
+          {% endif %}
         {% endmacro %}
         <div class="overview-groups">
           <section class="overview-results" aria-labelledby="overall-results-heading">
             <h3 id="overall-results-heading">Overall Results</h3>
             <div class="overview-results-grid">
-              <dl class="overview-featured">
+              <div class="overview-featured">
                 {{ metric('k_minus_bb_pct', 'K-BB%', 'K% Minus BB%', featured=true) }}
-                {{ metric('xwoba_against', 'xwOBA', 'Expected wOBA Allowed', featured=true) }}
+                <dl class="metric-card overview-woba-pair">
+                  <div>{{ metric_value('woba_against', 'wOBA', 'Actual') }}</div>
+                  <div>{{ metric_value('xwoba_against', 'xwOBA', 'Expected') }}</div>
+                </dl>
                 {{ metric('run_value_per_100', 'RV/100', 'Runs Prevented / 100', featured=true) }}
-              </dl>
+              </div>
               <dl class="overview-values overview-supporting">
                 {{ metric('strikeout_pct', 'K%', 'Plate Appearances') }}
                 {{ metric('walk_pct', 'BB%', 'Plate Appearances') }}

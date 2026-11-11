@@ -128,6 +128,8 @@ class Pitch(db.Model):
     estimated_ba: Mapped[float | None]
     estimated_woba: Mapped[float | None]
     woba_value: Mapped[float | None]
+    savant_woba_numerator: Mapped[float | None]
+    savant_woba_denominator: Mapped[int | None] = mapped_column(db.SmallInteger)
     delta_run_expectancy: Mapped[float | None]
     bat_speed: Mapped[float | None]
     swing_length: Mapped[float | None]

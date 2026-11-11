@@ -104,7 +104,7 @@ if (root) {
       const formatted = formatNumber(value);
       return value > 0 ? `+${formatted}` : formatted;
     }
-    if (["xwoba_on_contact", "xwoba_against"].includes(key)) return Number(value).toFixed(3).replace(/^0/, "");
+    if (["woba_against", "xwoba_on_contact", "xwoba_against"].includes(key)) return Number(value).toFixed(3).replace(/^0/, "");
     return formatNumber(value);
   }
 
@@ -293,6 +293,7 @@ if (root) {
     document.querySelectorAll("[data-metric]").forEach((element) => {
       const key = element.dataset.metric;
       element.textContent = formatMetric(key, overall[key]);
+      if (key === "woba_against") element.title = wobaTitle(overall);
       if (key === "xwoba_against") element.title = "Expected wOBA allowed, including strikeouts, unintentional walks and hit-by-pitches; lower is better. Recalculates with the active filters.";
       if (key === "run_value_per_100") element.title = runValueTitle(overall);
       if (key === "putaway_pct") element.title = putawayTitle(overall);
@@ -300,6 +301,12 @@ if (root) {
       if (key === "zone_whiff_pct") element.title = zoneWhiffTitle(overall);
       if (key === "out_of_zone_whiff_pct") element.title = zoneWhiffTitle(overall, "out_of_zone");
     });
+  }
+
+  function wobaTitle(metrics) {
+    if (metrics.woba_pending_outcomes) return "Waiting for Baseball Savant to verify all selected outcomes.";
+    const eligible = metrics.woba_denominator.toLocaleString("en-US");
+    return `Actual weighted on-base average allowed on the selected pitches. Uses Baseball Savant's exact weights across ${eligible} eligible plate appearances. Lower is better.`;
   }
 
   function zoneWhiffTitle(metrics, prefix = "zone") {

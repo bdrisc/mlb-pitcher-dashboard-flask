@@ -16,6 +16,7 @@ from app.services.filters import PitchFilters
 from app.services.pitch_data import PITCH_NAME_MAP
 from app.services.pitch_separation import build_pitch_separation
 from app.services.pitch_tunneling import add_tunneling_to_separation, build_pitch_tunneling
+from app.services.woba_refresh import NON_PA_EVENTS
 
 
 class PitcherNotFoundError(LookupError):
@@ -58,6 +59,7 @@ def _metric_columns() -> list[Any]:
     event_recorded = and_(Pitch.events.is_not(None), Pitch.events != "")
     event_name = func.lower(Pitch.events)
     description = func.lower(Pitch.description)
+    actual_pa = and_(event_recorded, event_name.notin_(NON_PA_EVENTS))
     swing = description.in_(
         (
             "swinging_strike",
@@ -167,6 +169,12 @@ def _metric_columns() -> list[Any]:
         func.avg(Pitch.vertical_break_inches).label("vertical_break"),
         func.avg(Pitch.release_extension).label("release_extension"),
         func.avg(Pitch.exit_velocity).filter(tracked_batted_ball).label("avg_exit_velocity"),
+        _count_where(
+            actual_pa,
+            or_(Pitch.savant_woba_numerator.is_(None), Pitch.savant_woba_denominator.is_(None)),
+        ).label("woba_pending_outcomes"),
+        func.sum(Pitch.savant_woba_numerator).filter(actual_pa).label("woba_numerator"),
+        func.sum(Pitch.savant_woba_denominator).filter(actual_pa).label("woba_denominator"),
         func.avg(Pitch.estimated_woba).filter(expected_pa).label("xwoba_against"),
         func.avg(Pitch.estimated_woba).filter(expected_contact).label("xwoba_on_contact"),
     ]
@@ -196,7 +204,16 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
     pitcher_run_value = (
         None if row["run_value_against"] is None else -float(row["run_value_against"])
     )
+    woba_denom = _integer(row, "woba_denominator")
+    woba_pending = _integer(row, "woba_pending_outcomes")
+    woba = None
+    if woba_denom and not woba_pending:
+        total = Decimal(str(round(row["woba_numerator"], 9)))
+        woba = float((total / woba_denom).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP))
     return {
+        "woba_against": woba,
+        "woba_denominator": woba_denom,
+        "woba_pending_outcomes": woba_pending,
         "run_value_per_100": (
             None
             if not run_value_pitches or not run_value_denominator

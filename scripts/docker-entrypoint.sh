@@ -27,6 +27,12 @@ echo "Starting web server on port ${PORT:-10000}."
         fi
     fi
 
+    if [ "$maintenance_ok" = "1" ] && [ "${SYNC_WOBA_ON_STARTUP:-1}" = "1" ]; then
+        if ! flask --app wsgi statcast backfill-woba; then
+            echo "Some Savant wOBA outcomes remain unverified; saved data retained." >&2
+        fi
+    fi
+
     if [ "$maintenance_ok" = "1" ] && [ "${SYNC_BARRELS_ON_STARTUP:-1}" = "1" ]; then
         if ! flask --app wsgi statcast backfill-barrels; then
             echo "Some barrel classifications remain unavailable; saved data retained." >&2
@@ -76,6 +82,11 @@ echo "Starting web server on port ${PORT:-10000}."
         if flask --app wsgi statcast sync-recent \
             --lookback-days "${SYNC_RECENT_LOOKBACK_DAYS:-4}"; then
             echo "Background Statcast sync finished successfully."
+            if [ "${SYNC_WOBA_ON_STARTUP:-1}" = "1" ]; then
+                if ! flask --app wsgi statcast backfill-woba; then
+                    echo "Some new Savant wOBA outcomes remain unverified." >&2
+                fi
+            fi
         else
             echo "Background Statcast sync failed; the web service will remain available." >&2
         fi

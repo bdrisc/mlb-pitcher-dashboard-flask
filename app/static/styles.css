@@ -785,7 +785,7 @@ summary,
 }
 
 .overview-featured {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr) minmax(0, 1fr);
   margin: 0;
 }
 
@@ -810,11 +810,19 @@ summary,
 .metric-card {
   position: relative;
   min-width: 0;
+  margin: 0;
   padding: 13px clamp(8px, 1.2vw, 16px) 12px;
   overflow: hidden;
   background: linear-gradient(180deg, #fff, #f2f8f9);
   border: 1px solid #dbe7e9;
   border-radius: 10px;
+}
+
+.overview-woba-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 48px), 1fr));
+  align-content: start;
+  gap: 8px 12px;
 }
 
 .metric-card::before {

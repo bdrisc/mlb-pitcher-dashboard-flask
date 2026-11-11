@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from sqlalchemy import delete, func, select
+from sqlalchemy import and_, case, delete, func, select
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
@@ -646,6 +646,13 @@ def _upsert(
             if column in preserve_existing_on_null
             else excluded_value
         )
+    if table is Pitch.__table__:
+        same_outcome = and_(
+            table.c.events.is_not_distinct_from(base_statement.excluded.events),
+            table.c.pitcher_id == base_statement.excluded.pitcher_id,
+        )
+        for column in ("savant_woba_numerator", "savant_woba_denominator"):
+            updates[column] = case((same_outcome, table.c[column]), else_=None)
     statement = base_statement.on_conflict_do_update(
         index_elements=[table.c[column] for column in key_columns],
         set_=updates,
@@ -740,7 +747,9 @@ def ingest_statcast_file(
                 pitch_rows,
                 key_columns=["pitch_id"],
                 update_columns=[
-                    column.name for column in Pitch.__table__.columns if not column.primary_key
+                    column.name
+                    for column in Pitch.__table__.columns
+                    if not column.primary_key and not column.name.startswith("savant_woba_")
                 ],
                 batch_size=batch_size,
                 preserve_existing_on_null={"launch_speed_angle", "barrel_checked"}
