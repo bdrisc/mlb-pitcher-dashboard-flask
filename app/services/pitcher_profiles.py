@@ -217,6 +217,7 @@ def _metric_columns() -> list[Any]:
         _count_where(xba_scored_ab).label("xba_scored_at_bats"),
         func.sum(Pitch.estimated_ba).filter(scored_batted_ball).label("xba_expected_hits"),
         _count_where(xslg_scored_ab).label("xslg_scored_at_bats"),
+        _count_where(scored_slg_ball).label("xslg_scored_contact"),
         func.sum(Pitch.estimated_slg).filter(scored_slg_ball).label("xslg_expected_bases"),
     ]
 
@@ -261,7 +262,9 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         )
     xslg_scored_at_bats = _integer(row, "xslg_scored_at_bats")
     xslg = None
-    if xslg_scored_at_bats:
+    if xslg_scored_at_bats and (
+        _integer(row, "xslg_scored_contact") or xslg_scored_at_bats == xba_at_bats
+    ):
         expected_bases = Decimal(str(round(float(row["xslg_expected_bases"] or 0), 9)))
         xslg = float(
             (expected_bases / xslg_scored_at_bats).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
