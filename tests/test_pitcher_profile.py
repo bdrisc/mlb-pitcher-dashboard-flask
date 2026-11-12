@@ -690,6 +690,8 @@ def test_xba_uses_savant_scored_at_bat_denominator(app, profile_client):
                     batter_side="R",
                     pitch_type="FF",
                     pitch_name="Four-Seam Fastball",
+                    balls=0,
+                    strikes=0,
                     description="hit_into_play" if event else "foul",
                     events=event,
                     estimated_ba=estimate,
