@@ -435,3 +435,15 @@ def test_xslg_from_new_statcast_export_is_saved_by_ingestion(app, tmp_path):
         report = ingest_statcast_file(source)
         assert report.inserted_rows == 3
         assert db.session.get(Pitch, "824566_9_1").estimated_slg == pytest.approx(1.125)
+
+
+def test_bundled_public_statcast_export_carries_savant_xslg_column():
+    import csv
+    import gzip
+
+    source = PROJECT_ROOT / "data" / "production_statcast_2026.csv.gz"
+    if not source.exists():
+        pytest.skip("Production Statcast export not bundled.")
+    with gzip.open(source, "rt", newline="", encoding="utf-8-sig") as stream:
+        header = next(csv.reader(stream))
+    assert "estimated_slg_using_speedangle" in header
