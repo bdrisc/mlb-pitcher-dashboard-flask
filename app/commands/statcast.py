@@ -482,6 +482,5 @@ def backfill_xslg_command(season, csv_path, batch_size):
         raise click.ClickException(str(error)) from error
     click.echo(f"xSLG backfill: {summary['updated_pitches']:,} existing pitches updated.")
     click.echo(
-        f"Sources: {summary['files']} with xSLG; "
-        f"{summary['files_without_xslg']} without column."
+        f"Sources: {summary['files']} with xSLG; {summary['files_without_xslg']} without column."
     )
