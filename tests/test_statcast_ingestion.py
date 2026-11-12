@@ -393,7 +393,8 @@ def test_xslg_import_and_backfill_change_only_existing_pitches(app, tmp_path):
     changed = pd.concat([changed, outside.to_frame().T], ignore_index=True)
     changed.to_csv(source, index=False)
 
-    result = runner.invoke(args=["statcast", "backfill-xslg", "--season", "2026", "--csv-path", str(source)])
+    backfill_args = ["statcast", "backfill-xslg", "--season", "2026", "--csv-path", str(source)]
+    result = runner.invoke(args=backfill_args)
     assert result.exit_code == 0, result.output
     assert "1 existing pitches updated" in result.output
     with app.app_context():
