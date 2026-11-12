@@ -266,9 +266,10 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         _integer(row, "xslg_scored_contact") or xslg_scored_at_bats == xba_at_bats
     ):
         expected_bases = Decimal(str(round(float(row["xslg_expected_bases"] or 0), 9)))
-        xslg = float(
-            (expected_bases / xslg_scored_at_bats).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
+        expected_rate = (expected_bases / xslg_scored_at_bats).quantize(
+            Decimal("0.001"), rounding=ROUND_HALF_UP
         )
+        xslg = float(expected_rate)
     return {
         "woba_against": woba,
         "xba": xba,
