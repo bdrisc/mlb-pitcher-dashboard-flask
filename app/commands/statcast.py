@@ -451,3 +451,36 @@ def backfill_woba_command(season, pitcher_id, workers):
     click.echo(result)
     if result["failed"]:
         raise click.ClickException("Some wOBA outcomes remain unverified; saved data retained.")
+
+
+@statcast_cli.command("backfill-xslg")
+@click.option("--season", type=click.IntRange(2015, 2100), default=2026, show_default=True)
+@click.option(
+    "--csv-path",
+    multiple=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="A Statcast CSV, CSV.GZ, or directory of cached chunks; repeat as needed.",
+)
+@click.option("--batch-size", default=2_000, show_default=True, type=click.IntRange(1, 20_000))
+@with_appcontext
+def backfill_xslg_command(season, csv_path, batch_size):
+    """Fill official expected total bases on existing pitches; do not ingest new players."""
+    from app.services.xslg_refresh import backfill_xslg
+
+    sources = list(csv_path)
+    if not sources:
+        for candidate in (
+            Path("data/cache/statcast") / str(season),
+            Path(f"data/production_statcast_{season}.csv.gz"),
+        ):
+            if candidate.exists():
+                sources.append(candidate)
+
+    try:
+        summary = backfill_xslg(sources, season=season, batch_size=batch_size, progress=click.echo)
+    except (ValueError, OSError) as error:
+        raise click.ClickException(str(error)) from error
+    click.echo(f"xSLG backfill: {summary['updated_pitches']:,} existing pitches updated.")
+    click.echo(
+        f"Sources: {summary['files']} with xSLG; {summary['files_without_xslg']} without column."
+    )

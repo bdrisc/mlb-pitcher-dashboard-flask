@@ -375,3 +375,74 @@ def test_trajectory_ingestion_calculates_angles_and_missing_csv_preserves_them(a
         row = db.session.get(Pitch, key)
         assert (row.vaa, row.haa) == pytest.approx(expected)
         assert row.vy0 == -140.0
+
+
+def test_xslg_import_and_backfill_change_only_existing_pitches(app, tmp_path):
+    original = statcast_rows()
+    source = write_statcast_csv(tmp_path, original)
+    runner = app.test_cli_runner()
+    ingested = runner.invoke(args=["statcast", "ingest", str(source)])
+    assert ingested.exit_code == 0, ingested.output
+
+    changed = original.copy()
+    changed["estimated_slg_using_speedangle"] = [None, None, 0.77]
+    outside = changed.iloc[2].copy()
+    outside["game_pk"] = 900002
+    outside["pitcher"] = 900003
+    outside["at_bat_number"] = 90
+    changed = pd.concat([changed, outside.to_frame().T], ignore_index=True)
+    changed.to_csv(source, index=False)
+
+    backfill_args = ["statcast", "backfill-xslg", "--season", "2026", "--csv-path", str(source)]
+    result = runner.invoke(args=backfill_args)
+    assert result.exit_code == 0, result.output
+    assert "1 existing pitches updated" in result.output
+    with app.app_context():
+        assert db.session.scalar(select(func.count()).select_from(Pitch)) == 3
+        assert db.session.get(Pitch, "824566_9_1").estimated_slg == pytest.approx(0.77)
+        assert db.session.get(Pitch, "900002_90_1") is None
+
+    again = runner.invoke(args=backfill_args)
+    assert again.exit_code == 0, again.output
+    assert "0 existing pitches updated" in again.output
+
+    legacy = write_statcast_csv(tmp_path, original)
+    ingested_again = runner.invoke(args=["statcast", "ingest", str(legacy)])
+    assert ingested_again.exit_code == 0, ingested_again.output
+    with app.app_context():
+        assert db.session.get(Pitch, "824566_9_1").estimated_slg == pytest.approx(0.77)
+
+
+def test_xslg_source_without_official_column_does_not_fabricate_values(app, tmp_path):
+    source = write_statcast_csv(tmp_path)
+    runner = app.test_cli_runner()
+    assert runner.invoke(args=["statcast", "ingest", str(source)]).exit_code == 0
+    missing = runner.invoke(
+        args=["statcast", "backfill-xslg", "--season", "2026", "--csv-path", str(source)]
+    )
+    assert missing.exit_code != 0
+    assert "No input file contains estimated_slg_using_speedangle" in missing.output
+    with app.app_context():
+        assert db.session.scalar(select(func.count(Pitch.estimated_slg))) == 0
+
+
+def test_xslg_from_new_statcast_export_is_saved_by_ingestion(app, tmp_path):
+    source_rows = statcast_rows()
+    source_rows["estimated_slg_using_speedangle"] = [None, None, 1.125]
+    source = write_statcast_csv(tmp_path, source_rows)
+    with app.app_context():
+        report = ingest_statcast_file(source)
+        assert report.inserted_rows == 3
+        assert db.session.get(Pitch, "824566_9_1").estimated_slg == pytest.approx(1.125)
+
+
+def test_bundled_public_statcast_export_carries_savant_xslg_column():
+    import csv
+    import gzip
+
+    source = PROJECT_ROOT / "data" / "production_statcast_2026.csv.gz"
+    if not source.exists():
+        pytest.skip("Production Statcast export not bundled.")
+    with gzip.open(source, "rt", newline="", encoding="utf-8-sig") as stream:
+        header = next(csv.reader(stream))
+    assert "estimated_slg_using_speedangle" in header

@@ -70,6 +70,7 @@ OPTIONAL_COLUMNS = [
     "launch_angle",
     "hit_distance_sc",
     "estimated_ba_using_speedangle",
+    "estimated_slg_using_speedangle",
     "estimated_woba_using_speedangle",
     "woba_value",
     "delta_run_exp",
@@ -125,6 +126,7 @@ FLOAT_COLUMNS = [
     "launch_angle",
     "hit_distance_sc",
     "estimated_ba_using_speedangle",
+    "estimated_slg_using_speedangle",
     "estimated_woba_using_speedangle",
     "woba_value",
     "delta_run_exp",
@@ -552,6 +554,7 @@ def _pitch_records(data: pd.DataFrame) -> list[dict[str, Any]]:
         "launch_angle": "launch_angle",
         "hit_distance": "hit_distance_sc",
         "estimated_ba": "estimated_ba_using_speedangle",
+        "estimated_slg": "estimated_slg_using_speedangle",
         "estimated_woba": "estimated_woba_using_speedangle",
         "woba_value": "woba_value",
         "delta_run_expectancy": "delta_run_exp",
@@ -752,7 +755,7 @@ def ingest_statcast_file(
                     if not column.primary_key and not column.name.startswith("savant_woba_")
                 ],
                 batch_size=batch_size,
-                preserve_existing_on_null={"launch_speed_angle", "barrel_checked"}
+                preserve_existing_on_null={"launch_speed_angle", "barrel_checked", "estimated_slg"}
                 | set(ANGLE_FIELDS)
                 | set(HAAAA_FIELDS)
                 | set(VAA_ADJ_FIELDS),

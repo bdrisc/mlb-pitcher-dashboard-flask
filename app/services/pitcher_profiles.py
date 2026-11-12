@@ -145,6 +145,14 @@ def _metric_columns() -> list[Any]:
         Pitch.estimated_ba.is_not(None),
     )
     xba_scored_ab = or_(strikeout_ab, scored_batted_ball)
+    # Savant expected total bases on tracked batted balls, with strikeouts
+    # counting as zero and missing-contact estimates omitted, as with xBA.
+    scored_slg_ball = and_(
+        official_ab,
+        event_name.notin_(("strikeout", "strikeout_double_play")),
+        Pitch.estimated_slg.is_not(None),
+    )
+    xslg_scored_ab = or_(strikeout_ab, scored_slg_ball)
     return [
         func.count(Pitch.pitch_id).label("pitch_count"),
         _count_where(strike).label("strikes"),
@@ -208,6 +216,9 @@ def _metric_columns() -> list[Any]:
         _count_where(official_ab).label("xba_at_bats"),
         _count_where(xba_scored_ab).label("xba_scored_at_bats"),
         func.sum(Pitch.estimated_ba).filter(scored_batted_ball).label("xba_expected_hits"),
+        _count_where(xslg_scored_ab).label("xslg_scored_at_bats"),
+        _count_where(scored_slg_ball).label("xslg_scored_contact"),
+        func.sum(Pitch.estimated_slg).filter(scored_slg_ball).label("xslg_expected_bases"),
     ]
 
 
@@ -249,9 +260,23 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         xba = float(
             (expected_hits / xba_scored_at_bats).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
         )
+    xslg_scored_at_bats = _integer(row, "xslg_scored_at_bats")
+    xslg = None
+    if xslg_scored_at_bats and (
+        _integer(row, "xslg_scored_contact") or xslg_scored_at_bats == xba_at_bats
+    ):
+        expected_bases = Decimal(str(round(float(row["xslg_expected_bases"] or 0), 9)))
+        expected_rate = (expected_bases / xslg_scored_at_bats).quantize(
+            Decimal("0.001"), rounding=ROUND_HALF_UP
+        )
+        xslg = float(expected_rate)
     return {
         "woba_against": woba,
         "xba": xba,
+        "xslg": xslg,
+        "xslg_at_bats": xba_at_bats,
+        "xslg_scored_at_bats": xslg_scored_at_bats,
+        "xslg_untracked_at_bats": xba_at_bats - xslg_scored_at_bats,
         "xba_at_bats": xba_at_bats,
         "xba_scored_at_bats": xba_scored_at_bats,
         "xba_untracked_at_bats": xba_at_bats - xba_scored_at_bats,

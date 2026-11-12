@@ -126,6 +126,7 @@ class Pitch(db.Model):
     launch_angle: Mapped[float | None]
     hit_distance: Mapped[float | None]
     estimated_ba: Mapped[float | None]
+    estimated_slg: Mapped[float | None]
     estimated_woba: Mapped[float | None]
     woba_value: Mapped[float | None]
     savant_woba_numerator: Mapped[float | None]
