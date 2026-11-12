@@ -104,9 +104,7 @@ def backfill_xslg(source_paths, *, season=None, batch_size=2000, progress=None):
                 value = float(raw_value)
                 if not isfinite(value) or not 0 <= value <= 4:
                     raise ValueError(f"{source.name}: invalid expected bases {raw_value!r}.")
-                identity = "_".join(
-                    (row["game_pk"], row["at_bat_number"], row["pitch_number"])
-                )
+                identity = "_".join((row["game_pk"], row["at_bat_number"], row["pitch_number"]))
                 batch.append(
                     {
                         "source_pitch_id": identity,
