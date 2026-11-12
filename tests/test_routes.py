@@ -29,6 +29,7 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b"K-BB%" in response.data
     assert b'data-metric="woba_against"' in response.data
     assert b"xwOBA" in response.data
+    assert b'data-metric="xslg"' in response.data
     assert b'class="overview-groups"' in response.data
     assert b"Whiff and Finishing" in response.data
     assert b"Contact Quality Allowed" in response.data
