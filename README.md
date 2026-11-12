@@ -887,3 +887,45 @@ outside the strike zone. It appears beside Z-Whiff% under Whiff and Finishing
 and in the arsenal's Results view. It uses the same classifications and active
 filters. Takes and pitches without known location do not count; zero qualifying
 swings display a dash. Hover for the whiff and swing counts.
+
+
+## Expected Slugging Against (xSLG)
+
+The Overall Results section displays **xSLG** beside xBA, xwOBA and wOBA.
+Savant's per-batted-ball `estimated_slg_using_speedangle` is expected total bases,
+using probabilities of singles, doubles, triples and home runs (1/2/3/4 bases).
+We divide the sum of those values by tracked batted-ball at-bats **plus strikeouts**
+(which count as zero). Walks, hit-by-pitches, sacrifices, catcher interference and
+truncated at-bats do not enter the denominator. Missing contact estimates are
+excluded rather than counted as zero; the xSLG tooltip discloses coverage.
+The calculation uses the exact same pitcher, season, date, count, venue, pitch-type
+and handedness filters as the other database-backed metrics. We do **not**
+estimate xSLG from xBA, xwOBA or actual slugging.
+
+New Statcast CSV ingestions save `estimated_slg_using_speedangle` automatically.
+Existing databases need a one-time, additive migration and a source-file backfill
+because this column was not previously stored.
+
+**For the native local full-league dashboard (not Docker):**
+
+```powershell
+git pull origin main
+.\.venv\Scripts\Activate.ps1
+python -m flask --app wsgi db upgrade
+python -m flask --app wsgi statcast backfill-xslg --season 2026
+python -m flask --app wsgi run --debug --port 8080
+```
+
+The backfill reads `data/cache/statcast/2026/` (your existing local season
+downloads) and `data/production_statcast_2026.csv.gz` if present. To target
+another source, add `--csv-path "C:\path\to\statcast.csv.gz"`. **It updates
+only `estimated_slg` on existing matching pitches.** It never replaces the
+local PostgreSQL database or adds/removes pitchers. If a cached export predates
+the xSLG field, obtain a newer Statcast export; the backfill reports missing
+columns rather than fabricating values.
+
+The Render public dashboard migrates automatically and backfills in the
+background from the bundled compressed Statcast sample when available.
+If that older file lacks the xSLG column, values will remain unavailable
+until the source is refreshed. Existing pitcher pools remain unchanged.
+Set `SYNC_XSLG_ON_STARTUP=0` to disable the public startup backfill.
