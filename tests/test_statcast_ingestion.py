@@ -378,8 +378,6 @@ def test_trajectory_ingestion_calculates_angles_and_missing_csv_preserves_them(a
 
 
 def test_xslg_import_and_backfill_change_only_existing_pitches(app, tmp_path):
-    import csv
-
     original = statcast_rows()
     source = write_statcast_csv(tmp_path, original)
     runner = app.test_cli_runner()
