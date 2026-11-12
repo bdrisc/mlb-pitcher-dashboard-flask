@@ -104,7 +104,7 @@ if (root) {
       const formatted = formatNumber(value);
       return value > 0 ? `+${formatted}` : formatted;
     }
-    if (["woba_against", "xwoba_on_contact", "xwoba_against"].includes(key)) return Number(value).toFixed(3).replace(/^0/, "");
+    if (["woba_against", "xwoba_on_contact", "xwoba_against", "xba"].includes(key)) return Number(value).toFixed(3).replace(/^0/, "");
     return formatNumber(value);
   }
 
@@ -295,12 +295,19 @@ if (root) {
       element.textContent = formatMetric(key, overall[key]);
       if (key === "woba_against") element.title = wobaTitle(overall);
       if (key === "xwoba_against") element.title = "Expected wOBA allowed, including strikeouts, unintentional walks and hit-by-pitches; lower is better. Recalculates with the active filters.";
+      if (key === "xba") element.title = xbaTitle(overall);
       if (key === "run_value_per_100") element.title = runValueTitle(overall);
       if (key === "putaway_pct") element.title = putawayTitle(overall);
       if (key === "barrel_pct") element.title = barrelTitle(overall);
       if (key === "zone_whiff_pct") element.title = zoneWhiffTitle(overall);
       if (key === "out_of_zone_whiff_pct") element.title = zoneWhiffTitle(overall, "out_of_zone");
     });
+  }
+
+  function xbaTitle(metrics) {
+    const scored = metrics.xba_scored_at_bats || 0;
+    const untracked = metrics.xba_untracked_at_bats || 0;
+    return `Expected batting average allowed: sum of Statcast hit probabilities on tracked batted balls divided by ${scored.toLocaleString("en-US")} scored at-bats (tracked batted balls plus strikeouts). Strikeouts count as zero. Walks, hit-by-pitches and sacrifices do not count as at-bats. ${untracked.toLocaleString("en-US")} untracked at-bats are omitted instead of treated as zeros. Lower is better; recalculates with active filters.`;
   }
 
   function wobaTitle(metrics) {
