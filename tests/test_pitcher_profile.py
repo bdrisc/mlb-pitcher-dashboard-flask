@@ -659,3 +659,83 @@ def test_swstr_display_keeps_fangraphs_metrics_last(profile_client):
     assert html.index('data-metric="swstr_pct"') < html.index('data-metric="stuff_plus"')
     assert html.index('data-metric="stuff_plus"') < html.index('data-metric="location_plus"')
     assert html.index('data-metric="location_plus"') < html.index('data-metric="pitching_plus"')
+
+
+def test_xba_uses_savant_scored_at_bat_denominator(app, profile_client):
+    with app.app_context():
+        db.session.get(Pitch, "1002_2_1").estimated_ba = 0.8
+        cases = [
+            ("field_out", 0.2),
+            ("force_out", None),
+            ("walk", 0.99),
+            ("intent_walk", 0.99),
+            ("hit_by_pitch", 0.99),
+            ("sac_fly", 0.99),
+            ("sac_fly_double_play", 0.99),
+            ("sac_bunt", 0.99),
+            ("sac_bunt_double_play", 0.99),
+            ("catcher_interf", 0.99),
+            ("truncated_pa", 0.99),
+            (None, 0.99),
+        ]
+        for i, (event, estimate) in enumerate(cases, start=10):
+            db.session.add(
+                _pitch(
+                    pitch_id=f"1001_{i}_1",
+                    game_pk=1001,
+                    batter_id=200,
+                    at_bat_number=i,
+                    pitch_number=1,
+                    inning_half="Top",
+                    batter_side="R",
+                    pitch_type="FF",
+                    pitch_name="Four-Seam Fastball",
+                    balls=0,
+                    strikes=0,
+                    description="hit_into_play" if event else "foul",
+                    events=event,
+                    estimated_ba=estimate,
+                )
+            )
+        db.session.commit()
+
+    url = f"/api/v1/pitchers/{PITCHER_ID}/profile"
+    data = profile_client.get(url).json
+    assert data["overall"]["xba"] == 0.333
+    assert data["overall"]["xba_at_bats"] == 4
+    assert data["overall"]["xba_scored_at_bats"] == 3
+    assert data["overall"]["xba_untracked_at_bats"] == 1
+    arsenal = {row["pitch_type"]: row for row in data["arsenal"]}
+    assert arsenal["FF"]["xba"] == 0.1
+    assert arsenal["SL"]["xba"] == 0.8
+    splits = {row["batter_side"]: row for row in data["platoon_splits"]}
+    assert splits["R"]["xba"] == 0.1
+    assert splits["L"]["xba"] == 0.8
+    assert profile_client.get(url + "?pitch_type=SL").json["overall"]["xba"] == 0.8
+    assert profile_client.get(url + "?batter_side=R").json["overall"]["xba"] == 0.1
+
+
+def test_xba_strikeouts_zero_and_untracked_at_bats_not_zero(app, profile_client):
+    url = f"/api/v1/pitchers/{PITCHER_ID}/profile?pitch_type=FF"
+    assert profile_client.get(url).json["overall"]["xba"] == 0.0
+    with app.app_context():
+        db.session.get(Pitch, "1001_1_2").events = "field_out"
+        db.session.commit()
+    missing = profile_client.get(url).json["overall"]
+    assert missing["xba"] is None
+    assert missing["xba_at_bats"] == 1
+    assert missing["xba_scored_at_bats"] == 0
+    with app.app_context():
+        record = db.session.get(Pitch, "1001_1_2")
+        record.events = "strikeout_double_play"
+        record.estimated_ba = 0.75
+        db.session.commit()
+    restored = profile_client.get(url).json["overall"]
+    assert restored["xba"] == 0.0
+    assert restored["xba_scored_at_bats"] == 1
+
+
+def test_xba_visible_in_overall_results(profile_client):
+    html = profile_client.get("/savant-card").get_data(as_text=True)
+    assert 'data-metric="xba"' in html
+    assert html.index('data-metric="xwoba_against"') < html.index('data-metric="xba"')

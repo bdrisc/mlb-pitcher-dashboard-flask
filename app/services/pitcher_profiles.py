@@ -117,6 +117,34 @@ def _metric_columns() -> list[Any]:
         ),
         Pitch.estimated_woba.is_not(None),
     )
+    # Savant xBA: expected hits on tracked batted balls / (tracked AB + strikeouts).
+    # Batted balls without a Statcast xBA estimate do not count as zero-hit balls.
+    official_ab = and_(
+        event_recorded,
+        event_name.notin_(
+            (
+                *NON_PA_EVENTS,
+                "walk",
+                "intent_walk",
+                "hit_by_pitch",
+                "sac_fly",
+                "sac_fly_double_play",
+                "sac_bunt",
+                "sac_bunt_double_play",
+                "catcher_interf",
+            )
+        ),
+    )
+    strikeout_ab = and_(
+        official_ab,
+        event_name.in_(("strikeout", "strikeout_double_play")),
+    )
+    scored_batted_ball = and_(
+        official_ab,
+        event_name.notin_(("strikeout", "strikeout_double_play")),
+        Pitch.estimated_ba.is_not(None),
+    )
+    xba_scored_ab = or_(strikeout_ab, scored_batted_ball)
     return [
         func.count(Pitch.pitch_id).label("pitch_count"),
         _count_where(strike).label("strikes"),
@@ -177,6 +205,9 @@ def _metric_columns() -> list[Any]:
         func.sum(Pitch.savant_woba_denominator).filter(actual_pa).label("woba_denominator"),
         func.avg(Pitch.estimated_woba).filter(expected_pa).label("xwoba_against"),
         func.avg(Pitch.estimated_woba).filter(expected_contact).label("xwoba_on_contact"),
+        _count_where(official_ab).label("xba_at_bats"),
+        _count_where(xba_scored_ab).label("xba_scored_at_bats"),
+        func.sum(Pitch.estimated_ba).filter(scored_batted_ball).label("xba_expected_hits"),
     ]
 
 
@@ -210,8 +241,20 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
     if woba_denom and not woba_pending:
         total = Decimal(str(round(row["woba_numerator"], 9)))
         woba = float((total / woba_denom).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP))
+    xba_at_bats = _integer(row, "xba_at_bats")
+    xba_scored_at_bats = _integer(row, "xba_scored_at_bats")
+    xba = None
+    if xba_scored_at_bats:
+        expected_hits = Decimal(str(round(float(row["xba_expected_hits"] or 0), 9)))
+        xba = float(
+            (expected_hits / xba_scored_at_bats).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
+        )
     return {
         "woba_against": woba,
+        "xba": xba,
+        "xba_at_bats": xba_at_bats,
+        "xba_scored_at_bats": xba_scored_at_bats,
+        "xba_untracked_at_bats": xba_at_bats - xba_scored_at_bats,
         "woba_denominator": woba_denom,
         "woba_pending_outcomes": woba_pending,
         "run_value_per_100": (
