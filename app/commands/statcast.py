@@ -477,9 +477,7 @@ def backfill_xslg_command(season, csv_path, batch_size):
                 sources.append(candidate)
 
     try:
-        summary = backfill_xslg(
-            sources, season=season, batch_size=batch_size, progress=click.echo
-        )
+        summary = backfill_xslg(sources, season=season, batch_size=batch_size, progress=click.echo)
     except (ValueError, OSError) as error:
         raise click.ClickException(str(error)) from error
     click.echo(f"xSLG backfill: {summary['updated_pitches']:,} existing pitches updated.")
