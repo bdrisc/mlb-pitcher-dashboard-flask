@@ -27,6 +27,16 @@ echo "Starting web server on port ${PORT:-10000}."
         fi
     fi
 
+    if [ "$maintenance_ok" = "1" ] && [ "${SYNC_XSLG_ON_STARTUP:-1}" = "1" ]; then
+        slg_source="${STATCAST_SEED_PATH:-data/production_statcast_2026.csv.gz}"
+        if [ -f "$slg_source" ]; then
+            echo "Backfilling xSLG from the existing deployable Statcast sample."
+            if ! flask --app wsgi statcast backfill-xslg --season 2026 --csv-path "$slg_source"; then
+                echo "xSLG could not be backfilled from the bundled sample; existing data retained." >&2
+            fi
+        fi
+    fi
+
     if [ "$maintenance_ok" = "1" ] && [ "${SYNC_WOBA_ON_STARTUP:-1}" = "1" ]; then
         if ! flask --app wsgi statcast backfill-woba; then
             echo "Some Savant wOBA outcomes remain unverified; saved data retained." >&2
