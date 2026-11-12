@@ -739,3 +739,73 @@ def test_xba_visible_in_overall_results(profile_client):
     html = profile_client.get("/savant-card").get_data(as_text=True)
     assert 'data-metric="xba"' in html
     assert html.index('data-metric="xwoba_against"') < html.index('data-metric="xba"')
+
+
+def test_xslg_matches_savant_expected_total_bases_per_scored_at_bat(app, profile_client):
+    with app.app_context():
+        db.session.get(Pitch, "1002_2_1").estimated_slg = 1.2
+        db.session.get(Pitch, "1001_1_2").estimated_slg = 3.5
+        for index, (event, estimate) in enumerate(
+            [
+                ("field_out", 0.4),
+                ("force_out", None),
+                ("walk", 4.0),
+                ("hit_by_pitch", 4.0),
+                ("sac_fly", 4.0),
+                ("intent_walk", 4.0),
+                (None, 2.0),
+            ],
+            start=10,
+        ):
+            db.session.add(
+                _pitch(
+                    pitch_id=f"1001_{index}_1",
+                    game_pk=1001,
+                    batter_id=200,
+                    at_bat_number=index,
+                    pitch_number=1,
+                    inning_half="Top",
+                    batter_side="R",
+                    pitch_type="FF",
+                    pitch_name="Four-Seam Fastball",
+                    balls=0,
+                    strikes=0,
+                    description="hit_into_play",
+                    events=event,
+                    estimated_slg=estimate,
+                )
+            )
+        db.session.commit()
+    url = f"/api/v1/pitchers/{PITCHER_ID}/profile"
+    all_pitches = profile_client.get(url).json
+    assert all_pitches["overall"]["xslg"] == 0.533
+    assert all_pitches["overall"]["xslg_at_bats"] == 4
+    assert all_pitches["overall"]["xslg_scored_at_bats"] == 3
+    assert all_pitches["overall"]["xslg_untracked_at_bats"] == 1
+    pitches = {pitch["pitch_type"]: pitch for pitch in all_pitches["arsenal"]}
+    assert pitches["FF"]["xslg"] == 0.2
+    assert pitches["SL"]["xslg"] == 1.2
+    sides = {side["batter_side"]: side for side in all_pitches["platoon_splits"]}
+    assert sides["R"]["xslg"] == 0.2
+    assert sides["L"]["xslg"] == 1.2
+    assert profile_client.get(url + "?pitch_type=SL").json["overall"]["xslg"] == 1.2
+    assert profile_client.get(url + "?batter_side=R").json["overall"]["xslg"] == 0.2
+
+
+def test_xslg_returns_missing_until_contact_is_scored_but_allows_k_only(app, profile_client):
+    url = f"/api/v1/pitchers/{PITCHER_ID}/profile"
+    untracked = profile_client.get(url).json["overall"]
+    assert untracked["xslg"] is None
+    strikeouts_only = profile_client.get(url + "?pitch_type=FF").json["overall"]
+    assert strikeouts_only["xslg"] == 0.0
+    with app.app_context():
+        db.session.get(Pitch, "1002_2_1").estimated_slg = 0.9
+        db.session.commit()
+    scored = profile_client.get(url).json["overall"]
+    assert scored["xslg"] == 0.45
+
+
+def test_xslg_display_appears_with_xba(profile_client):
+    html = profile_client.get("/savant-card").get_data(as_text=True)
+    assert 'data-metric="xslg"' in html
+    assert html.index('data-metric="xba"') < html.index('data-metric="xslg"')
