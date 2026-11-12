@@ -402,7 +402,7 @@ def test_xslg_import_and_backfill_change_only_existing_pitches(app, tmp_path):
         assert db.session.get(Pitch, "824566_9_1").estimated_slg == pytest.approx(0.77)
         assert db.session.get(Pitch, "900002_90_1") is None
 
-    again = runner.invoke(args=["statcast", "backfill-xslg", "--season", "2026", "--csv-path", str(source)])
+    again = runner.invoke(args=backfill_args)
     assert again.exit_code == 0, again.output
     assert "0 existing pitches updated" in again.output
 
