@@ -453,7 +453,6 @@ def backfill_woba_command(season, pitcher_id, workers):
         raise click.ClickException("Some wOBA outcomes remain unverified; saved data retained.")
 
 
-
 @statcast_cli.command("backfill-xslg")
 @click.option("--season", type=click.IntRange(2015, 2100), default=2026, show_default=True)
 @click.option(
