@@ -878,9 +878,9 @@ def test_published_season_rates_replace_computed_metrics(app, profile_client):
     arsenal = result["arsenal"]
     assert all("fip" not in row and "xera" not in row for row in arsenal)
 
-    assert profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile").json[
-        "overall"
-    ]["fip"] is None
+    assert (
+        profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile").json["overall"]["fip"] is None
+    )
     assert profile_client.get(url.replace("2026", "2025")).status_code == 404
 
 
