@@ -811,7 +811,6 @@ def test_xslg_display_appears_with_xba(profile_client):
     assert html.index('data-metric="xba"') < html.index('data-metric="xslg"')
 
 
-
 def test_run_prevention_metrics_recalculate_for_handedness_and_pitch_type(profile_client):
     base = f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026"
     overall = profile_client.get(base).json["overall"]
