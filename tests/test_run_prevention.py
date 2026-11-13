@@ -49,9 +49,14 @@ def test_siera_published_mlb_bp_equation_and_missing_classifications():
     bb_rate = 8 / 90
     net = (22 - 28) / 90
     published = (
-        6.145 - 16.986 * k_rate + 11.434 * bb_rate - 1.858 * net
-        + 7.653 * k_rate**2 - 6.664 * net * abs(net)
-        + 10.130 * k_rate * net - 5.195 * bb_rate * net
+        6.145
+        - 16.986 * k_rate
+        + 11.434 * bb_rate
+        - 1.858 * net
+        + 7.653 * k_rate**2
+        - 6.664 * net * abs(net)
+        + 10.130 * k_rate * net
+        - 5.195 * bb_rate * net
     )
     assert values["siera"] == pytest.approx(round(published, 2))
     assert calculate_run_prevention(sample(classified_batted_balls=59), 2026, 0.3)[
