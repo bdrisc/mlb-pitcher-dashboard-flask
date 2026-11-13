@@ -954,7 +954,7 @@ audit: `1025 / 8118`, including popups in the fly ball pool. It is
 explicitly **not** a verified full-league FanGraphs HR/FB denominator, so
 xFIP is marked approximate and cannot be represented as FanGraphs-exact.
 A future independently sourced league rate can replace the constant.
-The rate is suppressed when batted-ball types are incomplete.
+The rate is suppressed when less than 98% of batted-ball types are classified.
 
 **SIERA**: the original published MLB/Baseball Prospectus 2010 equation
 with `K/PA`, `BB/PA`, and `(GB-FB-PU)/PA`, using Statcast batted-ball types.
