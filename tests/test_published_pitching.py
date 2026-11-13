@@ -68,9 +68,7 @@ def test_savant_reimport_preserves_fangraphs_and_fangraphs_preserves_savant(app)
         import_fangraphs_published(fg_frame(fip=3.66), 2026)
         import_savant_xera(savant_frame(xera=3.02), 2026)
         record = db.session.get(PublishedPitchingMetric, (100, 2026, "ALL"))
-        assert (record.fip, record.xfip, record.siera, record.xera) == (
-            3.66, 3.15, 3.21, 3.02
-        )
+        assert (record.fip, record.xfip, record.siera, record.xera) == (3.66, 3.15, 3.21, 3.02)
 
 
 def test_upstream_invalid_or_duplicate_data_does_not_replace_previous_stats(app):
@@ -126,9 +124,7 @@ def test_fangraphs_acquisition_requires_complete_schema_and_correct_season():
     with pytest.raises(ValueError):
         normalize_fangraphs({**payload, "data": [{**payload["data"][0], "Season": 2025}]}, 2026)
     with pytest.raises(ValueError):
-        normalize_fangraphs(
-            {**payload, "data": [{**payload["data"][0], "SIERA": None}][0:0]}, 2026
-        )
+        normalize_fangraphs({**payload, "data": []}, 2026)
 
 
 def test_fangraphs_split_download_passes_batter_hand_and_checks_response(monkeypatch):
@@ -161,10 +157,7 @@ def test_fangraphs_split_download_passes_batter_hand_and_checks_response(monkeyp
 
 def test_split_detector_rejects_falsely_labeled_full_season_totals():
     full = pd.DataFrame(
-        [
-            {"mlb_id": i, "FIP": 3.5, "xFIP": 3.6, "SIERA": 3.7}
-            for i in range(100, 114)
-        ]
+        [{"mlb_id": i, "FIP": 3.5, "xFIP": 3.6, "SIERA": 3.7} for i in range(100, 114)]
     )
     with pytest.raises(ValueError, match="ignore handedness"):
         validate_handedness_split(full, full)
@@ -189,12 +182,18 @@ def test_manual_source_import_commands_preserve_player_pool(app, tmp_path):
     fg_frame().to_csv(fg_csv, index=False)
     savant_frame().to_csv(savant_csv, index=False)
     runner = app.test_cli_runner()
-    assert runner.invoke(
-        args=["published", "import-fangraphs", str(fg_csv), "--season", "2026"]
-    ).exit_code == 0
-    assert runner.invoke(
-        args=["published", "import-savant", str(savant_csv), "--season", "2026"]
-    ).exit_code == 0
+    assert (
+        runner.invoke(
+            args=["published", "import-fangraphs", str(fg_csv), "--season", "2026"]
+        ).exit_code
+        == 0
+    )
+    assert (
+        runner.invoke(
+            args=["published", "import-savant", str(savant_csv), "--season", "2026"]
+        ).exit_code
+        == 0
+    )
     with app.app_context():
         assert db.session.scalar(select(func.count()).select_from(Player)) == 0
         assert published_references(100, 2026)["ALL"]["xera"] == 2.88
