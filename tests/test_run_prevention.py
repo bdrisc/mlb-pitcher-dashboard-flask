@@ -59,7 +59,7 @@ def test_siera_published_mlb_bp_equation_and_missing_classifications():
         - 5.195 * bb_rate * net
     )
     assert values["siera"] == pytest.approx(round(published, 2))
-    assert calculate_run_prevention(sample(classified_batted_balls=59), 2026, 0.3)["siera"] is None
+    assert calculate_run_prevention(sample(classified_batted_balls=58), 2026, 0.3)["siera"] is None
 
 
 def test_xera_is_season_baseline_conversion_not_false_savant_claim():
@@ -78,6 +78,6 @@ def test_non_reference_season_returns_missing_not_fabricated_constants():
 
 
 def test_missing_fly_classification_suppresses_xfip():
-    values = calculate_run_prevention(sample(classified_batted_balls=59), 2026, 0.3)
+    values = calculate_run_prevention(sample(classified_batted_balls=58), 2026, 0.3)
     assert values["fip"] is not None
     assert values["xfip"] is None
