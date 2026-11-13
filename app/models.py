@@ -181,3 +181,20 @@ class FanGraphsStuff(db.Model):
     location_plus: Mapped[float | None]
     pitching_plus: Mapped[float | None]
     updated_at: Mapped[datetime] = mapped_column(db.DateTime(timezone=True), nullable=False)
+
+
+class PublishedPitchingMetric(db.Model):
+    """Published pitcher-season rates, keyed by MLB ID and official split."""
+
+    __tablename__ = "published_pitching_metrics"
+
+    mlb_id: Mapped[int] = mapped_column(primary_key=True)
+    season: Mapped[int] = mapped_column(db.SmallInteger, primary_key=True)
+    batter_side: Mapped[str] = mapped_column(db.String(3), primary_key=True)
+    fangraphs_id: Mapped[str | None] = mapped_column(db.String(20))
+    fip: Mapped[float | None]
+    xfip: Mapped[float | None]
+    siera: Mapped[float | None]
+    xera: Mapped[float | None]
+    fangraphs_updated_at: Mapped[datetime | None] = mapped_column(db.DateTime(timezone=True))
+    savant_updated_at: Mapped[datetime | None] = mapped_column(db.DateTime(timezone=True))

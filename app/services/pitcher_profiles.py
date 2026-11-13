@@ -5,7 +5,7 @@ from __future__ import annotations
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
-from sqlalchemy import and_, case, func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.engine import RowMapping
 
 from app.extensions import db
@@ -16,7 +16,7 @@ from app.services.filters import PitchFilters
 from app.services.pitch_data import PITCH_NAME_MAP
 from app.services.pitch_separation import build_pitch_separation
 from app.services.pitch_tunneling import add_tunneling_to_separation, build_pitch_tunneling
-from app.services.run_prevention import calculate_run_prevention
+from app.services.published_pitching import published_references
 from app.services.woba_refresh import NON_PA_EVENTS
 
 
@@ -154,45 +154,6 @@ def _metric_columns() -> list[Any]:
         Pitch.estimated_slg.is_not(None),
     )
     xslg_scored_ab = or_(strikeout_ab, scored_slg_ball)
-    batted_event = and_(bbe, event_recorded)
-    batted_kind = func.lower(Pitch.batted_ball_type)
-    flies = and_(batted_event, batted_kind.in_(("fly_ball", "popup")))
-    # Event-level outs are assignable to the opposing batter for handedness splits.
-    # These do not include steals/pickoffs between plate appearances, so they can
-    # differ from the exact scored innings pitched in the full-season box score.
-    out_count = case(
-        (event_name == "triple_play", 3),
-        (
-            event_name.in_(
-                (
-                    "grounded_into_double_play",
-                    "double_play",
-                    "strikeout_double_play",
-                    "sac_fly_double_play",
-                    "sac_bunt_double_play",
-                )
-            ),
-            2,
-        ),
-        (
-            event_name.in_(
-                (
-                    "field_out",
-                    "force_out",
-                    "fielders_choice_out",
-                    "other_out",
-                    "sac_fly",
-                    "sac_bunt",
-                    "strikeout",
-                    "caught_stealing_2b",
-                    "caught_stealing_3b",
-                    "caught_stealing_home",
-                )
-            ),
-            1,
-        ),
-        else_=0,
-    )
     return [
         func.count(Pitch.pitch_id).label("pitch_count"),
         _count_where(strike).label("strikes"),
@@ -259,20 +220,6 @@ def _metric_columns() -> list[Any]:
         _count_where(xslg_scored_ab).label("xslg_scored_at_bats"),
         _count_where(scored_slg_ball).label("xslg_scored_contact"),
         func.sum(Pitch.estimated_slg).filter(scored_slg_ball).label("xslg_expected_bases"),
-        _count_where(actual_pa, event_name != "catcher_interf").label("rp_pa"),
-        _count_where(event_name.in_(("strikeout", "strikeout_double_play"))).label("rp_k"),
-        _count_where(event_name.in_(("walk", "intent_walk"))).label("rp_bb"),
-        _count_where(event_name == "hit_by_pitch").label("rp_hbp"),
-        _count_where(event_name == "home_run").label("rp_hr"),
-        _count_where(flies).label("rp_fb"),
-        _count_where(batted_event, batted_kind == "ground_ball").label("rp_gb"),
-        _count_where(batted_event, batted_kind == "popup").label("rp_pu"),
-        _count_where(batted_event).label("rp_bbe"),
-        _count_where(
-            batted_event,
-            batted_kind.in_(("fly_ball", "ground_ball", "popup", "line_drive")),
-        ).label("rp_classified"),
-        func.sum(out_count).label("rp_outs"),
     ]
 
 
@@ -288,7 +235,7 @@ def _rate(numerator: int, denominator: int) -> float | None:
     return None if denominator == 0 else round(100 * numerator / denominator, 1)
 
 
-def _performance_metrics(row: RowMapping, season: int | None = None) -> dict[str, Any]:
+def _performance_metrics(row: RowMapping) -> dict[str, Any]:
     pitches = _integer(row, "pitch_count")
     swings = _integer(row, "swings")
     location_tracked = _integer(row, "location_tracked")
@@ -324,25 +271,7 @@ def _performance_metrics(row: RowMapping, season: int | None = None) -> dict[str
             Decimal("0.001"), rounding=ROUND_HALF_UP
         )
         xslg = float(expected_rate)
-    run_prevention = calculate_run_prevention(
-        {
-            "outs": _integer(row, "rp_outs"),
-            "pa": _integer(row, "rp_pa"),
-            "strikeouts": _integer(row, "rp_k"),
-            "walks": _integer(row, "rp_bb"),
-            "hbp": _integer(row, "rp_hbp"),
-            "homers": _integer(row, "rp_hr"),
-            "fly_balls": _integer(row, "rp_fb"),
-            "ground_balls": _integer(row, "rp_gb"),
-            "popups": _integer(row, "rp_pu"),
-            "contact_events": _integer(row, "rp_bbe"),
-            "classified_batted_balls": _integer(row, "rp_classified"),
-        },
-        season,
-        None if row["xwoba_against"] is None else float(row["xwoba_against"]),
-    )
     return {
-        **run_prevention,
         "woba_against": woba,
         "xba": xba,
         "xslg": xslg,
@@ -445,9 +374,7 @@ def _sample(row: RowMapping) -> dict[str, Any]:
     }
 
 
-def _arsenal_rows(
-    conditions: list[Any], total_pitches: int, season: int | None = None
-) -> list[dict[str, Any]]:
+def _arsenal_rows(conditions: list[Any], total_pitches: int) -> list[dict[str, Any]]:
     statement = (
         select(Pitch.pitch_type, Pitch.pitch_name, *_metric_columns())
         .select_from(Pitch)
@@ -466,13 +393,13 @@ def _arsenal_rows(
                 or PITCH_NAME_MAP.get(row["pitch_type"], row["pitch_type"]),
                 "pitch_count": pitch_count,
                 "usage_pct": _rate(pitch_count, total_pitches),
-                **_performance_metrics(row, season),
+                **_performance_metrics(row),
             }
         )
     return arsenal
 
 
-def _platoon_rows(conditions: list[Any], season: int | None = None) -> list[dict[str, Any]]:
+def _platoon_rows(conditions: list[Any]) -> list[dict[str, Any]]:
     statement = (
         select(Pitch.batter_side, *_metric_columns())
         .select_from(Pitch)
@@ -488,7 +415,7 @@ def _platoon_rows(conditions: list[Any], season: int | None = None) -> list[dict
                 "label": "vs RHH" if row["batter_side"] == "R" else "vs LHH",
                 "pitch_count": _integer(row, "pitch_count"),
                 "plate_appearances": _integer(row, "plate_appearances"),
-                **_performance_metrics(row, season),
+                **_performance_metrics(row),
             }
         )
     return sorted(rows, key=lambda row: (row["batter_side"] != "R", row["batter_side"]))
@@ -586,7 +513,7 @@ def build_pitcher_profile(pitcher_id: int, filters: PitchFilters) -> dict[str, A
     )
 
     stuff = profile_grades(pitcher_id, filters.season)
-    arsenal = _arsenal_rows(conditions, total_pitches, filters.season)
+    arsenal = _arsenal_rows(conditions, total_pitches)
     # FanGraphs' slider category can combine Statcast sliders and sweepers.
     has_sweeper = (
         db.session.scalar(
@@ -614,6 +541,12 @@ def build_pitcher_profile(pitcher_id: int, filters: PitchFilters) -> dict[str, A
             " Slider/sweeper grades are withheld where categories cannot be separated."
         )
 
+    published = published_references(pitcher_id, filters.season)
+    active_side = filters.batter_sides[0] if len(filters.batter_sides) == 1 else "ALL"
+    split_rows = _platoon_rows(conditions)
+    for split in split_rows:
+        split.update(published[split["batter_side"]])
+
     tunneling = build_pitch_tunneling(pitcher_id, filters)
     separation = add_tunneling_to_separation(build_pitch_separation(conditions), tunneling)
 
@@ -628,7 +561,8 @@ def build_pitcher_profile(pitcher_id: int, filters: PitchFilters) -> dict[str, A
         "query": filters.to_dict(),
         "sample": _sample(overview),
         "overall": {
-            **_performance_metrics(overview, filters.season),
+            **_performance_metrics(overview),
+            **published[active_side],
             "stuff_plus": stuff["overall"],
             "location_plus": stuff["location_plus"],
             "pitching_plus": stuff["pitching_plus"],
@@ -636,5 +570,5 @@ def build_pitcher_profile(pitcher_id: int, filters: PitchFilters) -> dict[str, A
         "arsenal": arsenal,
         "pitch_separation": separation,
         "pitch_tunneling": tunneling,
-        "platoon_splits": _platoon_rows(conditions, filters.season),
+        "platoon_splits": split_rows,
     }

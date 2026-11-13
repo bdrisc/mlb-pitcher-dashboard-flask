@@ -294,7 +294,7 @@ if (root) {
     document.querySelectorAll("[data-metric]").forEach((element) => {
       const key = element.dataset.metric;
       element.textContent = formatMetric(key, overall[key]);
-      if (["fip", "xfip", "siera", "xera"].includes(key)) element.title = runPreventionTitle(key, overall);
+      if (["fip", "xfip", "siera", "xera"].includes(key)) element.title = publishedTitle(key, overall);
       if (key === "woba_against") element.title = wobaTitle(overall);
       if (key === "xwoba_against") element.title = "Expected wOBA allowed, including strikeouts, unintentional walks and hit-by-pitches; lower is better. Recalculates with the active filters.";
       if (key === "xba") element.title = xbaTitle(overall);
@@ -307,15 +307,17 @@ if (root) {
     });
   }
 
-  function runPreventionTitle(key, metrics) {
-    const pa = metrics.rp_pa || 0;
-    const outs = metrics.rp_outs || 0;
-    const components = `Selected sample: ${pa} completed PA, ${outs} event-attributed outs (${(outs / 3).toFixed(1)} IP proxy), ${metrics.rp_k || 0} K, ${metrics.rp_bb || 0} BB, ${metrics.rp_hbp || 0} HBP, ${metrics.rp_hr || 0} HR.`;
-    const caveat = "Stats reflect plate appearances completed by the selected pitch type/count, not conventional full-season splits. Pitch-based outs may omit separate baserunning outs.";
-    if (key === "fip") return `FIP = (13 HR + 3 (BB + HBP) − 2 K) / IP + 2026 FanGraphs FIP constant ${metrics.rp_fip_constant}. ${components} ${caveat}`;
-    if (key === "xfip") return `xFIP uses expected HR = fly balls (including popups) × 2026 HR/FB ${((metrics.rp_league_hr_fb || 0) * 100).toFixed(2)}%. Source: ${metrics.rp_hr_fb_source}. Classified BBE: ${metrics.rp_classified_bbe || 0}/${metrics.rp_bbe || 0}. This is an MLB-wide rate derived from Baseball Savant's rounded 2026 batted-ball percentages, not FanGraphs' unrounded rate. ${components} ${caveat}`;
-    if (key === "siera") return `SIERA uses FanGraphs' published revised 2011 coefficients with K/PA, BB/PA and (GB − FB including popups)/PA; it does not include the unpublished 2026 annual intercept or starter/reliever innings adjustment, so it is NOT identical to the FanGraphs leaderboard. BBE coverage: ${metrics.rp_classified_bbe || 0}/${metrics.rp_bbe || 0}. ${components} ${caveat}`;
-    return `Calculated xERA proxy: league ERA plus (selected xwOBA − league wOBA) / seasonal wOBA scale × league PA/9. Savant does not publish the exact xERA conversion; this is NOT an official Savant xERA value. ${components} ${caveat}`;
+  function publishedTitle(key, metrics) {
+    const season = metrics.reference_season || "a selected season";
+    const side = metrics.reference_batter_side;
+    const scope = side === "L" || side === "R"
+      ? `${season} vs ${side}HH` : `${season} full season`;
+    if (key === "xera") {
+      return side === "L" || side === "R"
+        ? "Official Baseball Savant xERA is available here only for full seasons; no official handedness xERA was imported. Clear the batter-side filter to view it."
+        : `Official Baseball Savant xERA, ${scope}. Not recalculated from xwOBA. Last source refresh: ${metrics.reference_savant_updated || "not available"}. Pitch type, count, date, team and venue filters do not change this season reference.`;
+    }
+    return `Official FanGraphs ${key === "xfip" ? "xFIP" : key.toUpperCase()}, ${scope}. Last source refresh: ${metrics.reference_fangraphs_updated || "not available"}. Only the batter-handedness selector changes this reference; pitch type, count, date, team and venue filters do not. Missing values mean no verified publisher result was imported.`;
   }
 
   function xslgTitle(metrics) {
@@ -531,12 +533,14 @@ if (root) {
         splitMetric("BB%", "walk_pct", split.walk_pct),
         splitMetric("Hard-Hit%", "hard_hit_pct", split.hard_hit_pct),
         splitMetric("xwOBAcon", "xwoba_on_contact", split.xwoba_on_contact),
-        splitMetric("FIP", "fip", split.fip),
-        splitMetric("xFIP", "xfip", split.xfip),
-        splitMetric("SIERA", "siera", split.siera),
-        splitMetric("xERA*", "xera", split.xera),
+        splitMetric("FIP (FG)", "fip", split.fip),
+        splitMetric("xFIP (FG)", "xfip", split.xfip),
+        splitMetric("SIERA (FG)", "siera", split.siera),
       );
-      card.append(heading, metrics);
+      const sourceNote = document.createElement("p");
+      sourceNote.className = "split-reference-note";
+      sourceNote.textContent = "FanGraphs handedness metrics are full-season references, independent of other active pitch filters.";
+      card.append(heading, metrics, sourceNote);
       elements.splits.append(card);
     });
   }

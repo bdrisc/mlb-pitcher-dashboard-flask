@@ -10,6 +10,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from app.blueprints.api import api_blueprint
 from app.blueprints.main import main_blueprint
 from app.commands.fangraphs import fangraphs_cli
+from app.commands.published import published_cli
 from app.commands.statcast import statcast_cli
 from app.config import DEVELOPMENT_SECRET, PROJECT_ROOT, Config
 from app.extensions import db, migrate
@@ -62,6 +63,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.register_blueprint(api_blueprint, url_prefix="/api/v1")
     app.cli.add_command(statcast_cli)
     app.cli.add_command(fangraphs_cli)
+    app.cli.add_command(published_cli)
 
     @app.after_request
     def add_security_headers(response):
