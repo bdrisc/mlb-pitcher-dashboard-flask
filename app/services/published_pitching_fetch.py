@@ -130,10 +130,7 @@ def validate_handedness_split(split, overall):
 
 def main():
     if len(sys.argv) != 5:
-        raise SystemExit(
-            "Usage: python -m app.services.published_pitching_fetch "
-            "PROVIDER YEAR SPLIT OUT.csv"
-        )
+        raise SystemExit("Usage: published-pitching-fetch PROVIDER YEAR SPLIT OUT.csv")
     provider, year, side, output = sys.argv[1:]
     season = int(year)
     if provider == "fangraphs":
