@@ -949,16 +949,25 @@ and caught-stealing outs between plate appearances; therefore even full-season
 FIP might differ slightly from FanGraphs' official IP-based total.
 
 **xFIP**: use the same formula with `HR := (fly_ball + popup) * HR/FB`.
-The bundled 2026 baseline currently comes from a 50-pitcher 2026 **cohort**
-audit: `1025 / 8118`, including popups in the fly ball pool. It is
-explicitly **not** a verified full-league FanGraphs HR/FB denominator, so
-xFIP is marked approximate and cannot be represented as FanGraphs-exact.
-A future independently sourced league rate can replace the constant.
+The 2026 baseline is now independently sourced from **all MLB teams** in
+the official Baseball Savant 2026 league totals: 5,575 HR, 124,611 batted
+balls, 26.7% fly balls, 7.3% popups. We calculate
+`5575 / (124611 * (0.267 + 0.073))` = **13.16% HR/FB**. The published
+batted-ball percentages are rounded to one decimal, so this is an MLB-wide
+approximation and **not** an exact reproduction of FanGraphs' unrounded
+league HR/FB denominator. It is **not** the 50-pitcher public cohort.
 The rate is suppressed when less than 98% of batted-ball types are classified.
 
-**SIERA**: the original published MLB/Baseball Prospectus 2010 equation
-with `K/PA`, `BB/PA`, and `(GB-FB-PU)/PA`, using Statcast batted-ball types.
-It is *not* FanGraphs' subsequent re-fitted and season-adjusted formula.
+**SIERA†**: now uses FanGraphs' **revised 2011 published coefficients**
+(`5.534, -15.518, +9.146, +8.648, +27.252, -2.298, -4.920,
+-4.036, +5.155, +4.546`), with K/PA, BB/PA and netGB=(GB-FB)/PA
+(popups included in fly balls). However, FanGraphs' adjusted leaderboard
+additionally uses a **season-specific 2026 intercept** and a
+**starter-versus-reliever innings term**. Those inputs are not available
+to this application for arbitrary pitch/handedness/count filters, so
+SIERA† remains **unadjusted FanGraphs-coefficient SIERA**, *not* the
+official FanGraphs leaderboard metric. We do not tune the coefficients
+to a few example pitchers and pretend that matches the official model.
 It is suppressed below 98% batted-ball classification coverage; small samples
 can be unstable.
 
@@ -981,10 +990,12 @@ Verification reference (2026 Cam Schlittler, public real-season sample):
 MLB/FanGraphs report 193⅔ IP, 16 HR, 49 BB, 6 HBP and 239 K; Statcast
 pitch-ending events in the archived cohort give 580 attributable outs and
 238 strikeout events. These nearly reproduce published **2.55 FIP**
-(calculated ~2.55), with a one-out and one-K discrepancy. Published
-xFIP ~2.86 versus the current cohort-rate calculation ~2.81.
+(calculated ~2.55), with a one-out and one-K discrepancy. Published xFIP **2.86**; recalculation using the official all-MLB 2026
+Statcast totals and our pitch-attributed 2026 player counts now rounds
+to **2.86**, replacing the earlier erroneous cohort-based 2.81.
 Baseball Savant reports .262 xwOBA and **2.85 xERA**; the calculated
-ERA-scale proxy is ~2.55 — **not a Savant match**.
+ERA-scale proxy is ~2.55 — **not a Savant match**. No source
+claims that the proxy equals official xERA.
 These values should be re-audited against the finalized local full-season
 data before describing the implementation as source-identical.
 
@@ -992,6 +1003,7 @@ Sources:
 - https://library.fangraphs.com/pitching/fip/
 - https://library.fangraphs.com/pitching/xfip/
 - https://www.fangraphs.com/tools/guts?type=cn
+- https://baseballsavant.mlb.com/league?season=2026
 - https://www.mlb.com/glossary/advanced-stats/skill-interactive-earned-run-average
 - https://blogs.fangraphs.com/new-siera-part-two-of-five-unlocking-underrated-pitching-skills/
 - https://www.mlb.com/glossary/statcast/expected-era
