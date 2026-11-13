@@ -211,6 +211,24 @@
               </dl>
             </div>
           </section>
+          <section class="overview-group" aria-labelledby="run-prevention-heading">
+            <div class="overview-group-heading">
+              <h3 id="run-prevention-heading">Run Prevention</h3>
+              <small>Calculated · Filterable</small>
+            </div>
+            <dl class="overview-values">
+              {{ metric('fip', 'FIP', 'Event-based') }}
+              {{ metric('xfip', 'xFIP', 'HR/FB Adjusted') }}
+              {{ metric('siera', 'SIERA', 'Published BP Formula') }}
+              {{ metric('xera', 'xERA*', 'ERA-Scale xwOBA') }}
+            </dl>
+            <p class="run-prevention-note">
+              Values are calculated from the selected plate appearances. FIP uses event-level outs,
+              xFIP uses a cohort HR/FB baseline, SIERA uses the published MLB/BP coefficients,
+              and xERA* is an ERA-scale proxy, not Savant's undisclosed conversion.
+              See metric tooltips for exact methods and coverage.
+            </p>
+          </section>
           <section class="overview-group" aria-labelledby="whiff-finishing-heading">
             <h3 id="whiff-finishing-heading">Whiff and Finishing</h3>
             <dl class="overview-values overview-whiffs">
