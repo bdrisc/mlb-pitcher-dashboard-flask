@@ -990,8 +990,9 @@ Verification reference (2026 Cam Schlittler, public real-season sample):
 MLB/FanGraphs report 193⅔ IP, 16 HR, 49 BB, 6 HBP and 239 K; Statcast
 pitch-ending events in the archived cohort give 580 attributable outs and
 238 strikeout events. These nearly reproduce published **2.55 FIP**
-(calculated ~2.55), with a one-out and one-K discrepancy. Published xFIP ~2.86; our calculation uses a new MLB-wide source
-and therefore differs from the previous 50-pitcher-cohort result.
+(calculated ~2.55), with a one-out and one-K discrepancy. Published xFIP **2.86**; recalculation using the official all-MLB 2026
+Statcast totals and our pitch-attributed 2026 player counts now rounds
+to **2.86**, replacing the earlier erroneous cohort-based 2.81.
 Baseball Savant reports .262 xwOBA and **2.85 xERA**; the calculated
 ERA-scale proxy is ~2.55 — **not a Savant match**. No source
 claims that the proxy equals official xERA.
