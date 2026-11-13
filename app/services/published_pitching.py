@@ -101,7 +101,7 @@ def _validate_season(frame, season, candidates):
 
 
 def _fg_id_map(season):
-    return {
+    mapping = {
         grade.fangraphs_id: grade.mlb_id
         for grade in db.session.scalars(
             select(FanGraphsStuff).where(
@@ -109,6 +109,17 @@ def _fg_id_map(season):
             )
         )
     }
+    # All-season FanGraphs pitching results are imported before split results,
+    # providing a complete ID crosswalk even for pitchers without Stuff+.
+    for row in db.session.scalars(
+        select(PublishedPitchingMetric).where(
+            PublishedPitchingMetric.season == season,
+            PublishedPitchingMetric.batter_side == "ALL",
+            PublishedPitchingMetric.fangraphs_id.is_not(None),
+        )
+    ):
+        mapping[row.fangraphs_id] = row.mlb_id
+    return mapping
 
 
 def _apply_rows(values, season, side, provider):
@@ -162,7 +173,7 @@ def import_fangraphs_published(frame, season, side="ALL"):
     fg_column = _column(frame, ("IDfg", "playerid", "PlayerId"))
     if mlb_column is None and fg_column is None:
         raise ValueError("FanGraphs source has no MLBAM or FanGraphs ID.")
-    mapping = _fg_id_map(season) if mlb_column is None else {}
+    mapping = _fg_id_map(season)
     records = []
     for row in frame.to_dict("records"):
         fg_id = _integer(row.get(fg_column)) if fg_column else None
