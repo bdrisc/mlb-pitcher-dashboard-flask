@@ -931,80 +931,80 @@ until the source is refreshed. Existing pitcher pools remain unchanged.
 Set `SYNC_XSLG_ON_STARTUP=0` to disable the public startup backfill.
 
 
-## Calculated and filterable FIP, xFIP, SIERA, and xERA*
+## Publisher-sourced FIP, xFIP, SIERA and xERA
 
-The Run Prevention section calculates these metrics from `pitches` for the
-active **season, handedness, pitch type, count, team, date, and home/away**
-filters. The same aggregates are included in overall profile, arsenal rows,
-and `platoon_splits`. These metrics require a selected season with known
-baselines (currently 2026). No new data files, migrations or database seeding
-are required. **Keep the native local Flask + PostgreSQL setup** for the
-full-league 2026 local player pool; do not use Docker Compose locally.
+These are now **actual reported values**, not estimates calculated from Statcast
+pitch outcomes:
 
-**FIP**: `(13*HR + 3*(BB+HBP) - 2*K) / (outs/3) + cFIP`.
-The 2026 FanGraphs Guts! `cFIP` is **3.081**. Outs are calculated from PA
-results: one for standard outs/K/sacrifice, two for double plays, three for
-triple plays. This captures handedness-attributed outs, but *not* pickoff
-and caught-stealing outs between plate appearances; therefore even full-season
-FIP might differ slightly from FanGraphs' official IP-based total.
+- **FIP, xFIP, SIERA:** [FanGraphs pitching leaderboards](https://www.fangraphs.com/leaders/major-league?stats=pit&qual=0&type=8&season=2026&season1=2026)
+  (Advanced category, 2026, min innings 0).
+- **xERA:** [Baseball Savant expected statistics](https://baseballsavant.mlb.com/leaderboard/expected_statistics?type=pitcher&year=2026),
+  using the source's **xera** field directly.
 
-**xFIP**: use the same formula with `HR := (fly_ball + popup) * HR/FB`.
-The 2026 baseline is now independently sourced from **all MLB teams** in
-the official Baseball Savant 2026 league totals: 5,575 HR, 124,611 batted
-balls, 26.7% fly balls, 7.3% popups. We calculate
-`5575 / (124611 * (0.267 + 0.073))` = **13.16% HR/FB**. The published
-batted-ball percentages are rounded to one decimal, so this is an MLB-wide
-approximation and **not** an exact reproduction of FanGraphs' unrounded
-league HR/FB denominator. It is **not** the 50-pitcher public cohort.
-The rate is suppressed when less than 98% of batted-ball types are classified.
+The new `published_pitching_metrics` table is keyed by **MLB player ID, season,
+and batter handedness** (ALL, L, R). Its data are independent from the
+`pitches` and `players` tables; importing them **cannot modify the local
+full-league pitcher pool**. Missing and unavailable source values render as
+`—`, with **no calculated fallback**.
 
-**SIERA†**: now uses FanGraphs' **revised 2011 published coefficients**
-(`5.534, -15.518, +9.146, +8.648, +27.252, -2.298, -4.920,
--4.036, +5.155, +4.546`), with K/PA, BB/PA and netGB=(GB-FB)/PA
-(popups included in fly balls). However, FanGraphs' adjusted leaderboard
-additionally uses a **season-specific 2026 intercept** and a
-**starter-versus-reliever innings term**. Those inputs are not available
-to this application for arbitrary pitch/handedness/count filters, so
-SIERA† remains **unadjusted FanGraphs-coefficient SIERA**, *not* the
-official FanGraphs leaderboard metric. We do not tune the coefficients
-to a few example pitchers and pretend that matches the official model.
-It is suppressed below 98% batted-ball classification coverage; small samples
-can be unstable.
+The overall **Run Prevention** section displays the published full-season
+figures. Selecting one batter side selects corresponding **FanGraphs published
+RHH/LHH reference data**, if available. The **Vs RHH** and **Vs LHH** cards also
+show FanGraphs FIP/xFIP/SIERA where supported and validated. The automated
+FanGraphs request uses the Advanced (type 8) pitcher leaderboard with a
+specified batter-hand filter; the import rejects split responses that are
+identical to the overall leaderboard to avoid mislabeling season totals as
+handedness splits. If this upstream split endpoint doesn't support the requested
+data, no values are fabricated; use an official FanGraphs split CSV and the
+manual import instead.
 
-**xERA***: the publicly reproducible **ERA-scale xwOBA proxy**,
-`league ERA + (xwOBA - league wOBA) / wOBA scale * league PA/9`.
-The 2026 factors are league ERA 4.17, FanGraphs league wOBA .316, wOBA scale
-1.259, and league PA/9 37.84. MLB publishes the conceptual relationship
-between xERA and xwOBA but *not* the numerical conversion, so this value
-must **not** be cited as an exact Baseball Savant xERA.
+Baseball Savant's published xERA is **full season only** in this integration.
+If the user selects a single batter side, xERA displays unavailable rather
+than reusing the full-season number as a misleading split. Removing the
+batter-side filter shows official season xERA again.
 
-**Important filter interpretation:** Handedness splits count PA-ending
-outcomes by batter side. Filtering by count or pitch type selects the pitch
-that *ended* each PA. FIP/IP under those filters is a per-terminal-pitch
-counterfactual, not an officially reported pitcher innings split. Tooltips
-report counts and methodology. Do not claim perfect parity with the
-unfiltered FanGraphs or Savant leaderboards without matching their
-definitions, official out credits and source population.
+**Other filters:** Pitch type, count, dates, team and home/away still filter
+the Statcast-based performance metrics. These published source metrics are
+season references, **not** recalculated for those filters, as with Stuff+.
+They are never used as per-pitch-type rates in the arsenal.
 
-Verification reference (2026 Cam Schlittler, public real-season sample):
-MLB/FanGraphs report 193⅔ IP, 16 HR, 49 BB, 6 HBP and 239 K; Statcast
-pitch-ending events in the archived cohort give 580 attributable outs and
-238 strikeout events. These nearly reproduce published **2.55 FIP**
-(calculated ~2.55), with a one-out and one-K discrepancy. Published xFIP **2.86**; recalculation using the official all-MLB 2026
-Statcast totals and our pitch-attributed 2026 player counts now rounds
-to **2.86**, replacing the earlier erroneous cohort-based 2.81.
-Baseball Savant reports .262 xwOBA and **2.85 xERA**; the calculated
-ERA-scale proxy is ~2.55 — **not a Savant match**. No source
-claims that the proxy equals official xERA.
-These values should be re-audited against the finalized local full-season
-data before describing the implementation as source-identical.
+### Update native full-league local Flask dashboard (not Docker)
 
-Sources:
-- https://library.fangraphs.com/pitching/fip/
-- https://library.fangraphs.com/pitching/xfip/
-- https://www.fangraphs.com/tools/guts?type=cn
-- https://baseballsavant.mlb.com/league?season=2026
-- https://www.mlb.com/glossary/advanced-stats/skill-interactive-earned-run-average
-- https://blogs.fangraphs.com/new-siera-part-two-of-five-unlocking-underrated-pitching-skills/
-- https://www.mlb.com/glossary/statcast/expected-era
-- https://baseballsavant.mlb.com/savant-player/cam-schlittler-693645
+After pulling the merged change into the existing project:
+
+```powershell
+git pull origin main
+.\.venv\Scripts\Activate.ps1
+python -m flask --app wsgi db upgrade
+python -m flask --app wsgi published sync --season 2026
+python -m flask --app wsgi run --debug --port 8080
+```
+
+`published sync` fetches four remote source tables (FanGraphs full season,
+FanGraphs vs LHH and vs RHH, Savant xERA), validates the publisher columns
+and IDs, and preserves existing published values if any source is unavailable.
+It does not ingest Statcast pitch data or change pitcher selection.
+
+For manual official CSV downloads (if publisher APIs are blocked):
+
+```powershell
+python -m flask --app wsgi published import-fangraphs "C:\path\fangraphs_advanced.csv" --season 2026
+python -m flask --app wsgi published import-fangraphs "C:\path\fangraphs_vs_RHH.csv" --season 2026 --split R
+python -m flask --app wsgi published import-fangraphs "C:\path\fangraphs_vs_LHH.csv" --season 2026 --split L
+python -m flask --app wsgi published import-savant "C:\path\savant_expected.csv" --season 2026
+```
+
+FanGraphs CSVs must contain official FIP, xFIP, SIERA and MLBAM player IDs
+(or an already-imported FanGraphs ID mapping). Savant CSV must include the
+`player_id`, `year`, and `xera` columns. Use the **pitcher** leaderboard,
+season 2026, minimum 0, regular season; do not mix in postseason results.
+Do not import handedness CSVs labeled with the wrong split.
+
+### Public Render dashboard
+
+`RUN_MIGRATIONS=1` creates the new reference table during deployment.
+The existing background-maintenance process runs the same sync with
+`PUBLISHED_SEASON=2026`. Set `SYNC_PUBLISHED_ON_STARTUP=0` to opt out.
+Upstream endpoints may throttle or refuse automated downloads; in that case
+the dashboard stays available, prior values are retained, and missing values
+remain blank. Verify source refresh logs and results after deployment.
