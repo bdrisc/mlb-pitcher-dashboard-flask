@@ -117,7 +117,16 @@ def validate_handedness_split(split, overall):
     """Reject upstream endpoints silently ignoring a requested handedness filter."""
     if split.empty or overall.empty:
         raise ValueError("No FanGraphs split results to verify.")
-    paired = split.merge(overall, on="mlb_id", suffixes=("_side", "_all"))
+    paired = pd.DataFrame()
+    if "mlb_id" in split and "mlb_id" in overall:
+        left = split.copy()
+        right = overall.copy()
+        left["mlb_id"] = pd.to_numeric(left["mlb_id"], errors="coerce")
+        right["mlb_id"] = pd.to_numeric(right["mlb_id"], errors="coerce")
+        left = left.dropna(subset=["mlb_id"])
+        right = right.dropna(subset=["mlb_id"])
+        if not left.empty and not right.empty:
+            paired = left.merge(right, on="mlb_id", suffixes=("_side", "_all"))
     if len(paired) < 10 and "IDfg" in split and "IDfg" in overall:
         # Narrower FanGraphs split exports may omit xMLBAMID but retain playerid.
         paired = split.merge(overall, on="IDfg", suffixes=("_side", "_all"))
