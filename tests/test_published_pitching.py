@@ -150,9 +150,14 @@ def test_fangraphs_split_download_passes_batter_hand_and_checks_response(monkeyp
 
     monkeypatch.setattr("app.services.published_pitching_fetch._download", stub)
     assert fetch_fangraphs(2026, "R").iloc[0]["FIP"] == 3.01
-    assert calls[0][0]["hand"] == ["R"]
+    assert calls[0][0]["month"] == ["14"]
+    assert calls[0][0].get("hand") is None
     assert calls[0][0]["type"] == ["8"]
     assert calls[0][0]["qual"] == ["0"]
+    fetch_fangraphs(2026, "L")
+    assert calls[1][0]["month"] == ["13"]
+    fetch_fangraphs(2026, "ALL")
+    assert calls[2][0]["month"] == ["0"]
 
 
 def test_split_detector_rejects_falsely_labeled_full_season_totals():
@@ -197,3 +202,46 @@ def test_manual_source_import_commands_preserve_player_pool(app, tmp_path):
     with app.app_context():
         assert db.session.scalar(select(func.count()).select_from(Player)) == 0
         assert published_references(100, 2026)["ALL"]["xera"] == 2.88
+
+
+def test_fangraphs_handedness_split_may_omit_siera(app):
+    payload = {
+        "totalCount": 1,
+        "data": [
+            {
+                "playerid": 44,
+                "xMLBAMID": 100,
+                "Season": 2026,
+                "FIP": 3.84,
+                "xFIP": 3.12,
+            }
+        ],
+    }
+    with pytest.raises(ValueError, match="official pitching rates"):
+        normalize_fangraphs(payload, 2026, "ALL")
+    frame = normalize_fangraphs(payload, 2026, "L")
+    assert frame.iloc[0]["FIP"] == 3.84
+    assert frame.iloc[0]["xFIP"] == 3.12
+    assert pd.isna(frame.iloc[0]["SIERA"])
+    with app.app_context():
+        imported = import_fangraphs_published(frame, 2026, "L")
+        assert imported["rows"] == 1
+        entry = published_references(100, 2026)["L"]
+        assert entry["fip"] == 3.84
+        assert entry["xfip"] == 3.12
+        assert entry["siera"] is None
+
+
+def test_savant_import_accepts_published_extreme_xera_but_rejects_nonfinite(app):
+    with app.app_context():
+        import_savant_xera(savant_frame(xera=104.94), 2026)
+        assert published_references(100, 2026)["ALL"]["xera"] == 104.94
+        with pytest.raises(ValueError, match="Invalid published pitching value"):
+            import_savant_xera(savant_frame(xera=float("inf")), 2026)
+        assert published_references(100, 2026)["ALL"]["xera"] == 104.94
+
+
+def test_fangraphs_accepts_valid_negative_fip_in_tiny_splits(app):
+    with app.app_context():
+        import_fangraphs_published(fg_frame(fip=-3.25), 2026, "R")
+        assert published_references(100, 2026)["R"]["fip"] == -3.25
