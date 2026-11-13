@@ -100,6 +100,7 @@ if (root) {
     if (["vaa", "haa"].includes(key)) return `${formatNumber(Number(value) === 0 ? 0 : value)}°`;
     if (percentageMetrics.has(key)) return `${formatNumber(value)}%`;
     if (key === "avg_spin" || ["stuff_plus", "location_plus", "pitching_plus"].includes(key)) return formatNumber(value, 0);
+    if (["fip", "xfip", "siera", "xera"].includes(key)) return formatNumber(value, 2);
     if (key === "run_value_per_100") {
       const formatted = formatNumber(value);
       return value > 0 ? `+${formatted}` : formatted;
@@ -293,6 +294,7 @@ if (root) {
     document.querySelectorAll("[data-metric]").forEach((element) => {
       const key = element.dataset.metric;
       element.textContent = formatMetric(key, overall[key]);
+      if (["fip", "xfip", "siera", "xera"].includes(key)) element.title = runPreventionTitle(key, overall);
       if (key === "woba_against") element.title = wobaTitle(overall);
       if (key === "xwoba_against") element.title = "Expected wOBA allowed, including strikeouts, unintentional walks and hit-by-pitches; lower is better. Recalculates with the active filters.";
       if (key === "xba") element.title = xbaTitle(overall);
@@ -303,6 +305,17 @@ if (root) {
       if (key === "zone_whiff_pct") element.title = zoneWhiffTitle(overall);
       if (key === "out_of_zone_whiff_pct") element.title = zoneWhiffTitle(overall, "out_of_zone");
     });
+  }
+
+  function runPreventionTitle(key, metrics) {
+    const pa = metrics.rp_pa || 0;
+    const outs = metrics.rp_outs || 0;
+    const components = `Selected sample: ${pa} completed PA, ${outs} event-attributed outs (${(outs / 3).toFixed(1)} IP proxy), ${metrics.rp_k || 0} K, ${metrics.rp_bb || 0} BB, ${metrics.rp_hbp || 0} HBP, ${metrics.rp_hr || 0} HR.`;
+    const caveat = "Stats reflect plate appearances completed by the selected pitch type/count, not conventional full-season splits. Pitch-based outs may omit separate baserunning outs.";
+    if (key === "fip") return `FIP = (13 HR + 3 (BB + HBP) − 2 K) / IP + 2026 FanGraphs FIP constant ${metrics.rp_fip_constant}. ${components} ${caveat}`;
+    if (key === "xfip") return `xFIP uses expected HR = fly balls (including popups) × 2026 HR/FB ${((metrics.rp_league_hr_fb || 0) * 100).toFixed(2)}%. Source: ${metrics.rp_hr_fb_source}. Classified BBE: ${metrics.rp_classified_bbe || 0}/${metrics.rp_bbe || 0}. It is an approximation until an independently sourced league-wide HR/FB rate is provided. ${components} ${caveat}`;
+    if (key === "siera") return `SIERA uses the published MLB/Baseball Prospectus equation with K/PA, BB/PA and (GB − FB − PU)/PA. It is not the later FanGraphs SIERA, which adds different coefficients and annual adjustments. BBE coverage: ${metrics.rp_classified_bbe || 0}/${metrics.rp_bbe || 0}. ${components} ${caveat}`;
+    return `Calculated xERA proxy: league ERA plus (selected xwOBA − league wOBA) / seasonal wOBA scale × league PA/9. Savant does not publish the exact xERA conversion; this is NOT an official Savant xERA value. ${components} ${caveat}`;
   }
 
   function xslgTitle(metrics) {
