@@ -1,6 +1,5 @@
 """Publisher-source parity and safe import tests; no internet needed."""
 
-import io
 import json
 from urllib.parse import parse_qs, urlparse
 
