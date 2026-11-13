@@ -219,13 +219,14 @@
             <dl class="overview-values">
               {{ metric('fip', 'FIP', 'Event-based') }}
               {{ metric('xfip', 'xFIP', 'HR/FB Adjusted') }}
-              {{ metric('siera', 'SIERA', 'Published BP Formula') }}
+              {{ metric('siera', 'SIERA†', 'FG Coefficients (Unadjusted)') }}
               {{ metric('xera', 'xERA*', 'ERA-Scale xwOBA') }}
             </dl>
             <p class="run-prevention-note">
               Values are calculated from the selected plate appearances. FIP uses event-level outs,
-              xFIP uses a cohort HR/FB baseline, SIERA uses the published MLB/BP coefficients,
-              and xERA* is an ERA-scale proxy, not Savant's undisclosed conversion.
+              xFIP uses MLB-wide HR/FB from the rounded 2026 Savant league totals; SIERA†
+              uses FanGraphs' revised coefficients but lacks its annual and starter/reliever adjustments.
+              xERA* is an ERA-scale proxy, not Savant's undisclosed conversion.
               See metric tooltips for exact methods and coverage.
             </p>
           </section>
