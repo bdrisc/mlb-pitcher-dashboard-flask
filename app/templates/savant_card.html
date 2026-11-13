@@ -214,20 +214,19 @@
           <section class="overview-group" aria-labelledby="run-prevention-heading">
             <div class="overview-group-heading">
               <h3 id="run-prevention-heading">Run Prevention</h3>
-              <small>Calculated · Filterable</small>
+              <small>Published · Season Reference</small>
             </div>
             <dl class="overview-values">
-              {{ metric('fip', 'FIP', 'Event-based') }}
-              {{ metric('xfip', 'xFIP', 'HR/FB Adjusted') }}
-              {{ metric('siera', 'SIERA†', 'FG Coefficients (Unadjusted)') }}
-              {{ metric('xera', 'xERA*', 'ERA-Scale xwOBA') }}
+              {{ metric('fip', 'FIP', 'FanGraphs') }}
+              {{ metric('xfip', 'xFIP', 'FanGraphs') }}
+              {{ metric('siera', 'SIERA', 'FanGraphs') }}
+              {{ metric('xera', 'xERA', 'Baseball Savant') }}
             </dl>
             <p class="run-prevention-note">
-              Values are calculated from the selected plate appearances. FIP uses event-level outs,
-              xFIP uses MLB-wide HR/FB from the rounded 2026 Savant league totals; SIERA†
-              uses FanGraphs' revised coefficients but lacks its annual and starter/reliever adjustments.
-              xERA* is an ERA-scale proxy, not Savant's undisclosed conversion.
-              See metric tooltips for exact methods and coverage.
+              Official published pitcher-season values from FanGraphs (FIP, xFIP, SIERA)
+              and Baseball Savant (xERA). FanGraphs handedness references are shown when
+              available; Savant xERA is full-season only. Pitch type, date, count and
+              venue filters do not alter these published values.
             </p>
           </section>
           <section class="overview-group" aria-labelledby="whiff-finishing-heading">
