@@ -1,9 +1,10 @@
 """Filterable, independently computed run-prevention estimates.
 
 FIP and xFIP use their published event formulas and the 2026 FanGraphs cFIP.
-SIERA uses the published MLB/Baseball Prospectus equation (not the proprietary
-later FanGraphs coefficients or run-environment/SP adjustment). xERA is an
-explicit ERA-scale xwOBA proxy: Savant does not publish its conversion.
+SIERA uses the published 2011 FanGraphs equation coefficients but without
+unpublished 2026 season and start/relief adjustments; it is NOT an exact
+FanGraphs reproduction. xERA is an explicit ERA-scale xwOBA proxy:
+Savant does not publish its complete conversion.
 The source-specific comparability caveats are returned to the UI.
 """
 
@@ -11,17 +12,23 @@ from __future__ import annotations
 
 from decimal import ROUND_HALF_UP, Decimal
 
-# Source: FanGraphs Guts!, 2026 seasonal constants.
-# https://www.fangraphs.com/tools/guts?type=cn
-# League 2026 HR/FB is a cohort-based approximation: measured across the
-# 50 busiest 2026 Statcast pitchers in the bundled public cohort, with popups
-# counted as fly balls. It is not an independently verified league-wide rate.
-# Change this baseline only after sourcing the true all-MLB 2026 value.
+# FanGraphs Guts! 2026 cFIP: https://www.fangraphs.com/tools/guts?type=cn
+# 2026 league-wide MLB Statcast totals: 5,575 HR, 124,611 BBE,
+# 26.7% fly balls and 7.3% popups. Not a 50-pitcher cohort.
+# Source: https://baseballsavant.mlb.com/league?season=2026
+# This is the ALL-MLB 2026 HR/FB implied by the rounded public percentages,
+# not FanGraphs' unrounded internal denominator. Precision is approximate.
+# SIERA coefficients source: https://blogs.fangraphs.com/
+# new-siera-part-two-of-five-unlocking-underrated-pitching-skills/
 SEASON_BASELINES = {
     2026: {
         "fip_constant": 3.081,
-        "hr_fb_rate": 1025 / 8118,
-        "hr_fb_source": "2026 public cohort estimate; not league-wide",
+        "hr_fb_rate": 5575 / (124611 * (0.267 + 0.073)),
+        "hr_fb_source": (
+            "2026 all-MLB Baseball Savant league totals: 5,575 HR / "
+            "(124,611 BBE × (26.7% FB + 7.3% PU)); rate is "
+            "approximate because batted-ball percentages are rounded"
+        ),
         "lg_era": 4.17,
         "lg_woba": 0.316,
         "woba_scale": 1.259,
@@ -71,7 +78,10 @@ def calculate_run_prevention(counts: dict, season: int | None, xwoba: float | No
         "rp_league_hr_fb": None if baseline is None else baseline["hr_fb_rate"],
         "rp_hr_fb_source": None if baseline is None else baseline["hr_fb_source"],
         "rp_xera_method": "ERA-scale xwOBA proxy; not official Savant xERA",
-        "rp_siera_method": "MLB/BP published coefficients; not FanGraphs adjusted SIERA",
+        "rp_siera_method": (
+            "FanGraphs 2011 revised coefficients; 2026 season calibration and "
+            "starter/reliever innings correction unavailable, so not FG-exact"
+        ),
         "rp_outs_method": "outs from PA-ending events; non-PA baserunner outs may be missing",
     }
     if baseline is None:
@@ -87,21 +97,27 @@ def calculate_run_prevention(counts: dict, season: int | None, xwoba: float | No
             x_numerator = 13 * fb * baseline["hr_fb_rate"] + 3 * (bb + hbp) - 2 * k
             result["xfip"] = _two(x_numerator / innings + baseline["fip_constant"])
 
-    # The historical, publicly specified SIERA formula uses PA as its rate
-    # denominator and treats (GB - FB - PU) as the net ground-ball count.
+    # Revised published FanGraphs SIERA (2011) uses netGB = GB - FB,
+    # with popups included in fly balls. The quadratic term changes sign
+    # with netGB. Its published 2011 starter coefficient (+0.367 × SP IP%)
+    # and a *year-specific* intercept are NOT applied here because neither
+    # can be accurately reconstructed for a selected PA sample with the
+    # currently stored data. Never describe this as official FG SIERA.
     if pa > 0 and classification_coverage >= 0.98 and bbe > 0:
         k_rate = k / pa
         bb_rate = bb / pa
         net = (gb - fb) / pa
         result["siera"] = _two(
-            6.145
-            - 16.986 * k_rate
-            + 11.434 * bb_rate
-            - 1.858 * net
-            + 7.653 * k_rate**2
-            - 6.664 * net * abs(net)
-            + 10.130 * k_rate * net
-            - 5.195 * bb_rate * net
+            5.534
+            - 15.518 * k_rate
+            + 9.146 * k_rate**2
+            + 8.648 * bb_rate
+            + 27.252 * bb_rate**2
+            - 2.298 * net
+            - 4.920 * net * abs(net)
+            - 4.036 * k_rate * bb_rate
+            + 5.155 * k_rate * net
+            + 4.546 * bb_rate * net
         )
 
     # Published ERA-equivalent linear-weight identity. Baseball Savant does not
