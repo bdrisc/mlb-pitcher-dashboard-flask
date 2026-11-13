@@ -49,9 +49,17 @@ def test_2026_schlittler_xfip_matches_published_fangraphs_two_decimals():
     # MLB Statcast archived 2026 player-season: 157 FB+PU, 49 BB, 6 HBP,
     # 238 K, 580 event-attributed outs. FanGraphs publishes 2.86 xFIP.
     counts = sample(
-        outs=580, pa=758, strikeouts=238, walks=49, hbp=6,
-        homers=16, fly_balls=157, ground_balls=206, popups=39,
-        classified_batted_balls=465, contact_events=466,
+        outs=580,
+        pa=758,
+        strikeouts=238,
+        walks=49,
+        hbp=6,
+        homers=16,
+        fly_balls=157,
+        ground_balls=206,
+        popups=39,
+        classified_batted_balls=465,
+        contact_events=466,
     )
     value = calculate_run_prevention(counts, 2026, 0.2622)
     assert value["xfip"] == 2.86
