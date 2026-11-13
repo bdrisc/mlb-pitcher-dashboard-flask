@@ -809,3 +809,97 @@ def test_xslg_display_appears_with_xba(profile_client):
     html = profile_client.get("/savant-card").get_data(as_text=True)
     assert 'data-metric="xslg"' in html
     assert html.index('data-metric="xba"') < html.index('data-metric="xslg"')
+
+
+def test_run_prevention_metrics_recalculate_for_handedness_and_pitch_type(profile_client):
+    base = f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026"
+    overall = profile_client.get(base).json["overall"]
+    assert overall["rp_hr"] == 1
+    assert overall["rp_k"] == 1
+    assert overall["rp_outs"] == 1
+    assert overall["rp_innings"] == pytest.approx(1 / 3, abs=0.001)
+    assert overall["fip"] == pytest.approx(36.08)
+    assert overall["xfip"] is not None
+    assert overall["siera"] is not None
+    assert overall["xera"] is not None
+
+    vs_right = profile_client.get(base + "&batter_side=R").json["overall"]
+    vs_left = profile_client.get(base + "&batter_side=L").json["overall"]
+    assert vs_right["rp_k"] == 1
+    assert vs_right["rp_hr"] == 0
+    assert vs_right["rp_outs"] == 1
+    assert vs_right["fip"] == pytest.approx(-2.92)
+    assert vs_left["rp_k"] == 0
+    assert vs_left["rp_hr"] == 1
+    assert vs_left["rp_outs"] == 0
+    assert vs_left["fip"] is None
+
+    arsenal = profile_client.get(base).json["arsenal"]
+    by_type = {row["pitch_type"]: row for row in arsenal}
+    assert by_type["FF"]["fip"] == pytest.approx(vs_right["fip"])
+    assert by_type["SL"]["fip"] is None
+    assert by_type["FF"]["rp_pa"] == 1
+    assert by_type["SL"]["rp_pa"] == 1
+    splits = profile_client.get(base).json["platoon_splits"]
+    by_side = {row["batter_side"]: row for row in splits}
+    assert by_side["R"]["fip"] == vs_right["fip"]
+    assert by_side["L"]["fip"] is None
+
+
+def test_run_prevention_tracks_double_play_and_sacrifice_outs(app, profile_client):
+    with app.app_context():
+        db.session.add_all(
+            [
+                _pitch(
+                    pitch_id="1002_20_1",
+                    game_pk=1002,
+                    batter_id=201,
+                    at_bat_number=20,
+                    pitch_number=1,
+                    inning_half="Bot",
+                    batter_side="L",
+                    pitch_type="SL",
+                    pitch_name="Slider",
+                    balls=0,
+                    strikes=0,
+                    description="hit_into_play",
+                    events="grounded_into_double_play",
+                    batted_ball_type="ground_ball",
+                ),
+                _pitch(
+                    pitch_id="1002_21_1",
+                    game_pk=1002,
+                    batter_id=201,
+                    at_bat_number=21,
+                    pitch_number=1,
+                    inning_half="Bot",
+                    batter_side="L",
+                    pitch_type="SL",
+                    pitch_name="Slider",
+                    balls=0,
+                    strikes=0,
+                    description="hit_into_play",
+                    events="sac_fly",
+                    batted_ball_type="fly_ball",
+                ),
+            ]
+        )
+        db.session.commit()
+
+    result = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026")
+    assert result.status_code == 200
+    values = result.json["overall"]
+    assert values["rp_outs"] == 4
+    assert values["rp_pa"] == 4
+    assert values["rp_bbe"] == 3
+    assert values["rp_classified_bbe"] == 3
+    assert values["rp_gb"] == 1
+    assert values["rp_fb"] == 2
+
+
+def test_run_prevention_metrics_visible_and_not_published_season_grades(profile_client):
+    html = profile_client.get("/savant-card").get_data(as_text=True)
+    for key in ("fip", "xfip", "siera", "xera"):
+        assert f'data-metric="{key}"' in html
+    assert "Run Prevention" in html
+    assert "Calculated" in html
