@@ -194,3 +194,15 @@ def test_liveness_does_not_query_an_unavailable_database(client, monkeypatch):
 
         assert response.status_code == 200
         assert response.json == {"status": "ok", "version": "test"}
+
+
+def test_published_pitching_explanatory_paragraphs_are_not_displayed(client):
+    html = client.get("/savant-card").get_data(as_text=True)
+    js = client.get("/static/savant-card.js").get_data(as_text=True)
+
+    assert "run-prevention-note" not in html
+    assert "Official published pitcher-season values from FanGraphs" not in html
+    assert "FanGraphs handedness metrics are full-season references" not in js
+    assert "sourceNote" not in js
+    assert 'data-metric="fip"' in html
+    assert 'data-metric="xera"' in html
