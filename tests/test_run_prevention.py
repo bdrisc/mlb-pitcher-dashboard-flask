@@ -35,6 +35,16 @@ def test_fip_and_xfip_follow_event_formulas_and_constant():
     assert values["rp_outs"] == 60
 
 
+def test_league_xfip_baseline_is_independent_of_deployed_pitcher_cohort():
+    baseline = SEASON_BASELINES[2026]
+    # Source: MLB Baseball Savant 2026 league summary, all 30 MLB teams.
+    # Percentages reported to 1 decimal; the implied rate is approximate.
+    assert baseline["hr_fb_rate"] == pytest.approx(5575 / (124611 * 0.340))
+    assert baseline["hr_fb_rate"] * 100 == pytest.approx(13.16, abs=0.01)
+    assert "all-MLB" in baseline["hr_fb_source"]
+    assert "rounded" in baseline["hr_fb_source"]
+
+
 def test_fip_denominator_uses_outs_as_thirds_and_skips_zero():
     assert calculate_run_prevention(sample(outs=3), 2026, 0.300)["rp_innings"] == 1
     values = calculate_run_prevention(sample(outs=0), 2026, 0.300)
@@ -42,21 +52,23 @@ def test_fip_denominator_uses_outs_as_thirds_and_skips_zero():
     assert values["xfip"] is None
 
 
-def test_siera_published_mlb_bp_equation_and_missing_classifications():
+def test_siera_uses_revised_fangraphs_coefficient_structure_and_missing_classifications():
     counts = sample()
     values = calculate_run_prevention(counts, 2026, 0.300)
     k_rate = 30 / 90
     bb_rate = 8 / 90
     net = (22 - 28) / 90
     published = (
-        6.145
-        - 16.986 * k_rate
-        + 11.434 * bb_rate
-        - 1.858 * net
-        + 7.653 * k_rate**2
-        - 6.664 * net * abs(net)
-        + 10.130 * k_rate * net
-        - 5.195 * bb_rate * net
+        5.534
+        - 15.518 * k_rate
+        + 9.146 * k_rate**2
+        + 8.648 * bb_rate
+        + 27.252 * bb_rate**2
+        - 2.298 * net
+        - 4.920 * net * abs(net)
+        - 4.036 * k_rate * bb_rate
+        + 5.155 * k_rate * net
+        + 4.546 * bb_rate * net
     )
     assert values["siera"] == pytest.approx(round(published, 2))
     assert calculate_run_prevention(sample(classified_batted_balls=58), 2026, 0.3)["siera"] is None
