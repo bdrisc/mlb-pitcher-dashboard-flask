@@ -929,3 +929,70 @@ background from the bundled compressed Statcast sample when available.
 If that older file lacks the xSLG column, values will remain unavailable
 until the source is refreshed. Existing pitcher pools remain unchanged.
 Set `SYNC_XSLG_ON_STARTUP=0` to disable the public startup backfill.
+
+
+## Calculated and filterable FIP, xFIP, SIERA, and xERA*
+
+The Run Prevention section calculates these metrics from `pitches` for the
+active **season, handedness, pitch type, count, team, date, and home/away**
+filters. The same aggregates are included in overall profile, arsenal rows,
+and `platoon_splits`. These metrics require a selected season with known
+baselines (currently 2026). No new data files, migrations or database seeding
+are required. **Keep the native local Flask + PostgreSQL setup** for the
+full-league 2026 local player pool; do not use Docker Compose locally.
+
+**FIP**: `(13*HR + 3*(BB+HBP) - 2*K) / (outs/3) + cFIP`.
+The 2026 FanGraphs Guts! `cFIP` is **3.081**. Outs are calculated from PA
+results: one for standard outs/K/sacrifice, two for double plays, three for
+triple plays. This captures handedness-attributed outs, but *not* pickoff
+and caught-stealing outs between plate appearances; therefore even full-season
+FIP might differ slightly from FanGraphs' official IP-based total.
+
+**xFIP**: use the same formula with `HR := (fly_ball + popup) * HR/FB`.
+The bundled 2026 baseline currently comes from a 50-pitcher 2026 **cohort**
+audit: `1025 / 8118`, including popups in the fly ball pool. It is
+explicitly **not** a verified full-league FanGraphs HR/FB denominator, so
+xFIP is marked approximate and cannot be represented as FanGraphs-exact.
+A future independently sourced league rate can replace the constant.
+The rate is suppressed when batted-ball types are incomplete.
+
+**SIERA**: the original published MLB/Baseball Prospectus 2010 equation
+with `K/PA`, `BB/PA`, and `(GB-FB-PU)/PA`, using Statcast batted-ball types.
+It is *not* FanGraphs' subsequent re-fitted and season-adjusted formula.
+It is suppressed for incomplete batted-ball classifications; small samples
+can be unstable.
+
+**xERA***: the publicly reproducible **ERA-scale xwOBA proxy**,
+`league ERA + (xwOBA - league wOBA) / wOBA scale * league PA/9`.
+The 2026 factors are league ERA 4.17, FanGraphs league wOBA .316, wOBA scale
+1.259, and league PA/9 37.84. MLB publishes the conceptual relationship
+between xERA and xwOBA but *not* the numerical conversion, so this value
+must **not** be cited as an exact Baseball Savant xERA.
+
+**Important filter interpretation:** Handedness splits count PA-ending
+outcomes by batter side. Filtering by count or pitch type selects the pitch
+that *ended* each PA. FIP/IP under those filters is a per-terminal-pitch
+counterfactual, not an officially reported pitcher innings split. Tooltips
+report counts and methodology. Do not claim perfect parity with the
+unfiltered FanGraphs or Savant leaderboards without matching their
+definitions, official out credits and source population.
+
+Verification reference (2026 Cam Schlittler, public real-season sample):
+MLB/FanGraphs report 193⅔ IP, 16 HR, 49 BB, 6 HBP and 239 K; Statcast
+pitch-ending events in the archived cohort give 580 attributable outs and
+238 strikeout events. These nearly reproduce published **2.55 FIP**
+(calculated ~2.55), with a one-out and one-K discrepancy. Published
+xFIP ~2.86 versus the current cohort-rate calculation ~2.81.
+Baseball Savant reports .262 xwOBA and **2.85 xERA**; the calculated
+ERA-scale proxy is ~2.55 — **not a Savant match**.
+These values should be re-audited against the finalized local full-season
+data before describing the implementation as source-identical.
+
+Sources:
+- https://library.fangraphs.com/pitching/fip/
+- https://library.fangraphs.com/pitching/xfip/
+- https://www.fangraphs.com/tools/guts?type=cn
+- https://www.mlb.com/glossary/advanced-stats/skill-interactive-earned-run-average
+- https://blogs.fangraphs.com/new-siera-part-two-of-five-unlocking-underrated-pitching-skills/
+- https://www.mlb.com/glossary/statcast/expected-era
+- https://baseballsavant.mlb.com/savant-player/cam-schlittler-693645
