@@ -46,11 +46,11 @@ def normalize_fangraphs(payload, season, side="ALL"):
             raise ValueError("FanGraphs returned the wrong season.")
         if not all(field in row for field in fields):
             raise ValueError("FanGraphs response does not include all official pitching rates.")
-        if not row.get("xMLBAMID"):
+        if not row.get("xMLBAMID") and not row.get("playerid"):
             continue
         records.append(
             {
-                "mlb_id": row["xMLBAMID"],
+                "mlb_id": row.get("xMLBAMID"),
                 "IDfg": row.get("playerid"),
                 "Season": season,
                 **{field: row[field] for field in fields},
@@ -58,7 +58,7 @@ def normalize_fangraphs(payload, season, side="ALL"):
             }
         )
     if not records:
-        raise ValueError("FanGraphs did not supply MLB IDs for pitcher results.")
+        raise ValueError("FanGraphs did not supply pitcher IDs for its results.")
     return pd.DataFrame(records)
 
 
@@ -118,6 +118,9 @@ def validate_handedness_split(split, overall):
     if split.empty or overall.empty:
         raise ValueError("No FanGraphs split results to verify.")
     paired = split.merge(overall, on="mlb_id", suffixes=("_side", "_all"))
+    if len(paired) < 10 and "IDfg" in split and "IDfg" in overall:
+        # Narrower FanGraphs split exports may omit xMLBAMID but retain playerid.
+        paired = split.merge(overall, on="IDfg", suffixes=("_side", "_all"))
     if len(paired) >= 10:
         identical = True
         for field in ("FIP", "xFIP", "SIERA"):
