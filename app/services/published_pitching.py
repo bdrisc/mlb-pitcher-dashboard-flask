@@ -27,7 +27,9 @@ def _float(value):
         result = float(str(value).replace(",", ""))
     except ValueError as exc:
         raise ValueError(f"Invalid published pitching value: {value!r}.") from exc
-    if not math.isfinite(result) or not -100 <= result <= 100:
+    # Tiny-sample official xERA can exceed 100; FIP can also be negative.
+    # Reject non-finite values, not legitimate extreme publisher values.
+    if not math.isfinite(result):
         raise ValueError(f"Invalid published pitching value: {value!r}.")
     return result
 
@@ -151,7 +153,8 @@ def import_fangraphs_published(frame, season, side="ALL"):
         raise ValueError("FanGraphs split must be ALL, L, or R.")
     frame = frame.copy()
     frame.columns = frame.columns.astype(str).str.strip()
-    for field in ("FIP", "xFIP", "SIERA"):
+    required = ("FIP", "xFIP", "SIERA") if side == "ALL" else ("FIP", "xFIP")
+    for field in required:
         if field not in frame.columns:
             raise ValueError(f"FanGraphs source is missing {field}; saved stats preserved.")
     _validate_season(frame, season, ("Season", "season"))
@@ -171,7 +174,7 @@ def import_fangraphs_published(frame, season, side="ALL"):
         metrics = {
             "fip": _float(row["FIP"]),
             "xfip": _float(row["xFIP"]),
-            "siera": _float(row["SIERA"]),
+            "siera": _float(row.get("SIERA")),
         }
         if any(value is not None for value in metrics.values()):
             records.append((mlb_id, str(fg_id) if fg_id is not None else None, metrics))
