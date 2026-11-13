@@ -45,6 +45,19 @@ def test_league_xfip_baseline_is_independent_of_deployed_pitcher_cohort():
     assert "rounded" in baseline["hr_fb_source"]
 
 
+def test_2026_schlittler_xfip_matches_published_fangraphs_two_decimals():
+    # MLB Statcast archived 2026 player-season: 157 FB+PU, 49 BB, 6 HBP,
+    # 238 K, 580 event-attributed outs. FanGraphs publishes 2.86 xFIP.
+    counts = sample(
+        outs=580, pa=758, strikeouts=238, walks=49, hbp=6,
+        homers=16, fly_balls=157, ground_balls=206, popups=39,
+        classified_batted_balls=465, contact_events=466,
+    )
+    value = calculate_run_prevention(counts, 2026, 0.2622)
+    assert value["xfip"] == 2.86
+    assert value["fip"] == 2.55
+
+
 def test_fip_denominator_uses_outs_as_thirds_and_skips_zero():
     assert calculate_run_prevention(sample(outs=3), 2026, 0.300)["rp_innings"] == 1
     values = calculate_run_prevention(sample(outs=0), 2026, 0.300)
