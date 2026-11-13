@@ -959,7 +959,7 @@ The rate is suppressed when less than 98% of batted-ball types are classified.
 **SIERA**: the original published MLB/Baseball Prospectus 2010 equation
 with `K/PA`, `BB/PA`, and `(GB-FB-PU)/PA`, using Statcast batted-ball types.
 It is *not* FanGraphs' subsequent re-fitted and season-adjusted formula.
-It is suppressed for incomplete batted-ball classifications; small samples
+It is suppressed below 98% batted-ball classification coverage; small samples
 can be unstable.
 
 **xERA***: the publicly reproducible **ERA-scale xwOBA proxy**,
