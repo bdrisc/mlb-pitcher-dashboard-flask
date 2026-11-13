@@ -179,7 +179,8 @@ def test_savant_csv_requires_official_xera_and_season():
     with pytest.raises(ValueError):
         normalize_savant_csv(b"<html>not a CSV</html>", 2026)
     with pytest.raises(ValueError):
-        normalize_savant_csv(savant_frame(xera=2.88).assign(year=2025).to_csv(index=False).encode(), 2026)
+        wrong_season = savant_frame(xera=2.88).assign(year=2025)
+        normalize_savant_csv(wrong_season.to_csv(index=False).encode(), 2026)
 
 
 def test_manual_source_import_commands_preserve_player_pool(app, tmp_path):
