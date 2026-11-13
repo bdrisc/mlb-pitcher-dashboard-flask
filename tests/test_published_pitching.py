@@ -245,3 +245,35 @@ def test_fangraphs_accepts_valid_negative_fip_in_tiny_splits(app):
     with app.app_context():
         import_fangraphs_published(fg_frame(fip=-3.25), 2026, "R")
         assert published_references(100, 2026)["R"]["fip"] == -3.25
+
+
+def test_narrow_fangraphs_split_can_use_verified_full_season_id_crosswalk(app):
+    overall = fg_frame(fip=3.40)
+    narrow = {
+        "totalCount": 1,
+        "data": [{"playerid": 44, "FIP": 2.71, "xFIP": 3.00}],
+    }
+    split = normalize_fangraphs(narrow, 2026, "R")
+    assert pd.isna(split.iloc[0]["mlb_id"])
+    with app.app_context():
+        import_fangraphs_published(overall, 2026, "ALL")
+        result = import_fangraphs_published(split, 2026, "R")
+        assert result["rows"] == 1
+        value = published_references(100, 2026)["R"]
+        assert value["fip"] == 2.71
+        assert value["xfip"] == 3.00
+        assert value["siera"] is None
+
+
+def test_handedness_guard_checks_fangraphs_id_when_mlb_ids_omitted():
+    full = pd.DataFrame(
+        [
+            {"mlb_id": 200 + i, "IDfg": 400 + i, "FIP": 3.0, "xFIP": 3.1, "SIERA": 3.2}
+            for i in range(12)
+        ]
+    )
+    narrow = full.copy().assign(mlb_id=None)
+    with pytest.raises(ValueError, match="ignore handedness"):
+        validate_handedness_split(narrow, full)
+    narrow["FIP"] = narrow["FIP"] + 0.50
+    validate_handedness_split(narrow, full)
