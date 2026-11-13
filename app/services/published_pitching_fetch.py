@@ -31,12 +31,14 @@ def _download(url, *, accept, timeout=45):
         return response.read()
 
 
-def normalize_fangraphs(payload, season):
+def normalize_fangraphs(payload, season, side="ALL"):
     rows = payload.get("data")
     count = payload.get("totalCount")
     if not isinstance(rows, list) or not rows or count is None or len(rows) != int(count):
         raise ValueError("FanGraphs returned incomplete or empty pitcher leaderboard results.")
-    fields = ("FIP", "xFIP", "SIERA")
+    # The FanGraphs handedness leaderboard can have a narrower column set.
+    # Preserve official SIERA when supplied, otherwise leave the split blank.
+    fields = ("FIP", "xFIP", "SIERA") if side == "ALL" else ("FIP", "xFIP")
     records = []
     for row in rows:
         returned_season = row.get("Season", row.get("season"))
@@ -52,6 +54,7 @@ def normalize_fangraphs(payload, season):
                 "IDfg": row.get("playerid"),
                 "Season": season,
                 **{field: row[field] for field in fields},
+                "SIERA": row.get("SIERA"),
             }
         )
     if not records:
@@ -71,15 +74,17 @@ def fetch_fangraphs(season, side="ALL"):
         "season": season,
         "season1": season,
         "ind": 0,
-        "month": 0,
-        "hand": "" if side == "ALL" else side,
+        # FanGraphs' "hand" filters the *pitcher's* throwing arm, NOT the
+        # opposing batter. The actual batter-side splits use month=13/14.
+        "month": {"ALL": 0, "L": 13, "R": 14}[side],
+        "hand": "",
         "team": 0,
         "rost": 0,
         "pageitems": 10000,
         "pagenum": 1,
     }
     body = _download(FANGRAPHS_ENDPOINT + "?" + urlencode(params), accept="application/json")
-    return normalize_fangraphs(json.loads(body), season)
+    return normalize_fangraphs(json.loads(body), season, side)
 
 
 def normalize_savant_csv(content, season):
@@ -116,6 +121,8 @@ def validate_handedness_split(split, overall):
     if len(paired) >= 10:
         identical = True
         for field in ("FIP", "xFIP", "SIERA"):
+            if f"{field}_side" not in paired or f"{field}_all" not in paired:
+                continue
             left = pd.to_numeric(paired[f"{field}_side"], errors="coerce")
             right = pd.to_numeric(paired[f"{field}_all"], errors="coerce")
             if ((left - right).abs() > 1e-6).any():
