@@ -531,6 +531,10 @@ if (root) {
         splitMetric("BB%", "walk_pct", split.walk_pct),
         splitMetric("Hard-Hit%", "hard_hit_pct", split.hard_hit_pct),
         splitMetric("xwOBAcon", "xwoba_on_contact", split.xwoba_on_contact),
+        splitMetric("FIP", "fip", split.fip),
+        splitMetric("xFIP", "xfip", split.xfip),
+        splitMetric("SIERA", "siera", split.siera),
+        splitMetric("xERA*", "xera", split.xera),
       );
       card.append(heading, metrics);
       elements.splits.append(card);
