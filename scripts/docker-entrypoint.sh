@@ -27,6 +27,13 @@ echo "Starting web server on port ${PORT:-10000}."
         fi
     fi
 
+    if [ "$maintenance_ok" = "1" ] && [ "${SYNC_PUBLISHED_ON_STARTUP:-1}" = "1" ]; then
+        echo "Refreshing independently published FanGraphs and Baseball Savant pitching metrics."
+        if ! flask --app wsgi published sync --season "${PUBLISHED_SEASON:-2026}" --timeout 90; then
+            echo "One or more published pitching sources were unavailable; cached results retained." >&2
+        fi
+    fi
+
     if [ "$maintenance_ok" = "1" ] && [ "${SYNC_XSLG_ON_STARTUP:-1}" = "1" ]; then
         slg_source="${STATCAST_SEED_PATH:-data/production_statcast_2026.csv.gz}"
         if [ -f "$slg_source" ]; then
@@ -84,13 +91,6 @@ echo "Starting web server on port ${PORT:-10000}."
         fi
         if ! flask --app wsgi fangraphs sync --timeout 120; then
             echo "FanGraphs refresh unavailable; existing grades retained." >&2
-        fi
-    fi
-
-    if [ "$maintenance_ok" = "1" ] && [ "${SYNC_PUBLISHED_ON_STARTUP:-1}" = "1" ]; then
-        echo "Refreshing independently published FanGraphs and Baseball Savant pitching metrics."
-        if ! flask --app wsgi published sync --season "${PUBLISHED_SEASON:-2026}" --timeout 90; then
-            echo "One or more published pitching sources were unavailable; cached results retained." >&2
         fi
     fi
 
