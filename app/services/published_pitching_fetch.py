@@ -31,12 +31,14 @@ def _download(url, *, accept, timeout=45):
         return response.read()
 
 
-def normalize_fangraphs(payload, season):
+def normalize_fangraphs(payload, season, side="ALL"):
     rows = payload.get("data")
     count = payload.get("totalCount")
     if not isinstance(rows, list) or not rows or count is None or len(rows) != int(count):
         raise ValueError("FanGraphs returned incomplete or empty pitcher leaderboard results.")
-    fields = ("FIP", "xFIP", "SIERA")
+    # The FanGraphs handedness leaderboard can have a narrower column set.
+    # Preserve official SIERA when supplied, otherwise leave the split blank.
+    fields = ("FIP", "xFIP", "SIERA") if side == "ALL" else ("FIP", "xFIP")
     records = []
     for row in rows:
         returned_season = row.get("Season", row.get("season"))
@@ -44,18 +46,19 @@ def normalize_fangraphs(payload, season):
             raise ValueError("FanGraphs returned the wrong season.")
         if not all(field in row for field in fields):
             raise ValueError("FanGraphs response does not include all official pitching rates.")
-        if not row.get("xMLBAMID"):
+        if not row.get("xMLBAMID") and not row.get("playerid"):
             continue
         records.append(
             {
-                "mlb_id": row["xMLBAMID"],
+                "mlb_id": row.get("xMLBAMID"),
                 "IDfg": row.get("playerid"),
                 "Season": season,
                 **{field: row[field] for field in fields},
+                "SIERA": row.get("SIERA"),
             }
         )
     if not records:
-        raise ValueError("FanGraphs did not supply MLB IDs for pitcher results.")
+        raise ValueError("FanGraphs did not supply pitcher IDs for its results.")
     return pd.DataFrame(records)
 
 
@@ -71,15 +74,17 @@ def fetch_fangraphs(season, side="ALL"):
         "season": season,
         "season1": season,
         "ind": 0,
-        "month": 0,
-        "hand": "" if side == "ALL" else side,
+        # FanGraphs' "hand" filters the *pitcher's* throwing arm, NOT the
+        # opposing batter. The actual batter-side splits use month=13/14.
+        "month": {"ALL": 0, "L": 13, "R": 14}[side],
+        "hand": "",
         "team": 0,
         "rost": 0,
         "pageitems": 10000,
         "pagenum": 1,
     }
     body = _download(FANGRAPHS_ENDPOINT + "?" + urlencode(params), accept="application/json")
-    return normalize_fangraphs(json.loads(body), season)
+    return normalize_fangraphs(json.loads(body), season, side)
 
 
 def normalize_savant_csv(content, season):
@@ -112,10 +117,24 @@ def validate_handedness_split(split, overall):
     """Reject upstream endpoints silently ignoring a requested handedness filter."""
     if split.empty or overall.empty:
         raise ValueError("No FanGraphs split results to verify.")
-    paired = split.merge(overall, on="mlb_id", suffixes=("_side", "_all"))
+    paired = pd.DataFrame()
+    if "mlb_id" in split and "mlb_id" in overall:
+        left = split.copy()
+        right = overall.copy()
+        left["mlb_id"] = pd.to_numeric(left["mlb_id"], errors="coerce")
+        right["mlb_id"] = pd.to_numeric(right["mlb_id"], errors="coerce")
+        left = left.dropna(subset=["mlb_id"])
+        right = right.dropna(subset=["mlb_id"])
+        if not left.empty and not right.empty:
+            paired = left.merge(right, on="mlb_id", suffixes=("_side", "_all"))
+    if len(paired) < 10 and "IDfg" in split and "IDfg" in overall:
+        # Narrower FanGraphs split exports may omit xMLBAMID but retain playerid.
+        paired = split.merge(overall, on="IDfg", suffixes=("_side", "_all"))
     if len(paired) >= 10:
         identical = True
         for field in ("FIP", "xFIP", "SIERA"):
+            if f"{field}_side" not in paired or f"{field}_all" not in paired:
+                continue
             left = pd.to_numeric(paired[f"{field}_side"], errors="coerce")
             right = pd.to_numeric(paired[f"{field}_all"], errors="coerce")
             if ((left - right).abs() > 1e-6).any():

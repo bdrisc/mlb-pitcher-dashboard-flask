@@ -951,16 +951,23 @@ The overall **Run Prevention** section displays the published full-season
 figures. Selecting one batter side selects corresponding **FanGraphs published
 RHH/LHH reference data**, if available. The **Vs RHH** and **Vs LHH** cards also
 show FanGraphs FIP/xFIP/SIERA where supported and validated. The automated
-FanGraphs request uses the Advanced (type 8) pitcher leaderboard with a
-specified batter-hand filter; the import rejects split responses that are
-identical to the overall leaderboard to avoid mislabeling season totals as
-handedness splits. If this upstream split endpoint doesn't support the requested
+FanGraphs request uses the Advanced (type 8) pitcher leaderboard with
+`month=13` for vs LHH and `month=14` for vs RHH. Do **not** use FanGraphs'
+`hand` parameter for these splits: that filters a *pitcher's throwing hand*
+instead of the opposing batter. Some split leaderboards omit SIERA, in which
+case the published FIP/xFIP values are retained and SIERA displays unavailable.
+The import rejects split responses identical to the full-season results so
+totals cannot be mislabeled as handedness splits. If this upstream split endpoint doesn't support the requested
 data, no values are fabricated; use an official FanGraphs split CSV and the
 manual import instead.
 
 Baseball Savant's published xERA is **full season only** in this integration.
 If the user selects a single batter side, xERA displays unavailable rather
-than reusing the full-season number as a misleading split. Removing the
+than reusing the full-season number as a misleading split.
+Savant xERA values are imported **exactly as published**, even if a very small
+sample produces an extreme numeric value (e.g. 104.94). Only malformed or
+non-finite values are rejected; one extreme value must not abort the season
+import. Removing the
 batter-side filter shows official season xERA again.
 
 **Other filters:** Pitch type, count, dates, team and home/away still filter

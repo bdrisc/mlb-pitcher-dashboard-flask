@@ -27,7 +27,9 @@ def _float(value):
         result = float(str(value).replace(",", ""))
     except ValueError as exc:
         raise ValueError(f"Invalid published pitching value: {value!r}.") from exc
-    if not math.isfinite(result) or not -100 <= result <= 100:
+    # Tiny-sample official xERA can exceed 100; FIP can also be negative.
+    # Reject non-finite values, not legitimate extreme publisher values.
+    if not math.isfinite(result):
         raise ValueError(f"Invalid published pitching value: {value!r}.")
     return result
 
@@ -99,7 +101,7 @@ def _validate_season(frame, season, candidates):
 
 
 def _fg_id_map(season):
-    return {
+    mapping = {
         grade.fangraphs_id: grade.mlb_id
         for grade in db.session.scalars(
             select(FanGraphsStuff).where(
@@ -107,6 +109,17 @@ def _fg_id_map(season):
             )
         )
     }
+    # All-season FanGraphs pitching results are imported before split results,
+    # providing a complete ID crosswalk even for pitchers without Stuff+.
+    for row in db.session.scalars(
+        select(PublishedPitchingMetric).where(
+            PublishedPitchingMetric.season == season,
+            PublishedPitchingMetric.batter_side == "ALL",
+            PublishedPitchingMetric.fangraphs_id.is_not(None),
+        )
+    ):
+        mapping[row.fangraphs_id] = row.mlb_id
+    return mapping
 
 
 def _apply_rows(values, season, side, provider):
@@ -151,7 +164,8 @@ def import_fangraphs_published(frame, season, side="ALL"):
         raise ValueError("FanGraphs split must be ALL, L, or R.")
     frame = frame.copy()
     frame.columns = frame.columns.astype(str).str.strip()
-    for field in ("FIP", "xFIP", "SIERA"):
+    required = ("FIP", "xFIP", "SIERA") if side == "ALL" else ("FIP", "xFIP")
+    for field in required:
         if field not in frame.columns:
             raise ValueError(f"FanGraphs source is missing {field}; saved stats preserved.")
     _validate_season(frame, season, ("Season", "season"))
@@ -159,7 +173,7 @@ def import_fangraphs_published(frame, season, side="ALL"):
     fg_column = _column(frame, ("IDfg", "playerid", "PlayerId"))
     if mlb_column is None and fg_column is None:
         raise ValueError("FanGraphs source has no MLBAM or FanGraphs ID.")
-    mapping = _fg_id_map(season) if mlb_column is None else {}
+    mapping = _fg_id_map(season)
     records = []
     for row in frame.to_dict("records"):
         fg_id = _integer(row.get(fg_column)) if fg_column else None
@@ -171,7 +185,7 @@ def import_fangraphs_published(frame, season, side="ALL"):
         metrics = {
             "fip": _float(row["FIP"]),
             "xfip": _float(row["xFIP"]),
-            "siera": _float(row["SIERA"]),
+            "siera": _float(row.get("SIERA")),
         }
         if any(value is not None for value in metrics.values()):
             records.append((mlb_id, str(fg_id) if fg_id is not None else None, metrics))
