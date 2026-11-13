@@ -80,10 +80,7 @@ def _display_reference(row, season, side):
 def published_references(pitcher_id, season):
     """Return source-backed ALL/L/R records, with NULL for unavailable splits."""
     rows = _reference_rows(pitcher_id, season)
-    return {
-        side: _display_reference(rows.get(side), season, side)
-        for side in SPLITS
-    }
+    return {side: _display_reference(rows.get(side), season, side) for side in SPLITS}
 
 
 def _column(frame, choices):
@@ -171,8 +168,11 @@ def import_fangraphs_published(frame, season, side="ALL"):
             mlb_id = mapping.get(str(fg_id))
         if mlb_id is None:
             continue
-        metrics = {"fip": _float(row["FIP"]), "xfip": _float(row["xFIP"]),
-                   "siera": _float(row["SIERA"])}
+        metrics = {
+            "fip": _float(row["FIP"]),
+            "xfip": _float(row["xFIP"]),
+            "siera": _float(row["SIERA"]),
+        }
         if any(value is not None for value in metrics.values()):
             records.append((mlb_id, str(fg_id) if fg_id is not None else None, metrics))
     return _apply_rows(records, season, side, "fangraphs")
