@@ -537,10 +537,7 @@ if (root) {
         splitMetric("xFIP (FG)", "xfip", split.xfip),
         splitMetric("SIERA (FG)", "siera", split.siera),
       );
-      const sourceNote = document.createElement("p");
-      sourceNote.className = "split-reference-note";
-      sourceNote.textContent = "FanGraphs handedness metrics are full-season references, independent of other active pitch filters.";
-      card.append(heading, metrics, sourceNote);
+      card.append(heading, metrics);
       elements.splits.append(card);
     });
   }
