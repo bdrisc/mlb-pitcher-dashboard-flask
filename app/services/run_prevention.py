@@ -77,16 +77,19 @@ def calculate_run_prevention(counts: dict, season: int | None, xwoba: float | No
     if baseline is None:
         return result
 
+    classification_coverage = classified / bbe if bbe else 0
+    result["rp_bbe_coverage_pct"] = round(100 * classification_coverage, 1)
+
     if outs > 0:
         numerator = 13 * hr + 3 * (bb + hbp) - 2 * k
         result["fip"] = _two(numerator / innings + baseline["fip_constant"])
-        if classified == bbe and fb:
+        if classification_coverage >= 0.98 and fb:
             x_numerator = 13 * fb * baseline["hr_fb_rate"] + 3 * (bb + hbp) - 2 * k
             result["xfip"] = _two(x_numerator / innings + baseline["fip_constant"])
 
     # The historical, publicly specified SIERA formula uses PA as its rate
     # denominator and treats (GB - FB - PU) as the net ground-ball count.
-    if pa > 0 and classified == bbe and bbe > 0:
+    if pa > 0 and classification_coverage >= 0.98 and bbe > 0:
         k_rate = k / pa
         bb_rate = bb / pa
         net = (gb - fb) / pa
