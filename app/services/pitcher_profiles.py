@@ -262,7 +262,9 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
     location_tracked = _integer(row, "location_tracked")
     out_of_zone = _integer(row, "out_of_zone")
     batted_balls = _integer(row, "batted_balls")
-    ball_type_counts = tuple(_integer(row, key) for key in ("gb_count", "fb_count", "ld_count", "pu_count"))
+    ball_type_counts = tuple(
+        _integer(row, key) for key in ("gb_count", "fb_count", "ld_count", "pu_count")
+    )
     gb_pct, fb_pct, ld_pct, pu_pct = _batted_ball_percentages(ball_type_counts)
     ball_type_total = sum(ball_type_counts)
     plate_appearances = _integer(row, "plate_appearances")
