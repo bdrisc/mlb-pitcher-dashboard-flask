@@ -1015,3 +1015,26 @@ The existing background-maintenance process runs the same sync with
 Upstream endpoints may throttle or refuse automated downloads; in that case
 the dashboard stays available, prior values are retained, and missing values
 remain blank. Verify source refresh logs and results after deployment.
+
+
+## GB%, FB%, LD%, PU%: batted-ball profile
+
+The **Batted-Ball Profile** section uses mutually exclusive Statcast
+`batted_ball_type` values on batted-ball events:
+`ground_ball`, `fly_ball`, `line_drive`, and `popup`.
+Each rate is the category count divided by the total **classified**
+batted-ball events in these four categories. Popups are separate from
+ordinary fly balls. Classified contact is counted even without recorded exit
+velocity, and unclassified contact is excluded rather than assigned to a
+category. Hovering a headline metric shows the component count and missing
+classification count.
+
+The four rates use a largest-remainder one-decimal rounding rule so their
+**displayed total is exactly 100.0%** for any sample with classified batted
+balls. Without classified batted balls, the four values are unavailable (`—`)
+rather than misleading zeroes. The same calculations are included in overall
+performance, pitch-type aggregations, and RHH/LHH splits; date, count, pitch
+type, venue, and batter-hand filters work like other Statcast-derived metrics.
+
+Both native local Flask and public Render use the same code. No migration,
+new data source, backfill, or pitcher-pool changes are required.
