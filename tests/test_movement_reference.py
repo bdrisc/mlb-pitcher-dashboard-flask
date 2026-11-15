@@ -39,6 +39,9 @@ def test_2026_movement_vs_average_is_same_type_hand_and_arm_angle(tmp_path, monk
     )
     _write_reference(path, records)
     monkeypatch.setattr(reference, "reference_path", lambda season: path)
+    monkeypatch.setattr(
+        reference, "compact_reference_path", lambda season: tmp_path / "none.b85"
+    )
     reference._load_reference.cache_clear()
 
     result = reference.movement_vs_average(
@@ -59,6 +62,9 @@ def test_2026_movement_vs_average_requires_minimum_comparison_sample(tmp_path, m
     path = tmp_path / "league_movement_2026.csv.gz"
     _write_reference(path, [_row(999, "R", "FF", 42, 125, -8, 16)])
     monkeypatch.setattr(reference, "reference_path", lambda season: path)
+    monkeypatch.setattr(
+        reference, "compact_reference_path", lambda season: tmp_path / "none.b85"
+    )
     reference._load_reference.cache_clear()
     result = reference.movement_vs_average(
         season=2026,
@@ -75,6 +81,9 @@ def test_2026_movement_vs_average_requires_minimum_comparison_sample(tmp_path, m
 
 def test_movement_vs_avg_missing_file_returns_unavailable(tmp_path, monkeypatch):
     monkeypatch.setattr(reference, "reference_path", lambda season: tmp_path / "missing.gz")
+    monkeypatch.setattr(
+        reference, "compact_reference_path", lambda season: tmp_path / "missing.b85"
+    )
     result = reference.movement_vs_average(
         season=2026,
         pitch_type="FF",
