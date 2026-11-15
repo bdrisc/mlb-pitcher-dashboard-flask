@@ -209,3 +209,19 @@ def test_published_pitching_explanatory_paragraphs_are_not_displayed(client):
     assert "sourceNote" not in js
     assert 'data-metric="fip"' in html
     assert 'data-metric="xera"' in html
+
+
+def test_dashboard_stat_alignment_css_applies_to_desktop_and_mobile(client):
+    response = client.get("/static/styles.css")
+    assert response.status_code == 200
+    css = response.get_data(as_text=True)
+    assert ".dashboard-shell .arsenal-table th," in css
+    assert ".dashboard-shell .arsenal-table td," in css
+    assert ".dashboard-shell .responsive-table tbody td {" in css
+    assert ".dashboard-shell .pitch-label {" in css
+    assert ".dashboard-shell .metric-card," in css
+    assert ".dashboard-shell .compact-metric," in css
+    assert ".dashboard-shell .split-card dl > div {" in css
+    assert ".dashboard-shell .dashboard-section > .section-heading {" in css
+    assert "grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);" in css
+    assert "@media (max-width: 800px) {" in css

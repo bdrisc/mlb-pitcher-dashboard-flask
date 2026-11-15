@@ -1383,3 +1383,119 @@ summary,
   color: var(--muted);
   font-size: 0.85rem;
 }
+
+
+/* Keep stat headers, figures and captions aligned to each column's center.
+   Scope these rules to the pitcher dashboard; don't shift site-wide tables. */
+.dashboard-shell .metric-card,
+.dashboard-shell .compact-metric,
+.dashboard-shell .overview-group,
+.dashboard-shell .overview-results,
+.dashboard-shell .sample-strip > div,
+.dashboard-shell .split-card dl > div {
+  text-align: center;
+}
+
+.dashboard-shell .metric-card dd,
+.dashboard-shell .compact-metric dd {
+  justify-items: center;
+}
+
+.dashboard-shell .metric-card strong,
+.dashboard-shell .compact-metric strong,
+.dashboard-shell .sample-strip dd,
+.dashboard-shell .split-card dd {
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.dashboard-shell .overview-group-heading,
+.dashboard-shell .identity-flags {
+  justify-content: center;
+}
+
+.dashboard-shell .overview-groups h3,
+.dashboard-shell .split-card h3 {
+  text-align: center;
+}
+
+.dashboard-shell .split-card > div:first-child {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  text-align: center;
+}
+
+.dashboard-shell .arsenal-table th,
+.dashboard-shell .arsenal-table td,
+.dashboard-shell .arsenal-table th:first-child,
+.dashboard-shell .arsenal-table td:first-child,
+.dashboard-shell .responsive-table.separation-table td:nth-child(2),
+.dashboard-shell .responsive-table tbody td {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Center the pitch label as one unit, not the text inside a left-aligned grid. */
+.dashboard-shell .pitch-label {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 100%;
+  gap: 8px;
+  text-align: center;
+}
+
+.dashboard-shell .pitch-label > span:nth-child(2) {
+  min-width: 0;
+}
+
+.dashboard-shell .responsive-cell-label {
+  text-align: center;
+}
+
+/* Use balanced side columns so section headings remain centered when
+   a View/Compare With selector or chart description sits on the right. */
+.dashboard-shell .dashboard-section > .section-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+}
+
+.dashboard-shell .dashboard-section > .section-heading > :first-child {
+  grid-column: 2;
+  text-align: center;
+}
+
+.dashboard-shell .dashboard-section > .section-heading > :last-child:not(:first-child) {
+  grid-column: 3;
+  justify-self: end;
+}
+
+.dashboard-shell .dashboard-section > .section-heading > p {
+  text-align: center;
+}
+
+.dashboard-shell .chart-card-heading > div {
+  flex: 1;
+  text-align: center;
+}
+
+@media (max-width: 800px) {
+  .dashboard-shell .dashboard-section > .section-heading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dashboard-shell .dashboard-section > .section-heading > :last-child:not(:first-child) {
+    align-self: center;
+  }
+
+  .dashboard-shell .responsive-table tbody th:first-child {
+    text-align: center;
+  }
+}
