@@ -87,8 +87,9 @@ def _load_compact_reference(path_str: str, modified_ns: int):
     cursor += 1
     pairs = []
     for _ in range(pair_count):
-        pitch, hand = bytes(view[cursor : cursor + 4])[:3].decode("ascii").strip(), chr(
-            view[cursor + 3]
+        pitch, hand = (
+            bytes(view[cursor : cursor + 4])[:3].decode("ascii").strip(),
+            chr(view[cursor + 3]),
         )
         cursor += 4
         if hand not in ("L", "R") or not pitch:
@@ -105,9 +106,7 @@ def _load_compact_reference(path_str: str, modified_ns: int):
         cursor += 13
         if pair_id >= len(pairs) or not -90 <= angle <= 90 or count == 0:
             raise ValueError("Invalid packed MLB arm-angle bin.")
-        bins[pairs[pair_id]].append(
-            (angle, count, hb_hundredths / 100.0, ivb_hundredths / 100.0)
-        )
+        bins[pairs[pair_id]].append((angle, count, hb_hundredths / 100.0, ivb_hundredths / 100.0))
 
     counts = {}
     (number_windows,) = struct.unpack_from(">H", view, cursor)
@@ -154,9 +153,7 @@ def movement_vs_average(
     compact = compact_reference_path(season)
     if compact.is_file():
         try:
-            bins, distinct = _load_compact_reference(
-                str(compact), compact.stat().st_mtime_ns
-            )
+            bins, distinct = _load_compact_reference(str(compact), compact.stat().st_mtime_ns)
         except (OSError, ValueError, EOFError, struct.error, lzma.LZMAError):
             return result
         first_bin = ceil(float(arm_angle) - ARM_ANGLE_WINDOW_DEGREES - 0.5)
@@ -165,7 +162,8 @@ def movement_vs_average(
         if width not in (10, 11):
             return result
         eligible = [
-            row for row in bins.get((throwing_hand, pitch_type), ())
+            row
+            for row in bins.get((throwing_hand, pitch_type), ())
             if first_bin <= row[0] <= last_bin
         ]
         count = sum(row[1] for row in eligible)
@@ -181,9 +179,7 @@ def movement_vs_average(
             (throwing_hand, pitch_type), ()
         )
         eligible = [
-            row
-            for row in rows
-            if abs(row[0] + 0.5 - float(arm_angle)) <= ARM_ANGLE_WINDOW_DEGREES
+            row for row in rows if abs(row[0] + 0.5 - float(arm_angle)) <= ARM_ANGLE_WINDOW_DEGREES
         ]
         count = sum(row[2] for row in eligible)
         pitchers = len({row[1] for row in eligible})
