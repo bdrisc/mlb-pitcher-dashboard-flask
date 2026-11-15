@@ -216,12 +216,8 @@ def _metric_columns() -> list[Any]:
         func.avg(Pitch.horizontal_break_inches).label("horizontal_break"),
         func.avg(Pitch.vertical_break_inches).label("vertical_break"),
         func.avg(Pitch.arm_angle).filter(joint_movement).label("movement_arm_angle"),
-        func.avg(Pitch.horizontal_break_inches)
-        .filter(joint_movement)
-        .label("movement_joint_hb"),
-        func.avg(Pitch.vertical_break_inches)
-        .filter(joint_movement)
-        .label("movement_joint_ivb"),
+        func.avg(Pitch.horizontal_break_inches).filter(joint_movement).label("movement_joint_hb"),
+        func.avg(Pitch.vertical_break_inches).filter(joint_movement).label("movement_joint_ivb"),
         _count_where(joint_movement).label("movement_joint_pitches"),
         func.avg(Pitch.release_extension).label("release_extension"),
         func.avg(Pitch.exit_velocity).filter(tracked_batted_ball).label("avg_exit_velocity"),
