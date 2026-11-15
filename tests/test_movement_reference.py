@@ -29,10 +29,7 @@ def _row(pitcher, side, pitch, angle, count, hb, ivb):
 
 def test_2026_movement_vs_average_is_same_type_hand_and_arm_angle(tmp_path, monkeypatch):
     path = tmp_path / "league_movement_2026.csv.gz"
-    records = [
-        _row(pitcher, "R", "FF", 42, 25, -8.0, 16.0)
-        for pitcher in range(100, 105)
-    ]
+    records = [_row(pitcher, "R", "FF", 42, 25, -8.0, 16.0) for pitcher in range(100, 105)]
     records.extend(
         [
             _row(200, "R", "FF", 70, 1000, -25, 25),
@@ -64,8 +61,12 @@ def test_2026_movement_vs_average_requires_minimum_comparison_sample(tmp_path, m
     monkeypatch.setattr(reference, "reference_path", lambda season: path)
     reference._load_reference.cache_clear()
     result = reference.movement_vs_average(
-        season=2026, pitch_type="FF", throwing_hand="R", arm_angle=42,
-        horizontal_break=-8.5, vertical_break=16.5,
+        season=2026,
+        pitch_type="FF",
+        throwing_hand="R",
+        arm_angle=42,
+        horizontal_break=-8.5,
+        vertical_break=16.5,
     )
     assert result["hb_vs_avg"] is None
     assert result["ivb_vs_avg"] is None
@@ -75,8 +76,12 @@ def test_2026_movement_vs_average_requires_minimum_comparison_sample(tmp_path, m
 def test_movement_vs_avg_missing_file_returns_unavailable(tmp_path, monkeypatch):
     monkeypatch.setattr(reference, "reference_path", lambda season: tmp_path / "missing.gz")
     result = reference.movement_vs_average(
-        season=2026, pitch_type="FF", throwing_hand="R", arm_angle=42,
-        horizontal_break=-8, vertical_break=16,
+        season=2026,
+        pitch_type="FF",
+        throwing_hand="R",
+        arm_angle=42,
+        horizontal_break=-8,
+        vertical_break=16,
     )
     assert result["hb_vs_avg"] is None
     assert result["ivb_vs_avg"] is None
