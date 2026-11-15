@@ -13,6 +13,7 @@ from app.models import Game, Pitch, Player
 from app.services.database_queries import pitch_filter_conditions, pitcher_team_expression
 from app.services.fangraphs_stuff import profile_grades
 from app.services.filters import PitchFilters
+from app.services.movement_reference import movement_vs_average
 from app.services.pitch_data import PITCH_NAME_MAP
 from app.services.pitch_separation import build_pitch_separation
 from app.services.pitch_tunneling import add_tunneling_to_separation, build_pitch_tunneling
@@ -99,6 +100,11 @@ def _metric_columns() -> list[Any]:
     bbe = description.in_(("hit_into_play", "hit_into_play_no_out", "hit_into_play_score"))
     classified_bbe = and_(bbe, Pitch.launch_speed_angle.between(1, 6))
     batted_ball_kind = func.lower(func.trim(Pitch.batted_ball_type))
+    joint_movement = and_(
+        Pitch.arm_angle.is_not(None),
+        Pitch.horizontal_break_inches.is_not(None),
+        Pitch.vertical_break_inches.is_not(None),
+    )
     tracked_batted_ball = and_(
         Pitch.batted_ball_type.is_not(None),
         Pitch.batted_ball_type != "",
@@ -209,6 +215,10 @@ def _metric_columns() -> list[Any]:
         func.avg(Pitch.spin_rate).label("avg_spin"),
         func.avg(Pitch.horizontal_break_inches).label("horizontal_break"),
         func.avg(Pitch.vertical_break_inches).label("vertical_break"),
+        func.avg(Pitch.arm_angle).filter(joint_movement).label("movement_arm_angle"),
+        func.avg(Pitch.horizontal_break_inches).filter(joint_movement).label("movement_joint_hb"),
+        func.avg(Pitch.vertical_break_inches).filter(joint_movement).label("movement_joint_ivb"),
+        _count_where(joint_movement).label("movement_joint_pitches"),
         func.avg(Pitch.release_extension).label("release_extension"),
         func.avg(Pitch.exit_velocity).filter(tracked_batted_ball).label("avg_exit_velocity"),
         _count_where(
@@ -412,7 +422,9 @@ def _sample(row: RowMapping) -> dict[str, Any]:
     }
 
 
-def _arsenal_rows(conditions: list[Any], total_pitches: int) -> list[dict[str, Any]]:
+def _arsenal_rows(
+    conditions: list[Any], total_pitches: int, season: int | None, hand: str | None
+) -> list[dict[str, Any]]:
     statement = (
         select(Pitch.pitch_type, Pitch.pitch_name, *_metric_columns())
         .select_from(Pitch)
@@ -432,6 +444,15 @@ def _arsenal_rows(conditions: list[Any], total_pitches: int) -> list[dict[str, A
                 "pitch_count": pitch_count,
                 "usage_pct": _rate(pitch_count, total_pitches),
                 **_performance_metrics(row),
+                **movement_vs_average(
+                    season=season,
+                    pitch_type=row["pitch_type"],
+                    throwing_hand=hand,
+                    arm_angle=row["movement_arm_angle"],
+                    horizontal_break=row["movement_joint_hb"],
+                    vertical_break=row["movement_joint_ivb"],
+                ),
+                "movement_joint_pitches": _integer(row, "movement_joint_pitches"),
             }
         )
     return arsenal
@@ -551,7 +572,7 @@ def build_pitcher_profile(pitcher_id: int, filters: PitchFilters) -> dict[str, A
     )
 
     stuff = profile_grades(pitcher_id, filters.season)
-    arsenal = _arsenal_rows(conditions, total_pitches)
+    arsenal = _arsenal_rows(conditions, total_pitches, filters.season, player.throws)
     # FanGraphs' slider category can combine Statcast sliders and sweepers.
     has_sweeper = (
         db.session.scalar(

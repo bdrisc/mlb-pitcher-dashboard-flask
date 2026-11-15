@@ -986,3 +986,49 @@ def test_batted_ball_mix_excludes_missing_types_and_keeps_exact_total(app, profi
         f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026&balls=1&strikes=0"
     ).json["overall"]
     assert all(only_early_count[key] is None for key in ("gb_pct", "fb_pct", "ld_pct", "pu_pct"))
+
+
+def test_pitch_shape_vs_avg_uses_verified_full_mlb_slot_reference(
+    profile_client, app, tmp_path, monkeypatch
+):
+    import csv
+    import gzip
+
+    from sqlalchemy import select
+
+    from app.services import movement_reference
+
+    with app.app_context():
+        four_seamers = db.session.scalars(select(Pitch).where(Pitch.pitch_type == "FF")).all()
+        for pitch in four_seamers:
+            pitch.arm_angle = 42.0
+        db.session.commit()
+
+    path = tmp_path / "league_movement_2026.csv.gz"
+    with gzip.open(path, "wt", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=movement_reference.REFERENCE_FIELDS)
+        writer.writeheader()
+        writer.writerows(
+            {
+                "pitcher_id": pitcher_id,
+                "pitch_type": "FF",
+                "hand": "R",
+                "arm_angle_bin": 42,
+                "pitch_count": 25,
+                "hb_sum": -200,
+                "ivb_sum": 400,
+            }
+            for pitcher_id in range(500, 505)
+        )
+    monkeypatch.setattr(movement_reference, "reference_path", lambda season: path)
+    movement_reference._load_reference.cache_clear()
+
+    payload = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026").json
+    fastball = next(pitch for pitch in payload["arsenal"] if pitch["pitch_type"] == "FF")
+    slider = next(pitch for pitch in payload["arsenal"] if pitch["pitch_type"] == "SL")
+    assert fastball["hb_vs_avg"] == 0.5
+    assert fastball["ivb_vs_avg"] == 0.5
+    assert fastball["movement_avg_pitches"] == 125
+    assert fastball["movement_joint_pitches"] == 2
+    assert slider["hb_vs_avg"] is None
+    assert slider["ivb_vs_avg"] is None
