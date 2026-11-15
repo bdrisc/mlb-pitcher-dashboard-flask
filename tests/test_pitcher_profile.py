@@ -958,9 +958,10 @@ def test_batted_ball_mix_excludes_missing_types_and_keeps_exact_total(app, profi
     profile = profile_client.get(
         f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026"
     ).json
+    slider = next(row for row in profile["arsenal"] if row["pitch_type"] == "SL")
     for metrics in (
         profile["overall"],
-        profile["arsenal"][1],
+        slider,
         next(row for row in profile["platoon_splits"] if row["batter_side"] == "L"),
     ):
         assert [metrics[key] for key in ("gb_pct", "fb_pct", "ld_pct", "pu_pct")] == [
