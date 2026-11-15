@@ -1023,9 +1023,7 @@ def test_pitch_shape_vs_avg_uses_verified_full_mlb_slot_reference(
     monkeypatch.setattr(movement_reference, "reference_path", lambda season: path)
     movement_reference._load_reference.cache_clear()
 
-    payload = profile_client.get(
-        f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026"
-    ).json
+    payload = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026").json
     fastball = next(pitch for pitch in payload["arsenal"] if pitch["pitch_type"] == "FF")
     slider = next(pitch for pitch in payload["arsenal"] if pitch["pitch_type"] == "SL")
     assert fastball["hb_vs_avg"] == 0.5
