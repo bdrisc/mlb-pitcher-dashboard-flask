@@ -1038,3 +1038,49 @@ type, venue, and batter-hand filters work like other Statcast-derived metrics.
 
 Both native local Flask and public Render use the same code. No migration,
 new data source, backfill, or pitcher-pool changes are required.
+
+
+## Pitch Shape: HB vs. AVG and IVB vs. AVG
+
+The **Pitch Shape** table has two additional signed columns: `HB vs. AVG`
+and `IVB vs. AVG` (inches). Each compares the selected pitch type's
+movement to a **full-MLB regular-season average** at similar arm angles
+(±5°, using one-degree angle bins), for the **same pitch type and
+pitcher throwing hand**.
+
+The reference is pitch-weighted across the full season and uses *all*
+qualifying Statcast pitches, not the 50 selected pitchers in the public
+dashboard. The reference includes only pitches with both movement components
+and arm-angle tracking. `HB vs. AVG` measures signed arm-side versus
+glove-side difference, reversing the catcher's signed horizontal coordinate
+for right-handers, while `IVB vs. AVG` is vertical movement difference.
+Positive values are descriptive, not an overall quality grade.
+
+Both metrics respond to the selected pitch filters; the MLB comparison
+remains a frozen season benchmark. At least five distinct MLB pitchers
+and 100 pitches are required in the matching same-hand, same-type, ±5°
+arm-angle group. Otherwise the table shows `—`, not an invented value.
+
+### Building the genuine full-MLB 2026 benchmark
+
+**The full-league reference file is intentionally not generated from the
+public 50-pitcher cohort.** On the existing *native* local full-MLB Flask
+dashboard, with `.venv` active, run:
+
+```bat
+python -m flask --app wsgi movement-reference export --season 2026
+```
+
+This exports `data/league_movement_2026.csv.gz` without altering any
+database records. The command refuses samples smaller than 300 distinct
+MLB pitchers and 200,000 fully tracked pitches; **do not run it in the
+public Docker cohort**. The output is a compact pitch-type, throwing-hand
+and one-degree arm-angle reference with pitcher IDs, counts and movement
+sums. Once the file is included in the repository's `data/` folder,
+both the public Render build and the native local dashboard automatically
+read exactly the same reference. No schema migration or Statcast re-ingestion
+is required.
+
+Until a verified **complete league** benchmark file is present, the new
+columns display `—`. This is deliberate: a 50-pitcher cohort estimate
+must never be presented as an MLB league average.
