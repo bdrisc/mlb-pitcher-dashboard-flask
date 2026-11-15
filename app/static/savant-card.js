@@ -77,6 +77,10 @@ if (root) {
     "chase_pct",
     "hard_hit_pct",
     "barrel_pct",
+    "gb_pct",
+    "fb_pct",
+    "ld_pct",
+    "pu_pct",
     "strikeout_pct",
     "walk_pct",
     "k_minus_bb_pct",
@@ -302,6 +306,9 @@ if (root) {
       if (key === "run_value_per_100") element.title = runValueTitle(overall);
       if (key === "putaway_pct") element.title = putawayTitle(overall);
       if (key === "barrel_pct") element.title = barrelTitle(overall);
+      if (["gb_pct", "fb_pct", "ld_pct", "pu_pct"].includes(key)) {
+        element.title = battedBallTypeTitle(key, overall);
+      }
       if (key === "zone_whiff_pct") element.title = zoneWhiffTitle(overall);
       if (key === "out_of_zone_whiff_pct") element.title = zoneWhiffTitle(overall, "out_of_zone");
     });
@@ -351,6 +358,15 @@ if (root) {
     const classified = metrics.barrel_classified_bbe_count;
     const pending = total - checked;
     return `${metrics.barrel_count.toLocaleString("en-US")} official barrels / ${total.toLocaleString("en-US")} batted-ball events allowed. Lower is better. ${classified.toLocaleString("en-US")} classified; ${(checked - classified).toLocaleString("en-US")} source-checked events lack classification. ${pending.toLocaleString("en-US")} events awaiting backfill. All batted-ball events remain in the denominator; the rate is withheld until backfill is complete and at least one event is classified.`;
+  }
+
+  function battedBallTypeTitle(key, metrics) {
+    const counts = { gb_pct: "gb_count", fb_pct: "fb_count", ld_pct: "ld_count", pu_pct: "pu_count" };
+    const labels = { gb_pct: "Ground balls", fb_pct: "Fly balls", ld_pct: "Line drives", pu_pct: "Popups" };
+    const count = metrics[counts[key]] || 0;
+    const total = metrics.batted_ball_type_count || 0;
+    const unclassified = metrics.batted_ball_type_unclassified || 0;
+    return `${labels[key]}: ${count.toLocaleString("en-US")} / ${total.toLocaleString("en-US")} classified batted-ball events. ${unclassified.toLocaleString("en-US")} unclassified events excluded. These four mutually exclusive shares sum to 100.0% when classification data are available; the percentages respond to the selected filters.`;
   }
 
   function putawayTitle(metrics) {
@@ -532,6 +548,10 @@ if (root) {
         splitMetric("K%", "strikeout_pct", split.strikeout_pct),
         splitMetric("BB%", "walk_pct", split.walk_pct),
         splitMetric("Hard-Hit%", "hard_hit_pct", split.hard_hit_pct),
+        splitMetric("GB%", "gb_pct", split.gb_pct),
+        splitMetric("FB%", "fb_pct", split.fb_pct),
+        splitMetric("LD%", "ld_pct", split.ld_pct),
+        splitMetric("PU%", "pu_pct", split.pu_pct),
         splitMetric("xwOBAcon", "xwoba_on_contact", split.xwoba_on_contact),
         splitMetric("FIP (FG)", "fip", split.fip),
         splitMetric("xFIP (FG)", "xfip", split.xfip),

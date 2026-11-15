@@ -98,6 +98,7 @@ def _metric_columns() -> list[Any]:
     )
     bbe = description.in_(("hit_into_play", "hit_into_play_no_out", "hit_into_play_score"))
     classified_bbe = and_(bbe, Pitch.launch_speed_angle.between(1, 6))
+    batted_ball_kind = func.lower(func.trim(Pitch.batted_ball_type))
     tracked_batted_ball = and_(
         Pitch.batted_ball_type.is_not(None),
         Pitch.batted_ball_type != "",
@@ -174,6 +175,10 @@ def _metric_columns() -> list[Any]:
         _count_where(Pitch.is_chase.is_(True)).label("chases"),
         _count_where(tracked_batted_ball).label("batted_balls"),
         _count_where(bbe).label("barrel_bbe_count"),
+        _count_where(bbe, batted_ball_kind == "ground_ball").label("gb_count"),
+        _count_where(bbe, batted_ball_kind == "fly_ball").label("fb_count"),
+        _count_where(bbe, batted_ball_kind == "line_drive").label("ld_count"),
+        _count_where(bbe, batted_ball_kind == "popup").label("pu_count"),
         _count_where(and_(bbe, Pitch.barrel_checked.is_(True))).label("barrel_checked_count"),
         _count_where(classified_bbe).label("barrel_classified_count"),
         _count_where(and_(bbe, Pitch.launch_speed_angle == 6)).label("barrel_count"),
@@ -235,12 +240,33 @@ def _rate(numerator: int, denominator: int) -> float | None:
     return None if denominator == 0 else round(100 * numerator / denominator, 1)
 
 
+def _batted_ball_percentages(counts: tuple[int, int, int, int]) -> tuple[float | None, ...]:
+    """Distribute tenths of a percent so displayed GB/FB/LD/PU always sum to 100.0."""
+    total = sum(counts)
+    if not total:
+        return (None, None, None, None)
+
+    tenths = [count * 1000 // total for count in counts]
+    remaining = 1000 - sum(tenths)
+    # Largest-remainder allocation avoids a visible 99.9% or 100.1% total.
+    # Tie order is GB, FB, LD, PU for stable results.
+    order = sorted(range(4), key=lambda i: (-(counts[i] * 1000 % total), i))
+    for index in order[:remaining]:
+        tenths[index] += 1
+    return tuple(value / 10 for value in tenths)
+
+
 def _performance_metrics(row: RowMapping) -> dict[str, Any]:
     pitches = _integer(row, "pitch_count")
     swings = _integer(row, "swings")
     location_tracked = _integer(row, "location_tracked")
     out_of_zone = _integer(row, "out_of_zone")
     batted_balls = _integer(row, "batted_balls")
+    ball_type_counts = tuple(
+        _integer(row, key) for key in ("gb_count", "fb_count", "ld_count", "pu_count")
+    )
+    gb_pct, fb_pct, ld_pct, pu_pct = _batted_ball_percentages(ball_type_counts)
+    ball_type_total = sum(ball_type_counts)
     plate_appearances = _integer(row, "plate_appearances")
     run_value_pitches = _integer(row, "run_value_pitches")
     run_value_denominator = _integer(row, "run_value_denominator")
@@ -334,6 +360,18 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         "zone_pct": _rate(_integer(row, "in_zone"), location_tracked),
         "chase_pct": _rate(_integer(row, "chases"), out_of_zone),
         "hard_hit_pct": _rate(_integer(row, "hard_hits"), batted_balls),
+        "gb_pct": gb_pct,
+        "fb_pct": fb_pct,
+        "ld_pct": ld_pct,
+        "pu_pct": pu_pct,
+        "gb_count": ball_type_counts[0],
+        "fb_count": ball_type_counts[1],
+        "ld_count": ball_type_counts[2],
+        "pu_count": ball_type_counts[3],
+        "batted_ball_type_count": ball_type_total,
+        "batted_ball_type_unclassified": max(
+            0, _integer(row, "barrel_bbe_count") - ball_type_total
+        ),
         "barrel_pct": (
             _rate(_integer(row, "barrel_count"), _integer(row, "barrel_bbe_count"))
             if (
