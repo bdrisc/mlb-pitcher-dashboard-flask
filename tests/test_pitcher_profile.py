@@ -911,16 +911,17 @@ def test_batted_ball_mix_updates_for_pitch_and_handedness_filters(profile_client
     profile = profile_client.get(url).json
     overall = profile["overall"]
     assert (overall["gb_pct"], overall["fb_pct"], overall["ld_pct"], overall["pu_pct"]) == (
-        0.0, 100.0, 0.0, 0.0
+        0.0,
+        100.0,
+        0.0,
+        0.0,
     )
     assert overall["batted_ball_type_count"] == 1
     assert overall["batted_ball_type_unclassified"] == 0
 
     by_side = {s["batter_side"]: s for s in profile["platoon_splits"]}
     assert by_side["L"]["fb_pct"] == 100.0
-    assert all(
-        by_side["R"][key] is None for key in ("gb_pct", "fb_pct", "ld_pct", "pu_pct")
-    )
+    assert all(by_side["R"][key] is None for key in ("gb_pct", "fb_pct", "ld_pct", "pu_pct"))
     assert all(
         profile_client.get(url + "&pitch_type=FF").json["overall"][key] is None
         for key in ("gb_pct", "fb_pct", "ld_pct", "pu_pct")
@@ -932,9 +933,7 @@ def test_batted_ball_mix_updates_for_pitch_and_handedness_filters(profile_client
 
 def test_batted_ball_mix_excludes_missing_types_and_keeps_exact_total(app, profile_client):
     with app.app_context():
-        for number, kind in enumerate(
-            ("ground_ball", "line_drive", "popup", None), start=10
-        ):
+        for number, kind in enumerate(("ground_ball", "line_drive", "popup", None), start=10):
             db.session.add(
                 _pitch(
                     pitch_id=f"1002_{number}_1",
@@ -955,9 +954,7 @@ def test_batted_ball_mix_excludes_missing_types_and_keeps_exact_total(app, profi
             )
         db.session.commit()
 
-    profile = profile_client.get(
-        f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026"
-    ).json
+    profile = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026").json
     slider = next(row for row in profile["arsenal"] if row["pitch_type"] == "SL")
     for metrics in (
         profile["overall"],
@@ -965,26 +962,27 @@ def test_batted_ball_mix_excludes_missing_types_and_keeps_exact_total(app, profi
         next(row for row in profile["platoon_splits"] if row["batter_side"] == "L"),
     ):
         assert [metrics[key] for key in ("gb_pct", "fb_pct", "ld_pct", "pu_pct")] == [
-            25.0, 25.0, 25.0, 25.0
+            25.0,
+            25.0,
+            25.0,
+            25.0,
         ]
         assert metrics["batted_ball_type_count"] == 4
         assert metrics["batted_ball_type_unclassified"] == 1
         assert [metrics[key] for key in ("gb_count", "fb_count", "ld_count", "pu_count")] == [
-            1, 1, 1, 1
+            1,
+            1,
+            1,
+            1,
         ]
 
     only_fastballs = profile_client.get(
         f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026&pitch_type=FF"
     ).json["overall"]
     assert only_fastballs["batted_ball_type_count"] == 0
-    assert all(
-        only_fastballs[key] is None for key in ("gb_pct", "fb_pct", "ld_pct", "pu_pct")
-    )
+    assert all(only_fastballs[key] is None for key in ("gb_pct", "fb_pct", "ld_pct", "pu_pct"))
 
     only_early_count = profile_client.get(
         f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026&balls=1&strikes=0"
     ).json["overall"]
-    assert all(
-        only_early_count[key] is None
-        for key in ("gb_pct", "fb_pct", "ld_pct", "pu_pct")
-    )
+    assert all(only_early_count[key] is None for key in ("gb_pct", "fb_pct", "ld_pct", "pu_pct"))
