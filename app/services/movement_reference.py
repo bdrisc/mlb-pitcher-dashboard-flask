@@ -11,7 +11,7 @@ import csv
 import gzip
 from collections import defaultdict
 from functools import lru_cache
-from math import floor, isfinite
+from math import isfinite
 from pathlib import Path
 
 from sqlalchemy import func, select
@@ -20,7 +20,15 @@ from app.extensions import db
 from app.models import Game, Pitch, Player
 
 REFERENCE_DIR = Path(__file__).resolve().parents[2] / "data"
-REFERENCE_FIELDS = ("pitcher_id", "pitch_type", "hand", "arm_angle_bin", "pitch_count", "hb_sum", "ivb_sum")
+REFERENCE_FIELDS = (
+    "pitcher_id",
+    "pitch_type",
+    "hand",
+    "arm_angle_bin",
+    "pitch_count",
+    "hb_sum",
+    "ivb_sum",
+)
 MIN_MLB_PITCHERS = 300
 MIN_MLB_PITCHES = 200_000
 MIN_COMPARISON_PITCHERS = 5
@@ -170,4 +178,10 @@ def export_full_league_reference(season: int, destination: Path | None = None) -
         temporary.replace(destination)
     finally:
         temporary.unlink(missing_ok=True)
-    return {"season": season, "pitchers": pitchers, "pitches": pitches, "rows": len(rows), "path": str(destination)}
+    return {
+        "season": season,
+        "pitchers": pitchers,
+        "pitches": pitches,
+        "rows": len(rows),
+        "path": str(destination),
+    }
