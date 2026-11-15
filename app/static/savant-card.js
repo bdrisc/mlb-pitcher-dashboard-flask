@@ -378,6 +378,27 @@ if (root) {
     return `Context-neutral runs prevented per 100 pitches; higher is better. ${count.toLocaleString("en-US")} of ${(metrics.run_value_denominator || 0).toLocaleString("en-US")} pitches have run-value data (${formatNumber(metrics.run_value_coverage_pct || 0)}% coverage).`;
   }
 
+  function signedMovement(value) {
+    if (value === null || value === undefined) return "—";
+    const number = Number(value) === 0 ? 0 : Number(value);
+    return `${number > 0 ? "+" : ""}${formatNumber(number)}`;
+  }
+
+  function movementVsAverageTitle(pitch, component) {
+    const label = component === "hb" ? "Horizontal movement" : "Induced vertical break";
+    if (pitch.movement_joint_pitches === 0) {
+      return "No selected pitches have both movement and arm-angle tracking.";
+    }
+    if (!pitch.movement_avg_pitches) {
+      return "A verified full-MLB arm-angle movement reference has not been loaded for this season. Never uses the limited public pitcher cohort.";
+    }
+    const slots = `${pitch.movement_avg_pitchers} MLB pitchers, ${pitch.movement_avg_pitches.toLocaleString("en-US")} pitches`;
+    const caveat = pitch.movement_avg_pitchers < 5 || pitch.movement_avg_pitches < 100
+      ? "Insufficient MLB comparison sample; no residual displayed."
+      : "Positive HB means more arm-side break than average; negative HB means more glove-side break. Positive IVB means more rise.";
+    return `${label} vs. full MLB ${slots}, matching pitch type, throwing hand, and ±5° of average arm angle (${formatNumber(pitch.movement_avg_arm_angle)}°). ${pitch.movement_joint_pitches} selected pitches with joint tracking. ${caveat}`;
+  }
+
   function tableCell(row, value, className = "") {
     const cell = document.createElement("td");
     cell.textContent = value;
@@ -445,6 +466,8 @@ if (root) {
       tableCell(row, formatMetric("avg_spin", pitch.avg_spin));
       tableCell(row, formatMetric("horizontal_break", pitch.horizontal_break));
       tableCell(row, formatMetric("vertical_break", pitch.vertical_break));
+      tableCell(row, signedMovement(pitch.hb_vs_avg)).title = movementVsAverageTitle(pitch, "hb");
+      tableCell(row, signedMovement(pitch.ivb_vs_avg)).title = movementVsAverageTitle(pitch, "ivb");
       tableCell(row, formatMetric("vaa", pitch.vaa)).title = `Raw VAA at the front of home plate; negative means descending. ${pitch.vaa_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches tracked.`;
       tableCell(row, formatMetric("vaa_adj", pitch.vaa_adj)).title = `VAA minus expected VAA for this pitch type and front-plane height. Positive = flatter; negative = steeper. Frozen 2025 MLB baseline. ${pitch.vaa_adj_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches scored.`;
       tableCell(row, formatMetric("haa", pitch.haa)).title = `Raw HAA at the front of home plate; positive is toward the catcher's right. ${pitch.haa_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches tracked.`;
