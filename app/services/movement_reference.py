@@ -94,8 +94,7 @@ def movement_vs_average(
         return result
     rows = _load_reference(str(path), path.stat().st_mtime_ns).get((throwing_hand, pitch_type), ())
     eligible = [
-        row for row in rows
-        if abs(row[0] + 0.5 - float(arm_angle)) <= ARM_ANGLE_WINDOW_DEGREES
+        row for row in rows if abs(row[0] + 0.5 - float(arm_angle)) <= ARM_ANGLE_WINDOW_DEGREES
     ]
     count = sum(row[2] for row in eligible)
     pitchers = len({row[1] for row in eligible})
@@ -166,15 +165,17 @@ def export_full_league_reference(season: int, destination: Path | None = None) -
             writer = csv.DictWriter(stream, fieldnames=REFERENCE_FIELDS)
             writer.writeheader()
             for row in rows:
-                writer.writerow({
-                    "pitcher_id": row["pitcher_id"],
-                    "pitch_type": row["pitch_type"],
-                    "hand": row["hand"],
-                    "arm_angle_bin": int(row["angle_bin"]),
-                    "pitch_count": int(row["pitch_count"]),
-                    "hb_sum": f"{float(row['hb_sum']):.8f}",
-                    "ivb_sum": f"{float(row['ivb_sum']):.8f}",
-                })
+                writer.writerow(
+                    {
+                        "pitcher_id": row["pitcher_id"],
+                        "pitch_type": row["pitch_type"],
+                        "hand": row["hand"],
+                        "arm_angle_bin": int(row["angle_bin"]),
+                        "pitch_count": int(row["pitch_count"]),
+                        "hb_sum": f"{float(row['hb_sum']):.8f}",
+                        "ivb_sum": f"{float(row['ivb_sum']):.8f}",
+                    }
+                )
         temporary.replace(destination)
     finally:
         temporary.unlink(missing_ok=True)
