@@ -893,3 +893,97 @@ def test_published_run_prevention_labels_show_sources_not_estimates(profile_clie
     assert "Baseball Savant" in html
     assert "Unadjusted" not in html
     assert "xERA*" not in html
+
+
+def test_batted_ball_mix_uses_one_decimal_largest_remainder():
+    from app.services.pitcher_profiles import _batted_ball_percentages
+
+    assert _batted_ball_percentages((0, 0, 0, 0)) == (None, None, None, None)
+    assert _batted_ball_percentages((0, 1, 0, 0)) == (0.0, 100.0, 0.0, 0.0)
+    assert _batted_ball_percentages((1, 1, 1, 0)) == (33.4, 33.3, 33.3, 0.0)
+    assert _batted_ball_percentages((1, 1, 1, 1)) == (25.0, 25.0, 25.0, 25.0)
+    for counts in ((1, 3, 7, 2), (10, 11, 9, 8), (999, 123, 1, 2)):
+        assert round(sum(_batted_ball_percentages(counts)), 1) == 100.0
+
+
+def test_batted_ball_mix_updates_for_pitch_and_handedness_filters(profile_client):
+    url = f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026"
+    profile = profile_client.get(url).json
+    overall = profile["overall"]
+    assert (overall["gb_pct"], overall["fb_pct"], overall["ld_pct"], overall["pu_pct"]) == (
+        0.0, 100.0, 0.0, 0.0
+    )
+    assert overall["batted_ball_type_count"] == 1
+    assert overall["batted_ball_type_unclassified"] == 0
+
+    by_side = {s["batter_side"]: s for s in profile["platoon_splits"]}
+    assert by_side["L"]["fb_pct"] == 100.0
+    assert all(
+        by_side["R"][key] is None for key in ("gb_pct", "fb_pct", "ld_pct", "pu_pct")
+    )
+    assert all(
+        profile_client.get(url + "&pitch_type=FF").json["overall"][key] is None
+        for key in ("gb_pct", "fb_pct", "ld_pct", "pu_pct")
+    )
+    assert profile_client.get(url + "&pitch_type=SL").json["overall"]["fb_pct"] == 100.0
+    assert profile["arsenal"][0]["batted_ball_type_count"] == 0
+    assert profile["arsenal"][1]["fb_pct"] == 100.0
+
+
+def test_batted_ball_mix_excludes_missing_types_and_keeps_exact_total(app, profile_client):
+    with app.app_context():
+        for number, kind in enumerate(
+            ("ground_ball", "line_drive", "popup", None), start=10
+        ):
+            db.session.add(
+                _pitch(
+                    pitch_id=f"1002_{number}_1",
+                    game_pk=1002,
+                    batter_id=201,
+                    at_bat_number=number,
+                    pitch_number=1,
+                    inning_half="Bot",
+                    batter_side="L",
+                    pitch_type="SL",
+                    pitch_name="Slider",
+                    balls=0,
+                    strikes=0,
+                    description="hit_into_play",
+                    batted_ball_type=kind,
+                    events="field_out",
+                )
+            )
+        db.session.commit()
+
+    profile = profile_client.get(
+        f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026"
+    ).json
+    for metrics in (
+        profile["overall"],
+        profile["arsenal"][1],
+        next(row for row in profile["platoon_splits"] if row["batter_side"] == "L"),
+    ):
+        assert [metrics[key] for key in ("gb_pct", "fb_pct", "ld_pct", "pu_pct")] == [
+            25.0, 25.0, 25.0, 25.0
+        ]
+        assert metrics["batted_ball_type_count"] == 4
+        assert metrics["batted_ball_type_unclassified"] == 1
+        assert [metrics[key] for key in ("gb_count", "fb_count", "ld_count", "pu_count")] == [
+            1, 1, 1, 1
+        ]
+
+    only_fastballs = profile_client.get(
+        f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026&pitch_type=FF"
+    ).json["overall"]
+    assert only_fastballs["batted_ball_type_count"] == 0
+    assert all(
+        only_fastballs[key] is None for key in ("gb_pct", "fb_pct", "ld_pct", "pu_pct")
+    )
+
+    only_early_count = profile_client.get(
+        f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026&balls=1&strikes=0"
+    ).json["overall"]
+    assert all(
+        only_early_count[key] is None
+        for key in ("gb_pct", "fb_pct", "ld_pct", "pu_pct")
+    )
