@@ -1061,26 +1061,38 @@ remains a frozen season benchmark. At least five distinct MLB pitchers
 and 100 pitches are required in the matching same-hand, same-type, ±5°
 arm-angle group. Otherwise the table shows `—`, not an invented value.
 
-### Building the genuine full-MLB 2026 benchmark
+### Verified 2026 MLB movement benchmark
 
-**The full-league reference file is intentionally not generated from the
-public 50-pitcher cohort.** On the existing *native* local full-MLB Flask
-dashboard, with `.venv` active, run:
+The repository now includes
+`data/league_movement_2026.b85`, built from the complete native 2026
+Statcast season supplied by the project owner: **867 MLB pitchers,
+708,046 pitches**, and **49,208 original pitcher/pitch-type/arm-angle
+groups**, with both throwing hands represented.
+
+The distributed snapshot is an LZMA-compressed, Base85-encoded, compact
+version of that verified dataset. It preserves pitch counts, movement
+sums to 0.01 inch, and **exact distinct-pitcher counts** for each
+10-/11-bin window used by the ±5° arm-angle match. This makes a
+small, deterministic MLB-wide benchmark available even though the public
+database contains only 50 selected pitchers. Both the public Render app
+and native local Flask app use **the same packaged 2026 reference**.
+
+The original full-fidelity per-pitcher export remains available locally
+as `data/league_movement_2026.csv.gz` and can be regenerated without
+changing any database records:
 
 ```bat
 python -m flask --app wsgi movement-reference export --season 2026
 ```
 
-This exports `data/league_movement_2026.csv.gz` without altering any
-database records. The command refuses samples smaller than 300 distinct
-MLB pitchers and 200,000 fully tracked pitches; **do not run it in the
-public Docker cohort**. The output is a compact pitch-type, throwing-hand
-and one-degree arm-angle reference with pitcher IDs, counts and movement
-sums. Once the file is included in the repository's `data/` folder,
-both the public Render build and the native local dashboard automatically
-read exactly the same reference. No schema migration or Statcast re-ingestion
-is required.
+The export refuses databases with fewer than 300 pitchers or 200,000
+fully tracked regular-season pitches; **do not run it on the public
+50-pitcher cohort**. The dashboard prefers the vetted packaged snapshot
+if present, and otherwise uses the original full-league CSV export.
+For seasons without any verified reference, the new columns display
+`—` rather than silently using the public subset.
 
-Until a verified **complete league** benchmark file is present, the new
-columns display `—`. This is deliberate: a 50-pitcher cohort estimate
-must never be presented as an MLB league average.
+No database migration, additional Statcast download or pitcher-data
+modification is required. A `git pull origin main` updates the local
+benchmark after the change is merged, and the production Docker image
+includes the same `.b85` snapshot for the hosted version.

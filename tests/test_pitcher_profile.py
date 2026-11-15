@@ -1021,6 +1021,9 @@ def test_pitch_shape_vs_avg_uses_verified_full_mlb_slot_reference(
             for pitcher_id in range(500, 505)
         )
     monkeypatch.setattr(movement_reference, "reference_path", lambda season: path)
+    monkeypatch.setattr(
+        movement_reference, "compact_reference_path", lambda season: tmp_path / "none.b85"
+    )
     movement_reference._load_reference.cache_clear()
 
     payload = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026").json

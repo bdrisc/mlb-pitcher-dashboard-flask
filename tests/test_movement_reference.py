@@ -39,6 +39,7 @@ def test_2026_movement_vs_average_is_same_type_hand_and_arm_angle(tmp_path, monk
     )
     _write_reference(path, records)
     monkeypatch.setattr(reference, "reference_path", lambda season: path)
+    monkeypatch.setattr(reference, "compact_reference_path", lambda season: tmp_path / "none.b85")
     reference._load_reference.cache_clear()
 
     result = reference.movement_vs_average(
@@ -59,6 +60,7 @@ def test_2026_movement_vs_average_requires_minimum_comparison_sample(tmp_path, m
     path = tmp_path / "league_movement_2026.csv.gz"
     _write_reference(path, [_row(999, "R", "FF", 42, 125, -8, 16)])
     monkeypatch.setattr(reference, "reference_path", lambda season: path)
+    monkeypatch.setattr(reference, "compact_reference_path", lambda season: tmp_path / "none.b85")
     reference._load_reference.cache_clear()
     result = reference.movement_vs_average(
         season=2026,
@@ -75,6 +77,9 @@ def test_2026_movement_vs_average_requires_minimum_comparison_sample(tmp_path, m
 
 def test_movement_vs_avg_missing_file_returns_unavailable(tmp_path, monkeypatch):
     monkeypatch.setattr(reference, "reference_path", lambda season: tmp_path / "missing.gz")
+    monkeypatch.setattr(
+        reference, "compact_reference_path", lambda season: tmp_path / "missing.b85"
+    )
     result = reference.movement_vs_average(
         season=2026,
         pitch_type="FF",
@@ -92,3 +97,51 @@ def test_full_league_export_refuses_public_cohort_and_empty_test_db(app, tmp_pat
         with pytest.raises(ValueError, match="Not a full MLB season"):
             reference.export_full_league_reference(2026, tmp_path / "reference.gz")
     assert not (tmp_path / "reference.gz").exists()
+
+
+def test_packaged_2026_reference_matches_uploaded_full_league_source():
+    path = reference.compact_reference_path(2026)
+    assert path.is_file()
+    bins, distinct = reference._load_compact_reference(str(path), path.stat().st_mtime_ns)
+    assert len(bins) == 30
+    assert sum(len(rows) for rows in bins.values()) == 1927
+    assert sum(row[1] for rows in bins.values() for row in rows) == 708046
+    assert len(distinct) == 2501
+
+    right_fastball = reference.movement_vs_average(
+        season=2026,
+        pitch_type="FF",
+        throwing_hand="R",
+        arm_angle=42.0,
+        horizontal_break=-8.0,
+        vertical_break=17.0,
+    )
+    assert right_fastball["movement_avg_pitchers"] == 385
+    assert right_fastball["movement_avg_pitches"] == 53174
+    assert right_fastball["hb_vs_avg"] == 0.5
+    assert right_fastball["ivb_vs_avg"] == 0.8
+
+    left_changeup = reference.movement_vs_average(
+        season=2026,
+        pitch_type="CH",
+        throwing_hand="L",
+        arm_angle=55.0,
+        horizontal_break=12.0,
+        vertical_break=10.0,
+    )
+    assert left_changeup["movement_avg_pitchers"] == 51
+    assert left_changeup["movement_avg_pitches"] == 1648
+    assert left_changeup["hb_vs_avg"] == -0.2
+    assert left_changeup["ivb_vs_avg"] == 0.7
+
+    assert (
+        reference.movement_vs_average(
+            season=2025,
+            pitch_type="FF",
+            throwing_hand="R",
+            arm_angle=42.0,
+            horizontal_break=-8.0,
+            vertical_break=17.0,
+        )["hb_vs_avg"]
+        is None
+    )
