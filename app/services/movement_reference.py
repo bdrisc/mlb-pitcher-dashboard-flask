@@ -7,11 +7,14 @@ read the same compact, independently exported full-league Statcast reference.
 
 from __future__ import annotations
 
+import base64
 import csv
 import gzip
+import lzma
+import struct
 from collections import defaultdict
 from functools import lru_cache
-from math import isfinite
+from math import ceil, floor, isfinite
 from pathlib import Path
 
 from sqlalchemy import func, select
@@ -40,6 +43,10 @@ def reference_path(season: int) -> Path:
     return REFERENCE_DIR / f"league_movement_{season}.csv.gz"
 
 
+def compact_reference_path(season: int) -> Path:
+    return REFERENCE_DIR / f"league_movement_{season}.b85"
+
+
 @lru_cache(maxsize=8)
 def _load_reference(path_str: str, modified_ns: int):
     groups = defaultdict(list)
@@ -61,6 +68,61 @@ def _load_reference(path_str: str, modified_ns: int):
                 raise ValueError("Invalid league movement sums or sample counts.")
             groups[(side, code)].append((angle_bin, pitcher_id, count, hb_sum, ivb_sum))
     return groups
+
+
+@lru_cache(maxsize=8)
+def _load_compact_reference(path_str: str, modified_ns: int):
+    """Decode a losslessly aggregated version of the vetted league reference.
+
+    The full per-pitcher source remains available as a local .csv.gz.
+    This compact text snapshot preserves exact movement sums, pitch counts,
+    and DISTINCT MLB pitcher counts for the 10-/11-bin ±5-degree windows.
+    """
+    raw = lzma.decompress(base64.b85decode(Path(path_str).read_bytes().strip()))
+    view = memoryview(raw)
+    if bytes(view[:9]) != b"MLB2026v2":
+        raise ValueError("Unrecognized packed MLB movement reference format.")
+    cursor = 9
+    pair_count = view[cursor]
+    cursor += 1
+    pairs = []
+    for _ in range(pair_count):
+        pitch, hand = bytes(view[cursor : cursor + 4])[:3].decode("ascii").strip(), chr(
+            view[cursor + 3]
+        )
+        cursor += 4
+        if hand not in ("L", "R") or not pitch:
+            raise ValueError("Invalid compact MLB pitch type or throwing hand.")
+        pairs.append((hand, pitch))
+
+    bins = defaultdict(list)
+    (number_bins,) = struct.unpack_from(">H", view, cursor)
+    cursor += 2
+    for _ in range(number_bins):
+        pair_id, angle, count, hb_hundredths, ivb_hundredths = struct.unpack_from(
+            ">BhHii", view, cursor
+        )
+        cursor += 13
+        if pair_id >= len(pairs) or not -90 <= angle <= 90 or count == 0:
+            raise ValueError("Invalid packed MLB arm-angle bin.")
+        bins[pairs[pair_id]].append(
+            (angle, count, hb_hundredths / 100.0, ivb_hundredths / 100.0)
+        )
+
+    counts = {}
+    (number_windows,) = struct.unpack_from(">H", view, cursor)
+    cursor += 2
+    for _ in range(number_windows):
+        pair_id, start, distinct_10, distinct_11 = struct.unpack_from(">BhHH", view, cursor)
+        cursor += 7
+        if pair_id >= len(pairs) or distinct_10 > 2000 or distinct_11 > 2000:
+            raise ValueError("Invalid packed MLB reference window.")
+        counts[(pairs[pair_id], start)] = (distinct_10, distinct_11)
+    if cursor != len(view):
+        raise ValueError("Trailing bytes in packed MLB movement reference.")
+    if sum(row[1] for group in bins.values() for row in group) < MIN_MLB_PITCHES:
+        raise ValueError("Packed MLB movement sample is incomplete.")
+    return bins, counts
 
 
 def movement_vs_average(
@@ -89,23 +151,52 @@ def movement_vs_average(
         or not all(isfinite(float(x)) for x in (arm_angle, horizontal_break, vertical_break))
     ):
         return result
-    path = reference_path(season)
-    if not path.is_file():
-        return result
-    rows = _load_reference(str(path), path.stat().st_mtime_ns).get((throwing_hand, pitch_type), ())
-    eligible = [
-        row for row in rows if abs(row[0] + 0.5 - float(arm_angle)) <= ARM_ANGLE_WINDOW_DEGREES
-    ]
-    count = sum(row[2] for row in eligible)
-    pitchers = len({row[1] for row in eligible})
+    compact = compact_reference_path(season)
+    if compact.is_file():
+        try:
+            bins, distinct = _load_compact_reference(
+                str(compact), compact.stat().st_mtime_ns
+            )
+        except (OSError, ValueError, EOFError, struct.error, lzma.LZMAError):
+            return result
+        first_bin = ceil(float(arm_angle) - ARM_ANGLE_WINDOW_DEGREES - 0.5)
+        last_bin = floor(float(arm_angle) + ARM_ANGLE_WINDOW_DEGREES - 0.5)
+        width = last_bin - first_bin + 1
+        if width not in (10, 11):
+            return result
+        eligible = [
+            row for row in bins.get((throwing_hand, pitch_type), ())
+            if first_bin <= row[0] <= last_bin
+        ]
+        count = sum(row[1] for row in eligible)
+        pair_counts = distinct.get(((throwing_hand, pitch_type), first_bin), (0, 0))
+        pitchers = pair_counts[width - 10]
+        hb_sum = sum(row[2] for row in eligible)
+        ivb_sum = sum(row[3] for row in eligible)
+    else:
+        path = reference_path(season)
+        if not path.is_file():
+            return result
+        rows = _load_reference(str(path), path.stat().st_mtime_ns).get(
+            (throwing_hand, pitch_type), ()
+        )
+        eligible = [
+            row
+            for row in rows
+            if abs(row[0] + 0.5 - float(arm_angle)) <= ARM_ANGLE_WINDOW_DEGREES
+        ]
+        count = sum(row[2] for row in eligible)
+        pitchers = len({row[1] for row in eligible})
+        hb_sum = sum(row[3] for row in eligible)
+        ivb_sum = sum(row[4] for row in eligible)
     result["movement_avg_pitches"] = count
     result["movement_avg_pitchers"] = pitchers
     result["movement_avg_arm_angle"] = round(float(arm_angle), 1)
     if count < MIN_COMPARISON_PITCHES or pitchers < MIN_COMPARISON_PITCHERS:
         return result
 
-    league_hb = sum(row[3] for row in eligible) / count
-    league_ivb = sum(row[4] for row in eligible) / count
+    league_hb = hb_sum / count
+    league_ivb = ivb_sum / count
     hand_sign = -1 if throwing_hand == "R" else 1
     result["hb_vs_avg"] = round((float(horizontal_break) - league_hb) * hand_sign, 1)
     result["ivb_vs_avg"] = round(float(vertical_break) - league_ivb, 1)
