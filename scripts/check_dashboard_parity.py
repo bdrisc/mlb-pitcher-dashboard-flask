@@ -18,7 +18,6 @@ import json
 import math
 import sys
 import time
-from datetime import date
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
