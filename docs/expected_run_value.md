@@ -1,118 +1,126 @@
-# Contact-adjusted expected pitcher run value (xRV)
+# Contact-adjusted expected pitcher run value (xRV) — methodology and audit
 
-## Definition and source alignment
+**xRV is a custom contact-adjusted metric, not an official Baseball Savant statistic
+or a reproduction of FanGraphs Community's count-based xPV.** Baseball Savant
+publishes context-neutral actual RV and expected **wOBA**, but not an official
+expected pitch run-value formula. This metric combines these two sources in a
+reproducible linear-weights approximation.
 
-**This is a custom metric, not an official Baseball Savant xRV or FanGraphs xPV.**
-The baseline for each pitch is the *existing* Baseball Savant-aligned,
-context-neutral pitcher run value in the dashboard, not a new approximation of
-run expectancy or a separate reconstruction of a wOBA-by-count table.
+## Formula
 
-The repository verifies observed pitcher-season pitch RV against Savant's
-context-neutral total in `app/services/run_value_refresh.py` and preserves the
-normal `RV/100` calculation without changes. Source data for each scored pitch:
+Observed pitcher RV is unchanged from the dashboard's stored
+`-Pitch.delta_run_expectancy`, using the existing Savant-neutral verification
+pipeline in `app/services/run_value_refresh.py`.
 
-- `Pitch.delta_run_expectancy`: batter-signed run value as stored after the
-  existing Savant-neutral verification/refresh (pitcher RV is its negative).
-- `Pitch.estimated_woba`: Statcast `estimated_woba_using_speedangle` for
-  balls put into play (primarily exit velocity and launch angle).
-- `Pitch.savant_woba_numerator`, if available, otherwise `Pitch.woba_value`:
-  actual outcome wOBA weight as documented by Savant.
-- `Game.season`: selects **that season's** FanGraphs wOBAScale.
-
-For scored balls in play, the calculation on the pitcher's sign convention is:
+For physical pitches that end a standard **ball in play**:
 
 ```
-pitcher_actual_RV = -Savant_batter_pitch_RV
-pitcher_xRV       = pitcher_actual_RV + (actual_wOBA_weight - contact_xwOBA) / wOBAScale
+contact_correction = (seasonal_actual_wOBA_weight - Statcast_contact_xwOBA) /
+                     same_season_FanGraphs_wOBAScale
+
+pitcher_xRV        = pitcher_actual_RV + contact_correction
 pitcher_RV_minus_xRV = pitcher_actual_RV - pitcher_xRV
 ```
 
-For a normal ball, called/swinging strike, foul, walk, strikeout or HBP,
-`pitcher_xRV = pitcher_actual_RV`. The observed run value already incorporates
-the count transition; we **do not** fit another count-based model, since that
-would cause the dashboard's paired actual run values to diverge from verified
-Savant run values. FanGraphs Community's *Expected Pitch Value* provides the
-conceptual inspiration for using xwOBA and wOBAScale, but its count-based xPV
-is a different statistic.
+Actual outcome weights and wOBAScale are both taken from the same **current,
+season-specific FanGraphs Guts table**. A single, double, triple or home run
+receives its season's w1B, w2B, w3B or wHR, respectively. Ordinary batted-ball
+outs, errors, fielder's choices and sacrifice flies have a wOBA numerator of
+zero. They are still included if Statcast supplies a valid contact xwOBA.
 
-The sign is **pitcher-positive**: positive RV − xRV means the pitcher prevented
-more runs than this contact-quality-adjusted estimate. This is a description
-of observed versus expected contact results, **not a measure of pure luck**.
+All non-contact pitches with recorded actual RV, including balls, called and
+swinging strikes, fouls, strikeouts, walks and hit-by-pitches, keep the same
+actual and expected RV. Count effects remain represented through Savant's
+existing pitch run values; the app does not fit another count model.
 
-## Pairing, filters, coverage and denominators
+The expected contact value is `estimated_woba_using_speedangle`, stored in
+`Pitch.estimated_woba`. This CSV field is explicitly based on exit velocity and
+launch angle, while full Savant xwOBA incorporates Sprint Speed on certain
+weakly hit balls; the two are **not exactly equivalent on all contact**.
 
-Only physical pitches with an observed run value are candidates. For
-descriptions `hit_into_play`, `hit_into_play_no_out`, and
-`hit_into_play_score`, a pitch needs valid actual and expected wOBA values,
-a documented scale for the season, and a standard plate-appearance outcome.
-Contact plays without those requirements are **excluded from both paired actual
-and expected totals**, not filled with an arbitrary zero correction.
+### 2026 source-coefficient correction, November 16, 2026
 
-Sacrifice bunts, catcher interference, and interrupted PAs are explicitly
-excluded from scored contact. They still count toward the denominator and the
-published missing-coverage counters. Automatic ball and automatic strike
-events, and unidentified pitch types, are excluded from the denominator to
-match the existing physical-pitch `RV/100` convention.
+A final methodology audit identified that a previously cached FanGraphs Guts
+result used older **2026** constants. The currently displayed table, independently
+consistent with a November 4, 2026 baseballr Guts extraction, has:
 
-For any selection or arsenal pitch type:
+| 2026 constant | Correct current value | Previously used value |
+| --- | ---: | ---: |
+| wOBAScale | **1.238** | 1.259 |
+| w1B | **0.890** | 0.897 |
+| w2B | **1.261** | 1.275 |
+| w3B | **1.596** | 1.614 |
+| wHR | **2.049** | 2.079 |
+
+The constants for **every Statcast season from 2015 to 2026** are now stored
+in `WOBA_CONSTANTS`. For an unsupported season (such as 2027 before its
+constants are published), contact is left unscored rather than silently
+borrowing another year's conversion factor.
+
+The original approach mixed the current scale with whichever
+`savant_woba_numerator` or `woba_value` had been stored when the data was
+last imported. That could combine a newly revised scale with old event weights.
+The audited implementation uses a **single known coefficient vintage** for
+both fields, **without changing the underlying Savant RV** or requiring a
+database migration. A separate audit counter
+`expected_run_value_imported_weight_mismatch` identifies scored contact
+where an imported weight differs from the current seasonal Guts weight by
+more than 0.005. It is diagnostic: the final published seasonal weight is
+used for xRV.
+
+## Comparison rules
+
+Only normal physical pitches with actual RV are eligible. For contact, the
+app additionally requires a supported terminal Statcast event, an expected
+wOBA in [0, 3], and seasonal Guts coefficients. Nonstandard outcomes such
+as sacrifice bunts, catcher interference, interrupted PAs and unknown contact
+event labels are **not** scored as ordinary batted-ball outs. Automatic balls
+and strikes, and unknown pitch types, are excluded from physical-pitch counts.
+
+For an active filter selection:
 
 ```
-paired_xRV/100     = 100 * sum(paired_pitcher_xRV) / N_scored
-paired_actual/100  = 100 * sum(paired_pitcher_actual_RV) / N_scored
-RV - xRV           = sum(paired_pitcher_actual_RV) - sum(paired_pitcher_xRV)
-(RV - xRV)/100     = 100 * (RV - xRV) / N_scored
-coverage           = N_scored / N_physical
+N_scored          = number of pitches with paired RV and xRV
+paired_actual/100 = 100 * sum(actual_pitcher_RV on scored pitches) / N_scored
+xRV/100           = 100 * sum(pitcher_xRV on scored pitches) / N_scored
+RV - xRV          = sum(paired_actual_pitcher_RV - pitcher_xRV)
+ΔRV/100           = 100 * (RV - xRV) / N_scored
+coverage          = N_scored / N_physical_pitches
 ```
 
-The original `RV/100` reports *all* available RV pitches with its original
-physical-pitch denominator. If a selection has missing batted-ball estimates
-or run values, `paired_actual/100` and original `RV/100` may differ: do not
-subtract original `RV/100` from xRV/100. Paired totals, scored counts, coverage
-percentages, missing actual-RV counts, unscored contact counts, unsupported
-contact counts, and unknown seasonal-scale counts are included in the profile
-JSON. Empty paired samples return null, not zero.
+**Pitcher-positive sign:** Positive RV − xRV means better actual run prevention
+than the contact-adjusted expectation. Negative means worse. This is not a pure
+luck statistic: defensive alignment, runner events, extreme spray contact,
+park conditions and limitations of the xwOBA model may affect residuals.
 
-## FanGraphs wOBA scale
+The original Savant-aligned `RV/100` continues to include its **full**
+physical-pitch denominator. `paired_actual/100` and `RV/100` may differ
+if the xRV sample is incomplete; do **not** subtract original RV/100 from
+xRV/100. The API exposes coverage, paired actual RV, missing actual RV,
+unscored contact, unsupported outcomes, unsupported seasonal scales and
+outdated imported contact-weight counts to help audit the selection.
 
-The scales are taken from FanGraphs' season-specific Guts table, not the older
-article's illustrative `1.15` approximation:
+## Remaining limits
 
-| Year | wOBAScale |
-| --- | ---: |
-| 2023 | 1.204 |
-| 2024 | 1.242 |
-| 2025 | 1.232 |
-| 2026 | 1.259 |
-
-A future or otherwise unsupported season does not silently inherit the 2026
-scale. Update `WOBA_SCALES` after that year's scale is available.
-
-## Limitations / audit
-
-- This adjusts the **observed outcome of contacted balls only**. It is *not*
-  a pre-pitch prediction of whether a batter swings, whiffs, makes contact,
-  reaches base, or scores.
-- Realized non-contact outcomes, count effects, and non-contact baserunning
-  effects remain in the Savant-verified observed RV. The wOBA-to-runs adjustment
-  is a linear-weights approximation; it cannot exactly re-create the change in
-  run expectancy that would occur if individual batted-ball outcomes changed.
-- `estimated_woba_using_speedangle` is a tracked-contact EV/LA estimate; it
-  is not guaranteed identical to the full Savant xwOBA treatment of all PAs,
-  including sprint-speed adjustments in certain cases.
-- The original observed RV values are only as neutral as the **verified
-  Savant-neutral refresh** for that dataset. The pipeline favors Savant
-  deleveraged fields on ingestion and has a separate validator that matches
-  its season totals. Missing/legacy unverified values are not retroactively
-  converted by this metric.
-- Missing or unusual batted-ball events are not silently assigned actual RV.
-  The JSON and hover tooltips reveal the incomplete-data counts. An individual
-  pitcher/pitch type with substantially incomplete coverage should not be
-  interpreted as having an unbiased full-season expected value.
-- No year-over-year stability or predictive test has been performed.
+- This is an **outcome-adjusted**, not a pre-pitch predictive, run-value model.
+  Savant does not supply an official xRV total to use as a direct benchmark.
+- Replacing contact wOBA weights using linear weights is an approximation; it
+  does not rerun full counterfactual base/out state simulations. Some play
+  effects (e.g., extra outs on a double play) remain in observed RV.
+- Savant alignment of **actual** run values is guaranteed only for dataset
+  rows successfully checked by the repository's existing Savant-neutral
+  refresh. A raw dataset imported without that verification is not made
+  Savant-verified merely by calculating xRV.
+- Local and public deployments use the same code, but this audit did not
+  independently examine every row of the private local database or validate
+  actual player-season xRV against an unavailable official Savant xRV metric.
+- No predictive stability or year-over-year test is included.
 
 ## Sources
 
-- [Baseball Savant: Run Value](https://baseballsavant.mlb.com/swing-take)
-- [Baseball Savant: CSV field definitions](https://baseballsavant.mlb.com/csv-docs)
-- [FanGraphs Guts: season-specific wOBA scales](https://www.fangraphs.com/tools/guts?type=cn)
-- [FanGraphs Community: Expected Pitch Value](https://community.fangraphs.com/expected-pitch-value/)
+- [Baseball Savant Run Value leaderboard](https://baseballsavant.mlb.com/leaderboard/swing-take?stats=statcast)
+- [Statcast CSV definitions](https://baseballsavant.mlb.com/csv-docs)
+- [MLB xwOBA glossary](https://www.mlb.com/glossary/statcast/expected-woba)
+- [FanGraphs Guts! seasonal constants](https://www.fangraphs.com/tools/guts?type=cn)
+- [baseballr Guts extraction reference](https://billpetti.github.io/baseballr/reference/fg_guts.html)
+- [FanGraphs Community Expected Pitch Value article](https://community.fangraphs.com/expected-pitch-value/)
