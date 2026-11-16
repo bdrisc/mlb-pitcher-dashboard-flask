@@ -71,7 +71,8 @@ def expected_run_value_columns():
         (matched, actual_pitcher_rv),
         else_=None,
     )
-    missing_contact = and_(has_actual_rv, is_batted_ball, ~usable_contact)
+    # SQL NULLs in a missing Statcast estimate are genuinely unscored contact.
+    missing_contact = and_(has_actual_rv, is_batted_ball, ~func.coalesce(usable_contact, False))
     return [
         func.count(Pitch.pitch_id).filter(matched).label("xrv_scored_pitches"),
         func.sum(paired_actual).label("xrv_paired_actual"),
