@@ -20,8 +20,18 @@ def _snapshot(*conditions):
     return record.mappings().one()
 
 
-def _pitch(game_pk, pitch_number, *, pitch_type, description, event=None, rv=None,
-           actual=None, expected=None, verified=None):
+def _pitch(
+    game_pk,
+    pitch_number,
+    *,
+    pitch_type,
+    description,
+    event=None,
+    rv=None,
+    actual=None,
+    expected=None,
+    verified=None,
+):
     return Pitch(
         pitch_id=f"{game_pk}_1_{pitch_number}",
         game_pk=game_pk,
@@ -67,25 +77,51 @@ def test_year_specific_scale_verified_weight_and_pitch_type_grouping(app):
             [
                 # 2025 uses the published Guts coefficient, not a stale CSV weight.
                 _pitch(
-                    101, 1, pitch_type="SL", description="hit_into_play",
-                    event="single", rv=0.3, actual=0.897, expected=0.4, verified=0.882,
+                    101,
+                    1,
+                    pitch_type="SL",
+                    description="hit_into_play",
+                    event="single",
+                    rv=0.3,
+                    actual=0.897,
+                    expected=0.4,
+                    verified=0.882,
                 ),
                 # A field-out gets zero wOBA weight regardless of a stale source weight.
                 _pitch(
-                    101, 2, pitch_type="SL", description="hit_into_play",
-                    event="field_out", rv=-0.2, actual=0.897, expected=0.5, verified=0.0,
+                    101,
+                    2,
+                    pitch_type="SL",
+                    description="hit_into_play",
+                    event="field_out",
+                    rv=-0.2,
+                    actual=0.897,
+                    expected=0.5,
+                    verified=0.0,
                 ),
                 # Non-contact RV is unchanged regardless of season.
                 _pitch(101, 3, pitch_type="SL", description="called_strike", rv=-0.05),
                 # 2026 uses its own linear-weights scale.
                 _pitch(
-                    102, 1, pitch_type="FF", description="hit_into_play",
-                    event="single", rv=0.3, actual=0.897, expected=0.4,
+                    102,
+                    1,
+                    pitch_type="FF",
+                    description="hit_into_play",
+                    event="single",
+                    rv=0.3,
+                    actual=0.897,
+                    expected=0.4,
                 ),
                 # Null xwOBA does NOT become 0 and does not count as paired.
                 _pitch(
-                    102, 2, pitch_type="FF", description="hit_into_play",
-                    event="field_out", rv=-0.2, actual=0.0, expected=None,
+                    102,
+                    2,
+                    pitch_type="FF",
+                    description="hit_into_play",
+                    event="field_out",
+                    rv=-0.2,
+                    actual=0.0,
+                    expected=None,
                 ),
             ]
         )
@@ -116,9 +152,9 @@ def test_year_specific_scale_verified_weight_and_pitch_type_grouping(app):
             slider["xrv_paired_expected"] + fastball["xrv_paired_expected"]
         )
         # Pitcher RV minus xRV = (expected contact wOBA - actual weight) / scale.
-        assert (
-            overall["xrv_paired_actual"] - overall["xrv_paired_expected"]
-        ) == pytest.approx(-(slider_correction + fastball_correction))
+        assert (overall["xrv_paired_actual"] - overall["xrv_paired_expected"]) == pytest.approx(
+            -(slider_correction + fastball_correction)
+        )
 
 
 def test_missing_season_scale_excludes_only_contact(app):
@@ -138,8 +174,14 @@ def test_missing_season_scale_excludes_only_contact(app):
             [
                 _pitch(99, 1, pitch_type="FF", description="called_strike", rv=-0.1),
                 _pitch(
-                    99, 2, pitch_type="FF", description="hit_into_play",
-                    event="single", rv=0.2, actual=0.890, expected=0.4,
+                    99,
+                    2,
+                    pitch_type="FF",
+                    description="hit_into_play",
+                    event="single",
+                    rv=0.2,
+                    actual=0.890,
+                    expected=0.4,
                 ),
             ]
         )
