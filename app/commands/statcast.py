@@ -339,6 +339,51 @@ def refresh_run_values_command(pitcher_id, season, workers):
         )
 
 
+@statcast_cli.command("refresh-pitch-types")
+@click.option("--pitcher", "pitcher_id", type=click.IntRange(min=1))
+@click.option("--season", type=click.IntRange(2015, 2100), default=2026, show_default=True)
+@click.option(
+    "--audit",
+    "audit_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Only the mismatched pitchers in this local/public parity report.",
+)
+@click.option("--apply", is_flag=True, help="Commit verified official classifications.")
+@click.option("--workers", type=click.IntRange(1, 8), default=4, show_default=True)
+@with_appcontext
+def refresh_pitch_types_command(pitcher_id, season, audit_path, apply, workers):
+    """Audit or update existing pitch types from an identity-verified Savant CSV."""
+    import json
+
+    from app.services.pitch_type_refresh import refresh_pitch_types
+
+    audit_ids = None
+    if audit_path is not None:
+        report = json.loads(audit_path.read_text(encoding="utf-8"))
+        if report.get("season") != season or not isinstance(report.get("results"), list):
+            raise click.ClickException("Audit season or results do not match this command.")
+        audit_ids = {
+            int(row["pitcher_id"])
+            for row in report["results"]
+            if row.get("different_fields") and not row.get("error")
+        }
+        if not audit_ids or len(audit_ids) > 100:
+            raise click.ClickException("The parity audit has no valid mismatched pitcher pool.")
+    result = refresh_pitch_types(
+        pitcher_id=pitcher_id,
+        season=season,
+        audit_ids=audit_ids,
+        apply=apply,
+        workers=workers,
+        progress=click.echo,
+    )
+    click.echo(result)
+    if result["failed"]:
+        raise click.ClickException(
+            "Some Savant classification sources were not verified; existing types preserved."
+        )
+
+
 @statcast_cli.command("backfill-approach-angles")
 @click.option("--season", type=click.IntRange(min=2015, max=2100))
 @click.option("--pitcher", "pitcher_id", type=int)
