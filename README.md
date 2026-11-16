@@ -1114,3 +1114,25 @@ HB/IVB. The separate **HB vs. AVG** and **IVB vs. AVG** reference still uses
 joint angle-and-movement tracking to keep its comparison sample consistent.
 Both public and local dashboards use the same code and existing pitch data;
 no migration, rebuild or re-ingestion is necessary.
+
+
+### Release Height and Release Side in Pitch Shape
+
+The Arsenal Performance **Pitch Shape** view shows two additional release
+position metrics next to Arm Angle. **Release Height** is the average
+Statcast `release_pos_z` (feet above ground). **Release Side** is the
+average signed Statcast `release_pos_x` (feet relative to home-plate
+center, from the catcher's perspective): positive toward the catcher's
+right, negative toward the catcher's left. The raw sign is preserved,
+regardless of pitcher handedness.
+
+Both averages come from the pitcher's selected pitch type and filters
+(season, date, count, batter handedness, team, venue). Each metric excludes
+missing tracking and automatic balls/strikes and uses its own tracked-pitch
+denominator, which is available in the metric's hover tooltip. Heights
+and sides are displayed to two decimal places in feet; when no qualifying
+tracking exists the value is `—`. A valid zero release-side position
+is shown as `0.00 ft`, not missing.
+
+Both dashboards share the implementation and existing Statcast columns;
+no database migration, re-ingestion, or league reference is required.
