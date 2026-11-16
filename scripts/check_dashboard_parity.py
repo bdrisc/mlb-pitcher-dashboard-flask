@@ -71,14 +71,17 @@ def _flatten(value, prefix=""):
         for item in value:
             if not isinstance(item, dict):
                 break
-            key = next(
-                (
-                    str(item[name])
-                    for name in ("pitch_type", "batter_side", "pitch_a", "date")
-                    if name in item and item[name] is not None
-                ),
-                None,
-            )
+            if item.get("pitch_a") is not None and item.get("pitch_b") is not None:
+                key = f"{item['pitch_a']}->{item['pitch_b']}"
+            else:
+                key = next(
+                    (
+                        str(item[name])
+                        for name in ("pitch_type", "batter_side", "date")
+                        if name in item and item[name] is not None
+                    ),
+                    None,
+                )
             if key is None or key in keyed:
                 break
             keyed[key] = item
