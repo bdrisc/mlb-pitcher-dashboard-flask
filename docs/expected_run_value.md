@@ -96,9 +96,96 @@ park conditions and limitations of the xwOBA model may affect residuals.
 The original Savant-aligned `RV/100` continues to include its **full**
 physical-pitch denominator. `paired_actual/100` and `RV/100` may differ
 if the xRV sample is incomplete; do **not** subtract original RV/100 from
-xRV/100. The API exposes coverage, paired actual RV, missing actual RV,
+xRV/100. The API exposes coverage, tracked contact counts, a quality warning status, paired actual RV, missing actual RV,
 unscored contact, unsupported outcomes, unsupported seasonal scales and
 outdated imported contact-weight counts to help audit the selection.
+
+## 2026 empirical validation — production pitcher cohort (November 16, 2026)
+
+**Sample:** Real 2026 regular-season data in the public Neon-backed dashboard:
+50 selected pitchers; 142,141 pitch records; 142,139 physical pitches;
+24,419 eligible terminal contact plays; **24,200 scored** with contact
+expectations (99.10% contact coverage). Exact paired pitch coverage was
+**141,920 / 142,139 = 99.85%**. The sample is **not** a random sample of
+all major-league pitchers, and there is no independent official Savant xRV
+benchmark.
+
+### Outcome-weight and contact calibration
+
+On the 24,200 valid matched batted balls, using the same currently published
+2026 FanGraphs Guts event weights as the dashboard:
+
+| Quantity | Mean contact wOBA |
+| --- | ---: |
+| Realized outcomes, FanGraphs 2026 weights | .35829 |
+| Statcast `estimated_woba_using_speedangle` | .36065 |
+| Actual minus expected | **−.00236** |
+
+This is a useful **aggregate calibration check**, not evidence that every
+individual pitcher or pitch type is perfectly calibrated. Across eight
+predeclared xwOBA bands, realized-minus-expected means ranged approximately
+from **−.017 to +.011**; small-band sampling and pitcher selection affect
+these residuals. The imported `woba_value` CSV uses different values
+(e.g. 0.900 for 1B and 2.000 for HR), so simply pairing it with a FanGraphs
+seasonal scale or mixing it with verified seasonal weights would introduce a
+source-vintage inconsistency. The dashboard uses matched published seasonal
+weights for its adjustment.
+
+### Chronological half-season holdout — comparison to actual RV
+
+We froze the split at **July 1, 2026**: first-half pitch values predict
+**second-half actual pitcher RV/100**, for all 50 selected pitchers with at
+least 300 physical pitches in **each** half. This is a descriptive test with
+one season and a selected, relatively small cohort; it does not establish
+future-year forecasting quality.
+
+| First-half predictor | Pearson r with second-half RV/100 | MAE (runs/100) |
+| --- | ---: | ---: |
+| Observed Savant-aligned RV/100 | **.402** | .6646 |
+| Contact-adjusted xRV/100 (matched pitches) | .365 | **.6320** |
+
+The mean per-pitcher absolute error reduction from xRV was **0.0326
+runs/100**, with standard error **0.0510** and an approximate 95%
+normal-based interval **[−0.0674, +0.1326]**. xRV had lower absolute error
+for **26 pitchers** and RV for **24**. This difference is **not statistically
+distinguishable from zero**; raw RV actually had the higher holdout
+correlation. Consequently, we do **not** claim that contact-adjusted xRV
+predicts future pitcher outcomes better than Savant RV. No shrinkage factor
+was tuned to this small holdout; the physics-inspired linear weights are
+kept fixed.
+
+### Interpreting the displayed pair
+
+The dashboard now displays **Paired RV/100** immediately beside **xRV/100**
+both overall and by arsenal pitch type. They are calculated from *exactly
+the same observed pitches and denominator*, so their difference is
+**ΔRV/100**. The original, standalone Savant-aligned **RV/100** still shows
+the full physical pitch population and is **not** altered.
+
+The API also exposes number of tracked and eligible contact events, their
+coverage percentage, and a conservative descriptive quality flag:
+
+- `descriptive`: at least 300 matched pitches, at least 30 contact plays,
+  without materially incomplete coverage;
+- `small_sample`: below those thresholds;
+- `limited_coverage`: under 95% of eligible contact tracked (when at
+  least 30 contact plays), or under 95% matched physical pitches (when at
+  least 200 physical pitches);
+- `unavailable`: no scored paired pitches.
+
+These thresholds are **presentation warnings, not learned statistical
+reliability cutoffs**. Even a `descriptive` value is not a validated
+pitch-quality model or talent forecast.
+
+### Reproducing the audit
+
+Run `python -m scripts.audit_xrv --season 2026` from a configured
+environment that has a populated database. The script is read-only, uses
+the **same SQL expressions as the dashboard**, reports aggregate expected
+contact calibration, and repeats the fixed July 1 temporal holdout with
+Pearson correlation, MAE and error-difference uncertainty. For local
+full-league data, the resulting sample could differ substantially from
+these **public 50-pitcher** findings.
 
 ## Remaining limits
 
@@ -114,7 +201,7 @@ outdated imported contact-weight counts to help audit the selection.
 - Local and public deployments use the same code, but this audit did not
   independently examine every row of the private local database or validate
   actual player-season xRV against an unavailable official Savant xRV metric.
-- No predictive stability or year-over-year test is included.
+- A July 1 split-half holdout on the 2026 public 50-pitcher cohort is documented above. No independent 2027 or multi-year prospective predictive validation has been completed.
 
 ## Sources
 
