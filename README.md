@@ -1096,3 +1096,21 @@ No database migration, additional Statcast download or pitcher-data
 modification is required. A `git pull origin main` updates the local
 benchmark after the change is merged, and the production Docker image
 includes the same `.b85` snapshot for the hosted version.
+
+
+### Arm Angle in Pitch Shape
+
+The Pitch Shape view in **Arsenal Performance** now includes an **Arm Angle**
+column between Spin and HB. It reports the mean pitch-level Statcast release
+arm angle, in degrees, for the selected pitcher and pitch type: 0° is
+horizontal/sidearm and 90° is over the top. Only pitches with a valid tracked
+angle from 0° to 90° and a physical pitch (not an automatic ball or strike)
+contribute. Hover over the value for the tracked-pitch count; without eligible
+tracking the value is shown as `—` rather than 0°. It follows the dashboard's
+existing season, date, count, batter-side, pitch-type and venue filters.
+
+The visible mean uses **all valid tracked arm angles**, independent of missing
+HB/IVB. The separate **HB vs. AVG** and **IVB vs. AVG** reference still uses
+joint angle-and-movement tracking to keep its comparison sample consistent.
+Both public and local dashboards use the same code and existing pitch data;
+no migration, rebuild or re-ingestion is necessary.
