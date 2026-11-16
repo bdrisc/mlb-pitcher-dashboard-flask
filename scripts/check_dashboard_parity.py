@@ -104,19 +104,19 @@ def compare_profiles(local, public, tolerance=1e-7):
         "fangraphs",
     )
     local_fields = dict(
-        pair for key in sections if key in local
-        for pair in _flatten(local[key], key)
+        pair for key in sections if key in local for pair in _flatten(local[key], key)
     )
     public_fields = dict(
-        pair for key in sections if key in public
-        for pair in _flatten(public[key], key)
+        pair for key in sections if key in public for pair in _flatten(public[key], key)
     )
     differences = []
     for key in sorted(local_fields.keys() | public_fields.keys()):
         a = local_fields.get(key, "<absent>")
         b = public_fields.get(key, "<absent>")
-        if isinstance(a, (float, int)) and isinstance(b, (float, int)) and not (
-            isinstance(a, bool) or isinstance(b, bool)
+        if (
+            isinstance(a, (float, int))
+            and isinstance(b, (float, int))
+            and not (isinstance(a, bool) or isinstance(b, bool))
         ):
             equal = math.isclose(a, b, rel_tol=0, abs_tol=tolerance)
         else:
@@ -229,10 +229,13 @@ def main():
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
         print(f"Saved complete read-only comparison: {args.output}")
-    return 1 if any(
-        result.get("different_fields") or result.get("error")
-        for result in report["results"]
-    ) else 0
+    return (
+        1
+        if any(
+            result.get("different_fields") or result.get("error") for result in report["results"]
+        )
+        else 0
+    )
 
 
 if __name__ == "__main__":
