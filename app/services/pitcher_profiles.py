@@ -100,6 +100,7 @@ def _metric_columns() -> list[Any]:
     bbe = description.in_(("hit_into_play", "hit_into_play_no_out", "hit_into_play_score"))
     classified_bbe = and_(bbe, Pitch.launch_speed_angle.between(1, 6))
     batted_ball_kind = func.lower(func.trim(Pitch.batted_ball_type))
+    valid_arm_angle = and_(physical_pitch, Pitch.arm_angle.between(0, 90))
     joint_movement = and_(
         Pitch.arm_angle.is_not(None),
         Pitch.horizontal_break_inches.is_not(None),
@@ -213,6 +214,8 @@ def _metric_columns() -> list[Any]:
         func.count(Pitch.haa).label("haa_pitch_count"),
         func.max(Pitch.velocity).label("max_velocity"),
         func.avg(Pitch.spin_rate).label("avg_spin"),
+        func.avg(Pitch.arm_angle).filter(valid_arm_angle).label("avg_arm_angle"),
+        _count_where(valid_arm_angle).label("arm_angle_pitch_count"),
         func.avg(Pitch.horizontal_break_inches).label("horizontal_break"),
         func.avg(Pitch.vertical_break_inches).label("vertical_break"),
         func.avg(Pitch.arm_angle).filter(joint_movement).label("movement_arm_angle"),
@@ -346,6 +349,8 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         "haa_pitch_count": _integer(row, "haa_pitch_count"),
         "max_velocity": _rounded(row["max_velocity"]),
         "avg_spin": _rounded(row["avg_spin"]),
+        "avg_arm_angle": _rounded(row["avg_arm_angle"]),
+        "arm_angle_pitch_count": _integer(row, "arm_angle_pitch_count"),
         "horizontal_break": _rounded(row["horizontal_break"]),
         "vertical_break": _rounded(row["vertical_break"]),
         "release_extension": _rounded(row["release_extension"]),
