@@ -356,6 +356,34 @@ for a verified, source-identity-matched import of **missing values only**;
 do not overwrite non-null public estimates or unverified run values. Compare
 the two dashboards again after import.
 
+### Diagnosing residual local/public metric differences
+
+Run the full public-cohort parity audit after the local Savant RV refresh.
+When some pitchers still differ, export their **actual local source inputs**
+so individual pitch identities and classifications can be checked against
+Neon rather than inferring causes from rounded profile aggregates:
+
+```powershell
+python -m scripts.export_parity_inputs --audit outputs/dashboard_parity_after_rv_refresh_2026.json
+```
+
+This **read-only** command selects only pitchers marked as mismatched in
+the audit, verifies that local pitch counts match the audit for each,
+and writes two Git-ignored compressed CSVs:
+
+- `outputs/parity_source_pitches_2026.csv.gz`: each selected pitch ID,
+  game date, pitch classification, and pitch-level metric input
+- `outputs/parity_source_fangraphs_2026.csv.gz`: the corresponding stored
+  published FanGraphs pitch-grade inputs and refresh timestamps
+
+The exporter does not read credentials or modify either database. It will
+reject partial or changed pitch inventories. Use these files to diagnose
+the differences before any database update: public records may contain
+newer classifications, fresher published grades, or more complete arm
+angles than the local records. Never overwrite those fields blindly merely
+to make dashboard values match. A corrected canonical public import must
+be identity-validated and keep the source-of-truth rules explicit.
+
 ## API routes
 
 ```text
