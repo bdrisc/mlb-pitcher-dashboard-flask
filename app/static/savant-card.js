@@ -110,7 +110,7 @@ if (root) {
     if (percentageMetrics.has(key)) return `${formatNumber(value)}%`;
     if (key === "avg_spin" || ["stuff_plus", "location_plus", "pitching_plus"].includes(key)) return formatNumber(value, 0);
     if (["fip", "xfip", "siera", "xera"].includes(key)) return formatNumber(value, 2);
-    if (key === "run_value_per_100") {
+    if (["run_value_per_100", "expected_run_value_per_100", "run_value_minus_expected", "run_value_minus_expected_per_100"].includes(key)) {
       const formatted = formatNumber(value);
       return value > 0 ? `+${formatted}` : formatted;
     }
@@ -309,6 +309,10 @@ if (root) {
       if (key === "xba") element.title = xbaTitle(overall);
       if (key === "xslg") element.title = xslgTitle(overall);
       if (key === "run_value_per_100") element.title = runValueTitle(overall);
+      if (key === "expected_run_value_per_100") element.title = expectedRunValueTitle(overall);
+      if (key === "run_value_minus_expected" || key === "run_value_minus_expected_per_100") {
+        element.title = runValueDifferenceTitle(overall);
+      }
       if (key === "putaway_pct") element.title = putawayTitle(overall);
       if (key === "barrel_pct") element.title = barrelTitle(overall);
       if (["gb_pct", "fb_pct", "ld_pct", "pu_pct"].includes(key)) {
@@ -381,6 +385,20 @@ if (root) {
   function runValueTitle(metrics) {
     const count = metrics.run_value_pitch_count || 0;
     return `Context-neutral runs prevented per 100 pitches; higher is better. ${count.toLocaleString("en-US")} of ${(metrics.run_value_denominator || 0).toLocaleString("en-US")} pitches have run-value data (${formatNumber(metrics.run_value_coverage_pct || 0)}% coverage).`;
+  }
+
+  function expectedRunValueTitle(metrics) {
+    const scored = metrics.expected_run_value_pitch_count || 0;
+    const total = metrics.run_value_denominator || 0;
+    const missing = metrics.expected_run_value_unscored_contact || 0;
+    const missingRV = metrics.expected_run_value_missing_actual || 0;
+    const unsupported = metrics.expected_run_value_unsupported_contact || 0;
+    const unknownScale = metrics.expected_run_value_unknown_scale || 0;
+    return `Custom contact-adjusted xRV, NOT an official Baseball Savant xRV metric. Starts with Savant-verified context-neutral pitcher RV and adds (observed wOBA − Statcast estimated wOBA on contact) / FanGraphs seasonal wOBAScale. Balls, strikes, whiffs, walks and HBP retain actual pitch RV. ${scored.toLocaleString("en-US")} of ${total.toLocaleString("en-US")} physical pitches scored (${formatNumber(metrics.expected_run_value_coverage_pct || 0)}% coverage); ${missing.toLocaleString("en-US")} unscored batted balls, including ${unsupported.toLocaleString("en-US")} excluded unusual events; ${missingRV.toLocaleString("en-US")} missing Savant RV and ${unknownScale.toLocaleString("en-US")} contact pitches without a supported season scale. Missing contact is NOT treated as zero difference. Higher xRV is better for pitchers.`;
+  }
+
+  function runValueDifferenceTitle(metrics) {
+    return `Matched pitcher RV minus contact-adjusted xRV, on the same ${(metrics.expected_run_value_pitch_count || 0).toLocaleString("en-US")} scorable pitches. Positive means actual run prevention outperformed Statcast contact-quality expectation; negative means the reverse. The full-population RV/100 card may differ from paired actual RV/100 if coverage is incomplete. ${expectedRunValueTitle(metrics)}`;
   }
 
   function signedMovement(value) {
@@ -463,6 +481,8 @@ if (root) {
       tableCell(row, formatMetric("usage_pct", pitch.usage_pct), "emphasized-cell");
       tableCell(row, Number(pitch.pitch_count).toLocaleString("en-US"));
       tableCell(row, formatMetric("run_value_per_100", pitch.run_value_per_100)).title = runValueTitle(pitch);
+      tableCell(row, formatMetric("expected_run_value_per_100", pitch.expected_run_value_per_100)).title = expectedRunValueTitle(pitch);
+      tableCell(row, formatMetric("run_value_minus_expected_per_100", pitch.run_value_minus_expected_per_100)).title = runValueDifferenceTitle(pitch);
       tableCell(row, formatMetric("stuff_plus", pitch.stuff_plus));
       tableCell(row, formatMetric("location_plus", pitch.location_plus));
       tableCell(row, formatMetric("pitching_plus", pitch.pitching_plus));
