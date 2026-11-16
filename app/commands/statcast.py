@@ -508,9 +508,7 @@ def reconcile_woba_outcomes_command(pitcher_id, season, apply):
     from app.services.woba_refresh import reconcile_revised_woba_outcomes
 
     try:
-        summary = reconcile_revised_woba_outcomes(
-            pitcher_id=pitcher_id, season=season, apply=apply
-        )
+        summary = reconcile_revised_woba_outcomes(pitcher_id=pitcher_id, season=season, apply=apply)
     except Exception as error:
         raise click.ClickException(str(error)) from error
     click.echo(summary)
