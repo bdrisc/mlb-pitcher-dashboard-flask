@@ -276,6 +276,62 @@ To repeat the audit on any populated local database:
 python -m scripts.audit_xrv --season 2026
 ```
 
+## Public versus local metric parity
+
+**Both dashboards share the same Python/SQL calculation code, but not a live
+database connection.** The public instance stores complete pitch histories
+for the selected 50 pitchers in Neon; the local database can contain the
+entire MLB season. The public pitcher dropdown is a *selection*, not a
+statistical sample of each selected pitcher's games. Both installations use
+the same versioned 2025 full-MLB VAAAdj/HAAAA models and 2026 full-MLB
+movement reference. Published FIP/xFIP/SIERA/xERA and Stuff+/Location+/
+Pitching+ are independently refreshed official sources.
+
+To check **every field in a pitcher profile**, rather than just the visible
+rounded RV/xRV cards, activate the local Python environment in the
+repository directory and run:
+
+```powershell
+python -m scripts.check_dashboard_parity --pitcher 605400 --season 2026
+```
+
+To locate a mismatched game date, run the optional (slower) per-game audit:
+
+```powershell
+python -m scripts.check_dashboard_parity --pitcher 605400 --season 2026 --by-game
+```
+
+To compare the full public cohort against your local database:
+
+```powershell
+python -m scripts.check_dashboard_parity --all --season 2026 --output data/dashboard_parity_2026.json
+```
+
+The audit makes **read-only** calls to your local database and the public
+profile API; it never sends local records or credentials to Render. Matching
+pitch counts alone do not prove that values match: pitch-level RV revisions,
+Statcast xwOBA corrections, or incomplete local backfills can change a
+rounded metric by 0.1 or more. If Aaron Nola's local *RV* does not match
+Savant after comparing, you can refresh just his local context-neutral RV:
+
+```powershell
+python -m flask --app wsgi statcast refresh-run-values --pitcher 605400 --season 2026
+```
+
+Run the comparison again afterward to see whether any other metrics differ.
+Do not overwrite the local database to force numerical agreement.
+
+**Data-source limitation:** The public app cannot query the user's
+Windows-local PostgreSQL server. Making the local dataset authoritative on
+the public site requires an explicit, safely exported and imported canonical
+50-pitcher source snapshot. Git pulls synchronize *code*, not pitch rows;
+this repository does not silently upload the local database.
+
+On Render, startup maintenance now runs its final Savant RV verification
+**after** recent Statcast sync. Previously the sync could overwrite verified
+RV with a different CSV vintage. Failed source verifications still preserve
+old RV values and are reported rather than silently accepted.
+
 ## API routes
 
 ```text

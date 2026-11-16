@@ -82,6 +82,7 @@ def _metric_columns() -> list[Any]:
     # Savant-style whiff grouping (which also includes foul tips/missed bunts).
     swinging_strike = description.in_(("swinging_strike", "swinging_strike_blocked"))
     physical_pitch = func.coalesce(description, "").notin_(("automatic_ball", "automatic_strike"))
+    physical_rv_pitch = and_(physical_pitch, Pitch.pitch_type.notin_(("", "UN")))
     # Counts are before the pitch. Automatic calls are not pitches thrown.
     two_strike_pitch = and_(Pitch.strikes == 2, physical_pitch)
     putaway = and_(two_strike_pitch, event_name.in_(("strikeout", "strikeout_double_play")))
@@ -194,14 +195,9 @@ def _metric_columns() -> list[Any]:
         _count_where(event_recorded).label("plate_appearances"),
         _count_where(event_name.in_(("strikeout", "strikeout_double_play"))).label("strikeouts"),
         _count_where(event_name.in_(("walk", "intent_walk"))).label("walks"),
-        _count_where(
-            Pitch.pitch_type.notin_(("", "UN")),
-            func.coalesce(func.lower(Pitch.description), "").notin_(
-                ("automatic_ball", "automatic_strike")
-            ),
-        ).label("run_value_denominator"),
-        func.sum(Pitch.delta_run_expectancy).label("run_value_against"),
-        func.count(Pitch.delta_run_expectancy).label("run_value_pitches"),
+        _count_where(physical_rv_pitch).label("run_value_denominator"),
+        func.sum(Pitch.delta_run_expectancy).filter(physical_rv_pitch).label("run_value_against"),
+        func.count(Pitch.delta_run_expectancy).filter(physical_rv_pitch).label("run_value_pitches"),
         *expected_run_value_columns(),
         func.avg(Pitch.velocity).label("avg_velocity"),
         func.avg(Pitch.vaa).label("vaa"),

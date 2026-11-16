@@ -64,7 +64,12 @@ def test_docker_image_uses_non_root_user_healthcheck_and_gunicorn():
     assert "requirements-data.txt" in dockerfile
     assert 'CMD ["gunicorn", "--config", "gunicorn.conf.py", "wsgi:app"]' in dockerfile
     assert "statcast seed-if-needed" in entrypoint.read_text(encoding="utf-8")
-    assert "statcast sync-recent" in entrypoint.read_text(encoding="utf-8")
+    entrypoint_text = entrypoint.read_text(encoding="utf-8")
+    assert "statcast sync-recent" in entrypoint_text
+    assert entrypoint_text.index("statcast sync-recent") < entrypoint_text.index(
+        "statcast refresh-run-values"
+    )
+    assert entrypoint_text.count("statcast refresh-run-values") == 1
     assert os.access(entrypoint, os.X_OK)
 
 
