@@ -46,7 +46,9 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b'data-metric="expected_run_value_per_100"' in response.data
     assert b'data-metric="run_value_minus_expected"' in response.data
     assert b'data-metric="run_value_minus_expected_per_100"' in response.data
-    assert response.data.count(b'data-metric="') == 35
+    assert b'data-metric="paired_actual_run_value_per_100"' in response.data
+    assert b'id="xrv-quality-note"' in response.data
+    assert response.data.count(b'data-metric="') == 36
     for metric in (b"gb_pct", b"fb_pct", b"ld_pct", b"pu_pct"):
         assert b'data-metric="' + metric + b'"' in response.data
     assert b"Batted-Ball Profile" in response.data

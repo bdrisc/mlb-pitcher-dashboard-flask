@@ -98,6 +98,10 @@ def test_per_100_and_gap_use_the_same_paired_pitch_population(app):
         assert metrics["run_value_denominator"] == 6
         assert metrics["expected_run_value_pitch_count"] == 3
         assert metrics["expected_run_value_coverage_pct"] == 50.0
+        assert metrics["expected_run_value_contact_count"] == 4
+        assert metrics["expected_run_value_scored_contact_count"] == 2
+        assert metrics["expected_run_value_contact_coverage_pct"] == 50.0
+        assert metrics["expected_run_value_quality"] == "small_sample"
         assert metrics["expected_run_value_unscored_contact"] == 2
         assert metrics["expected_run_value_imported_weight_mismatch"] == 1
         assert metrics["expected_run_value_unsupported_contact"] == 1
@@ -128,3 +132,4 @@ def test_no_source_run_values_yield_null_expectations(app):
         assert metrics["expected_run_value_per_100"] is None
         assert metrics["run_value_minus_expected"] is None
         assert metrics["expected_run_value_pitch_count"] == 0
+        assert metrics["expected_run_value_quality"] == "unavailable"

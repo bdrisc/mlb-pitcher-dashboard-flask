@@ -50,6 +50,22 @@ ZERO_WEIGHT_CONTACT_EVENTS = (
 VALID_CONTACT_EVENTS = HIT_EVENTS + ZERO_WEIGHT_CONTACT_EVENTS
 
 
+def xrv_quality_status(*, scored, physical, contact_total, contact_scored):
+    """Describe tracking/sample sufficiency, not future predictive reliability.
+
+    Thresholds are presentation guardrails, NOT learned calibration parameters.
+    """
+    if not scored:
+        return "unavailable"
+    if (contact_total >= 30 and contact_scored / contact_total < 0.95) or (
+        physical >= 200 and scored / physical < 0.95
+    ):
+        return "limited_coverage"
+    if scored < 300 or contact_total < 30:
+        return "small_sample"
+    return "descriptive"
+
+
 def _season_constant(column):
     """Produce a SQL expression returning a Guts constant for Game.season."""
     return case(
@@ -108,6 +124,18 @@ def expected_run_value_columns():
         func.abs(source_weight - observed_weight) > 0.005,
     )
     return [
+        func.count(Pitch.pitch_id)
+        .filter(has_actual_rv, is_batted_ball)
+        .label("xrv_eligible_contact"),
+        func.count(Pitch.pitch_id)
+        .filter(has_actual_rv, usable_contact)
+        .label("xrv_scored_contact"),
+        func.sum(observed_weight)
+        .filter(has_actual_rv, usable_contact)
+        .label("xrv_contact_observed_woba_sum"),
+        func.sum(Pitch.estimated_woba)
+        .filter(has_actual_rv, usable_contact)
+        .label("xrv_contact_expected_woba_sum"),
         func.count(Pitch.pitch_id).filter(matched).label("xrv_scored_pitches"),
         func.sum(paired_actual).label("xrv_paired_actual"),
         func.sum(paired_expected).label("xrv_paired_expected"),

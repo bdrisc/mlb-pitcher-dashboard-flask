@@ -213,7 +213,9 @@
           </section>
           <section class="overview-group" aria-labelledby="expected-run-value-heading">
             <h3 id="expected-run-value-heading">Run Value vs. Expected</h3>
+            <small id="xrv-quality-note">Custom descriptive metric · <a href="https://github.com/bdrisc/mlb-pitcher-dashboard-flask/blob/main/docs/expected_run_value.md" target="_blank" rel="noopener noreferrer">methodology and validation</a></small>
             <dl class="overview-values">
+              {{ metric('paired_actual_run_value_per_100', 'Paired RV/100', 'Actual Runs / Same Pitches') }}
               {{ metric('expected_run_value_per_100', 'xRV/100', 'Expected Runs Prevented / 100') }}
               {{ metric('run_value_minus_expected', 'RV − xRV', 'Runs Above Expected') }}
               {{ metric('run_value_minus_expected_per_100', 'ΔRV/100', '(RV − xRV) / 100') }}
@@ -304,6 +306,7 @@
                 <th scope="col" role="columnheader">Usage</th>
                 <th scope="col" role="columnheader" data-mobile-label="Pitches">#</th>
                 <th scope="col" role="columnheader" data-view="results" title="Context-neutral runs prevented per 100 pitches; higher is better">RV/100</th>
+                <th scope="col" role="columnheader" data-view="results" title="Actual pitcher run value on the same scored pitches as xRV; comparison baseline">Paired RV/100</th>
                 <th scope="col" role="columnheader" data-view="results" title="Contact-adjusted expected pitcher run value per 100 matched pitches; higher is better">xRV/100</th>
                 <th scope="col" role="columnheader" data-view="results" title="Matched actual minus expected pitcher run value per 100 pitches; positive means better observed results">ΔRV/100</th>
                 <th scope="col" role="columnheader" data-view="grades" hidden>Stuff+</th>

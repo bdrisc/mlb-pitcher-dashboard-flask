@@ -256,10 +256,24 @@ built from the original per-pitch RV plus the gap between observed wOBA
 and Statcast expected wOBA on contact, converted to runs with the relevant
 season's FanGraphs wOBA scale.
 
-The API tracks scored-pitch coverage and excluded batted balls explicitly;
-actual-vs-expected comparisons use the same paired pitch population.
-This is **not** an official Baseball Savant xRV or FanGraphs xPV statistic.
-See [methodology, exclusions and sources](docs/expected_run_value.md).
+The API tracks scored-pitch and batted-ball coverage and warns about small
+or incomplete samples. Both the overview and arsenal table show
+**Paired RV/100** beside **xRV/100** for strictly matched actual-versus-expected
+comparisons; the original full-population Savant RV/100 remains unchanged.
+
+A real 2026 public-cohort audit covered 50 pitchers and 24,200 tracked
+contact plays. Contact wOBA was well calibrated in aggregate, but the
+July 1 chronological split-half test **did not show a statistically reliable
+predictive advantage** over observed RV/100. This remains a **descriptive,
+contact-adjusted metric**, not an official Baseball Savant xRV or
+FanGraphs PitchingBot xRV. See [methodology, exclusions, live-data
+validation and rerun instructions](docs/expected_run_value.md).
+
+To repeat the audit on any populated local database:
+
+```bash
+python -m scripts.audit_xrv --season 2026
+```
 
 ## API routes
 
