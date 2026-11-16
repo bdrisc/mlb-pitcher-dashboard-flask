@@ -71,8 +71,8 @@ def test_source_extra_rows_are_ignored_but_missing_local_ids_still_fail():
         plan_pitch_type_changes(existing, {"823001_1_1": "ST", "823001_1_3": "CU"})
     with pytest.raises(PitchTypeSourceError, match="extra=4"):
         plan_pitch_type_changes(
-            existing, {**source, "source_extra_1": "FF", "source_extra_2": "FF",
-                       "source_extra_3": "FF"}
+            existing,
+            {**source, "source_extra_1": "FF", "source_extra_2": "FF", "source_extra_3": "FF"},
         )
 
 
