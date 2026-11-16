@@ -1,0 +1,166 @@
+"""Safely reconcile existing pitcher pitch types with current Baseball Savant IDs.
+
+Unlike re-ingestion, this never touches movement, velocity, tracked angles,
+run values, expected outcomes, or records outside the stored pitcher pool.
+Every pitch ID must match the official source before any change is committed.
+"""
+
+from __future__ import annotations
+
+import io
+from concurrent.futures import ThreadPoolExecutor
+
+import pandas as pd
+from sqlalchemy import func, select, update
+
+from app.extensions import db
+from app.models import Game, Pitch
+from app.services.pitch_data import PITCH_NAME_MAP
+from app.services.run_value_refresh import _download
+
+
+class PitchTypeSourceError(ValueError):
+    """The source is incomplete or differs from the stored pitch identities."""
+
+
+def validate_pitch_type_source(frame: pd.DataFrame, pitcher_id: int):
+    fields = ("game_pk", "at_bat_number", "pitch_number", "pitcher", "pitch_type")
+    if not set(fields).issubset(frame.columns) or frame.empty or len(frame) >= 30000:
+        raise PitchTypeSourceError("Savant pitch classification CSV is missing or incomplete.")
+    identities = frame[list(fields[:-1])]
+    if identities.isna().any().any() or identities.duplicated().any():
+        raise PitchTypeSourceError("Savant pitch identities are missing or duplicated.")
+    if not (pd.to_numeric(frame["pitcher"], errors="coerce") == pitcher_id).all():
+        raise PitchTypeSourceError("Savant returned another pitcher's records.")
+    result = {}
+    for game, at_bat, number, pitcher, raw_code in frame[list(fields)].itertuples(
+        index=False, name=None
+    ):
+        key = f"{int(game)}_{int(at_bat)}_{int(number)}"
+        if pd.isna(raw_code) or not str(raw_code).strip():
+            result[key] = None
+            continue
+        code = str(raw_code).strip().upper()
+        if len(code) > 4 or not code.isalnum():
+            raise PitchTypeSourceError(f"Unexpected official pitch code: {raw_code!r}")
+        result[key] = code
+    return result
+
+
+def fetch_pitch_type_source(job):
+    pitcher_id, season, first, last = job
+    params = {
+        "player_type": "pitcher",
+        "pitchers_lookup[]": pitcher_id,
+        "hfSea": f"{season}|",
+        "hfGT": "R|PO|S|A|",
+        "game_date_gt": first.isoformat(),
+        "game_date_lt": last.isoformat(),
+        "min_pitches": 0,
+        "min_results": 0,
+        "type": "details",
+        "all": "true",
+    }
+    csv_bytes = _download("/statcast_search/csv", params)
+    frame = pd.read_csv(
+        io.BytesIO(csv_bytes),
+        usecols=lambda column: column in {
+            "game_pk",
+            "at_bat_number",
+            "pitch_number",
+            "pitcher",
+            "pitch_type",
+        },
+    )
+    return validate_pitch_type_source(frame, pitcher_id)
+
+
+def plan_pitch_type_changes(existing, official, *, max_change_fraction=0.10):
+    """Return updates only for changed codes, never missing source classifications."""
+    by_id = dict(existing)
+    if len(by_id) != len(existing):
+        raise PitchTypeSourceError("Stored pitch IDs are duplicated.")
+    if set(by_id) != set(official):
+        missing = len(set(by_id) - set(official))
+        extra = len(set(official) - set(by_id))
+        raise PitchTypeSourceError(
+            f"Official pitch IDs do not match the stored season (missing={missing}, extra={extra})."
+        )
+    edits = []
+    for pitch_id, current in by_id.items():
+        code = official[pitch_id]
+        if code and code != current:
+            edits.append(
+                {
+                    "pitch_id": pitch_id,
+                    "pitch_type": code,
+                    "pitch_name": PITCH_NAME_MAP.get(code, code),
+                }
+            )
+    if len(edits) > max(1, int(len(by_id) * max_change_fraction)):
+        raise PitchTypeSourceError(
+            f"{len(edits)} reclassifications exceed the safety cap; saved data preserved."
+        )
+    return edits
+
+
+def refresh_pitch_types(*, pitcher_id=None, season=2026, audit_ids=None, apply=False,
+                        workers=4, progress=None):
+    """Check official pitch IDs and optionally update only pitch_type/pitch_name."""
+    query = (
+        select(Pitch.pitcher_id, Game.season, func.min(Game.game_date), func.max(Game.game_date))
+        .join(Game, Game.game_pk == Pitch.game_pk)
+        .where(Game.season == season)
+    )
+    if pitcher_id is not None:
+        query = query.where(Pitch.pitcher_id == pitcher_id)
+    if audit_ids is not None:
+        if not audit_ids:
+            raise ValueError("The supplied audit contains no eligible pitcher IDs.")
+        query = query.where(Pitch.pitcher_id.in_(audit_ids))
+    jobs = db.session.execute(
+        query.group_by(Pitch.pitcher_id, Game.season)
+    ).all()
+    summary = {
+        "pitcher_seasons": len(jobs),
+        "verified": 0,
+        "changed_pitches": 0,
+        "applied": apply,
+        "failed": [],
+    }
+
+    def acquire(job):
+        try:
+            return job, fetch_pitch_type_source(job), None
+        except Exception as error:
+            return job, None, str(error)
+
+    if progress:
+        progress(f"Checking official pitch types for {len(jobs)} stored pitcher-seasons.")
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        for job, official, error in executor.map(acquire, jobs):
+            pid, year, *_ = job
+            if error:
+                summary["failed"].append({"pitcher_id": pid, "season": year, "error": error})
+                continue
+            existing = db.session.execute(
+                select(Pitch.pitch_id, Pitch.pitch_type)
+                .join(Game, Game.game_pk == Pitch.game_pk)
+                .where(Pitch.pitcher_id == pid, Game.season == year)
+            ).all()
+            try:
+                edits = plan_pitch_type_changes(existing, official)
+                if apply and edits:
+                    db.session.execute(update(Pitch), edits)
+                    db.session.commit()
+                summary["verified"] += 1
+                summary["changed_pitches"] += len(edits)
+                if progress:
+                    action = "updated" if apply else "would update"
+                    progress(f"{pid} ({year}): {action} {len(edits)} pitch classifications.")
+            except Exception as error:
+                db.session.rollback()
+                summary["failed"].append(
+                    {"pitcher_id": pid, "season": year, "error": str(error)}
+                )
+    return summary
