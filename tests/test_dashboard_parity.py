@@ -62,3 +62,42 @@ def test_fingerprint_flatten_retains_order_when_no_unique_key():
         ("pitch_separation.pairs[0].pitch_a", "FF"),
         ("pitch_separation.pairs[1].pitch_a", "FF"),
     ]
+
+
+
+def test_pair_arrays_match_by_both_pitch_types_not_row_position():
+    local = {
+        "pitch_tunneling": {
+            "pairs": [
+                {"pitch_a": "FF", "pitch_b": "CH", "late_separation_inches": 9.4},
+                {"pitch_a": "FF", "pitch_b": "SL", "late_separation_inches": 10.2},
+            ]
+        },
+        "pitch_separation": {
+            "pairs": [
+                {"pitch_a": "FF", "pitch_b": "SL", "movement_gap_inches": 18.1},
+                {"pitch_a": "FF", "pitch_b": "CH", "movement_gap_inches": 12.3},
+            ]
+        },
+    }
+    public = {
+        "pitch_tunneling": {
+            "pairs": list(reversed(local["pitch_tunneling"]["pairs"]))
+        },
+        "pitch_separation": {
+            "pairs": list(reversed(local["pitch_separation"]["pairs"]))
+        },
+    }
+    assert compare_profiles(local, public) == []
+    public["pitch_tunneling"]["pairs"][0] = {
+        "pitch_a": "FF",
+        "pitch_b": "SL",
+        "late_separation_inches": 10.3,
+    }
+    assert compare_profiles(local, public) == [
+        {
+            "field": "pitch_tunneling.pairs[FF->SL].late_separation_inches",
+            "local": 10.2,
+            "public": 10.3,
+        }
+    ]
