@@ -26,7 +26,7 @@ def load_sample():
     samples = [
         ("ball", None, 0.1, None, None, None),
         ("hit_into_play", "field_out", -0.3, 0.0, 0.4, 0.0),
-        ("hit_into_play_score", "home_run", 1.1, 2.049, 0.6, None),
+        ("hit_into_play_score", "home_run", 1.1, 2.079, 0.6, None),
         ("hit_into_play", "field_out", -0.2, 0.0, None, None),
         ("hit_into_play", "sac_bunt", -0.05, 0.0, 0.3, None),
         ("automatic_ball", None, 0.2, None, None, None),
