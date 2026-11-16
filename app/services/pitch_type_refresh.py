@@ -91,7 +91,7 @@ def plan_pitch_type_changes(existing, official, *, max_change_fraction=0.10):
     max_extras = max(3, int(len(by_id) * 0.02))
     if missing or len(extras) > max_extras:
         raise PitchTypeSourceError(
-            "Official source cannot safely match stored pitches "
+            "Official pitch IDs do not match the stored season safely "
             f"(missing={len(missing)}, extra={len(extras)}, max_extra={max_extras})."
         )
     edits = []
