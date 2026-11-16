@@ -65,12 +65,12 @@ def test_year_specific_scale_verified_weight_and_pitch_type_grouping(app):
         db.session.flush()
         db.session.add_all(
             [
-                # Verified numerator takes precedence over a potentially stale CSV weight.
+                # 2025 uses the published Guts coefficient, not a stale CSV weight.
                 _pitch(
                     101, 1, pitch_type="SL", description="hit_into_play",
                     event="single", rv=0.3, actual=0.897, expected=0.4, verified=0.882,
                 ),
-                # A verified zero is still a legitimate field-out weight.
+                # A field-out gets zero wOBA weight regardless of a stale source weight.
                 _pitch(
                     101, 2, pitch_type="SL", description="hit_into_play",
                     event="field_out", rv=-0.2, actual=0.897, expected=0.5, verified=0.0,
@@ -96,11 +96,12 @@ def test_year_specific_scale_verified_weight_and_pitch_type_grouping(app):
         overall = _snapshot()
 
         slider_correction = (0.882 - 0.4 + 0.0 - 0.5) / WOBA_SCALES[2025]
-        fastball_correction = (0.897 - 0.4) / WOBA_SCALES[2026]
+        fastball_correction = (0.890 - 0.4) / WOBA_SCALES[2026]
 
         assert slider["xrv_scored_pitches"] == 3
         assert fastball["xrv_scored_pitches"] == 1
         assert fastball["xrv_missing_contact"] == 1
+        assert fastball["xrv_imported_weight_mismatch"] == 1
         assert slider["xrv_paired_actual"] == pytest.approx(-0.05)
         assert fastball["xrv_paired_actual"] == pytest.approx(-0.3)
         assert slider["xrv_paired_expected"] == pytest.approx(-0.05 + slider_correction)
@@ -126,8 +127,8 @@ def test_missing_season_scale_excludes_only_contact(app):
         db.session.add(
             Game(
                 game_pk=99,
-                season=2022,
-                game_date=date(2022, 7, 1),
+                season=2027,
+                game_date=date(2027, 7, 1),
                 home_team="BOS",
                 away_team="NYY",
             )
@@ -138,7 +139,7 @@ def test_missing_season_scale_excludes_only_contact(app):
                 _pitch(99, 1, pitch_type="FF", description="called_strike", rv=-0.1),
                 _pitch(
                     99, 2, pitch_type="FF", description="hit_into_play",
-                    event="single", rv=0.2, actual=0.884, expected=0.4,
+                    event="single", rv=0.2, actual=0.890, expected=0.4,
                 ),
             ]
         )
