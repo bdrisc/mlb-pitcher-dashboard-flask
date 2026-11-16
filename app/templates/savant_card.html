@@ -213,6 +213,7 @@
           </section>
           <section class="overview-group" aria-labelledby="expected-run-value-heading">
             <h3 id="expected-run-value-heading">Run Value vs. Expected</h3>
+            <small id="xrv-quality-note">Custom descriptive metric · <a href="https://github.com/bdrisc/mlb-pitcher-dashboard-flask/blob/main/docs/expected_run_value.md" target="_blank" rel="noopener noreferrer">methodology and validation</a></small>
             <dl class="overview-values">
               {{ metric('paired_actual_run_value_per_100', 'Paired RV/100', 'Actual Runs / Same Pitches') }}
               {{ metric('expected_run_value_per_100', 'xRV/100', 'Expected Runs Prevented / 100') }}
