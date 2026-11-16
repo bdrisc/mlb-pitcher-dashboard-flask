@@ -332,6 +332,30 @@ On Render, startup maintenance now runs its final Savant RV verification
 RV with a different CSV vintage. Failed source verifications still preserve
 old RV values and are reported rather than silently accepted.
 
+### Reconciling missing public xSLG from your local full-season data
+
+The public pool may lack official expected SLG on some contact events even
+when the local database has more complete Statcast coverage. For example,
+Aaron Nola had 30 unscored public 2026 xSLG contact events concentrated in
+September 17 and September 23. These are not filled by the normal public
+seed file, so public xSLG can differ from local despite matching pitch counts.
+
+Export existing xSLG observations **without modifying the local database**:
+
+```powershell
+python -m scripts.export_local_xslg --all --season 2026
+```
+
+This writes `outputs/local_xslg_public_pool_2026.csv.gz` for the public
+pitcher IDs only. Its columns are pitch identity, pitcher ID, game date,
+event, and the locally stored expected SLG; no connection strings or secrets
+are included. The `outputs/` folder is Git-ignored.
+
+**Important:** Export alone does NOT change the public site. Upload the file
+for a verified, source-identity-matched import of **missing values only**;
+do not overwrite non-null public estimates or unverified run values. Compare
+the two dashboards again after import.
+
 ## API routes
 
 ```text
