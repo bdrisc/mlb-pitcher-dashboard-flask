@@ -79,12 +79,6 @@ echo "Starting web server on port ${PORT:-10000}."
         fi
     fi
 
-    if [ "$maintenance_ok" = "1" ] && [ "${SYNC_RUN_VALUE_ON_STARTUP:-1}" = "1" ]; then
-        if ! flask --app wsgi statcast refresh-run-values; then
-            echo "Some Savant run values could not be refreshed; saved values retained." >&2
-        fi
-    fi
-
     if [ "$maintenance_ok" = "1" ] && [ "${SYNC_FANGRAPHS_ON_STARTUP:-1}" = "1" ]; then
         if ! flask --app wsgi fangraphs seed-if-needed; then
             echo "FanGraphs snapshot import unavailable." >&2
@@ -106,6 +100,15 @@ echo "Starting web server on port ${PORT:-10000}."
             fi
         else
             echo "Background Statcast sync failed; the web service will remain available." >&2
+        fi
+    fi
+
+    # Statcast ingestion replaces imported RV fields on existing pitches.
+    # Verify AFTER recent sync so late-season upserts cannot overwrite verified
+    # Savant values before the app serves its final RV and xRV snapshots.
+    if [ "$maintenance_ok" = "1" ] && [ "${SYNC_RUN_VALUE_ON_STARTUP:-1}" = "1" ]; then
+        if ! flask --app wsgi statcast refresh-run-values; then
+            echo "Some Savant run values could not be refreshed; saved values retained." >&2
         fi
     fi
 ) &
