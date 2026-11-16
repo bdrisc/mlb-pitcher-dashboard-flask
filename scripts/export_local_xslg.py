@@ -87,35 +87,33 @@ def main():
     from app.extensions import db
     from app.models import Game, Pitch
 
-    ids = (
-        public_pitcher_ids(args.season, args.public_url)
-        if args.all
-        else {args.pitcher}
-    )
-    destination = args.output or Path(
-        f"outputs/local_xslg_public_pool_{args.season}.csv.gz"
-    )
+    ids = public_pitcher_ids(args.season, args.public_url) if args.all else {args.pitcher}
+    destination = args.output or Path(f"outputs/local_xslg_public_pool_{args.season}.csv.gz")
     application = create_app()
     with application.app_context():
-        records = db.session.execute(
-            select(
-                Pitch.pitch_id.label("pitch_id"),
-                Pitch.pitcher_id.label("pitcher_id"),
-                Game.game_date.label("game_date"),
-                Pitch.events.label("events"),
-                Pitch.estimated_slg.label("estimated_slg"),
+        records = (
+            db.session.execute(
+                select(
+                    Pitch.pitch_id.label("pitch_id"),
+                    Pitch.pitcher_id.label("pitcher_id"),
+                    Game.game_date.label("game_date"),
+                    Pitch.events.label("events"),
+                    Pitch.estimated_slg.label("estimated_slg"),
+                )
+                .select_from(Pitch)
+                .join(Game, Game.game_pk == Pitch.game_pk)
+                .where(
+                    Game.season == args.season,
+                    Pitch.pitcher_id.in_(ids),
+                    Pitch.estimated_slg.is_not(None),
+                    Pitch.events.is_not(None),
+                    Pitch.events != "",
+                )
+                .order_by(Pitch.pitcher_id, Pitch.pitch_id)
             )
-            .select_from(Pitch)
-            .join(Game, Game.game_pk == Pitch.game_pk)
-            .where(
-                Game.season == args.season,
-                Pitch.pitcher_id.in_(ids),
-                Pitch.estimated_slg.is_not(None),
-                Pitch.events.is_not(None),
-                Pitch.events != "",
-            )
-            .order_by(Pitch.pitcher_id, Pitch.pitch_id)
-        ).mappings().yield_per(2000)
+            .mappings()
+            .yield_per(2000)
+        )
         count = write_export(records, destination)
     if not count:
         raise ValueError("No local expected SLG values found for selected pitcher(s).")
