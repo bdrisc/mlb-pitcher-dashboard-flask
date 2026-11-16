@@ -48,6 +48,8 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
         assert b'data-metric="' + metric + b'"' in response.data
     assert b"Batted-Ball Profile" in response.data
     assert b">Arm Angle</th>" in response.data
+    assert b">Release Height</th>" in response.data
+    assert b">Release Side</th>" in response.data
     assert response.data.count(b'class="plotly-chart"') == 5
     assert b"Avg Exit Velo" in response.data
     assert b"Pitch-type performance" not in response.data
