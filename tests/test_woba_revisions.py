@@ -46,9 +46,7 @@ def test_revised_outcome_dry_run_and_safe_apply(app, monkeypatch):
             "app.services.woba_refresh.fetch_woba_outcomes",
             lambda job: {"899991_34_5": ("single", 0.890088, 1)},
         )
-        preview = reconcile_revised_woba_outcomes(
-            pitcher_id=797001, season=2026, apply=False
-        )
+        preview = reconcile_revised_woba_outcomes(pitcher_id=797001, season=2026, apply=False)
         assert preview["revised_outcomes"] == 1
         assert preview["revisions"][0] == {
             "pitch_id": "899991_34_5",
@@ -56,9 +54,7 @@ def test_revised_outcome_dry_run_and_safe_apply(app, monkeypatch):
             "to": "single",
         }
         assert db.session.get(Pitch, pitch.pitch_id).events == "field_error"
-        applied = reconcile_revised_woba_outcomes(
-            pitcher_id=797001, season=2026, apply=True
-        )
+        applied = reconcile_revised_woba_outcomes(pitcher_id=797001, season=2026, apply=True)
         assert applied["applied"] and applied["revised_outcomes"] == 1
         db.session.expire_all()
         restored = db.session.get(Pitch, "899991_34_5")
@@ -70,9 +66,12 @@ def test_revised_outcome_dry_run_and_safe_apply(app, monkeypatch):
         assert restored.estimated_woba == pytest.approx(0.351)
         assert restored.delta_run_expectancy == pytest.approx(0.43)
         assert restored.pitch_type == "FF"
-        assert reconcile_revised_woba_outcomes(
-            pitcher_id=797001, season=2026, apply=False
-        )["revised_outcomes"] == 0
+        assert (
+            reconcile_revised_woba_outcomes(pitcher_id=797001, season=2026, apply=False)[
+                "revised_outcomes"
+            ]
+            == 0
+        )
 
 
 def test_revised_outcome_refuses_foreign_pitch_ids(app, monkeypatch):
@@ -107,7 +106,5 @@ def test_revised_outcome_refuses_foreign_pitch_ids(app, monkeypatch):
             lambda job: {"wrong_pitch": ("single", 0.890088, 1)},
         )
         with pytest.raises(ValueError, match="absent from local"):
-            reconcile_revised_woba_outcomes(
-                pitcher_id=797002, season=2026, apply=True
-            )
+            reconcile_revised_woba_outcomes(pitcher_id=797002, season=2026, apply=True)
         assert db.session.get(Pitch, "899992_2_1").events == "field_error"
