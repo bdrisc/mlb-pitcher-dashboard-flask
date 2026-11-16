@@ -1,0 +1,106 @@
+"""Verify official pitch-type refresh cannot overwrite unrelated pitch metrics."""
+
+from datetime import date
+
+import pandas as pd
+import pytest
+from sqlalchemy import select
+
+from app.extensions import db
+from app.models import Game, Pitch, Player
+from app.services.pitch_type_refresh import (
+    PitchTypeSourceError,
+    plan_pitch_type_changes,
+    refresh_pitch_types,
+    validate_pitch_type_source,
+)
+
+
+def _source():
+    return pd.DataFrame(
+        [
+            {
+                "game_pk": 823001,
+                "at_bat_number": 1,
+                "pitch_number": 1,
+                "pitcher": 592332,
+                "pitch_type": "ST",
+            },
+            {
+                "game_pk": 823001,
+                "at_bat_number": 1,
+                "pitch_number": 2,
+                "pitcher": 592332,
+                "pitch_type": "FF",
+            },
+        ]
+    )
+
+
+def test_savant_pitch_type_source_requires_complete_unique_own_pitch_ids():
+    expected = validate_pitch_type_source(_source(), 592332)
+    assert expected == {"823001_1_1": "ST", "823001_1_2": "FF"}
+    with pytest.raises(PitchTypeSourceError, match="duplicated"):
+        validate_pitch_type_source(pd.concat([_source()] * 2), 592332)
+    with pytest.raises(PitchTypeSourceError, match="another pitcher"):
+        validate_pitch_type_source(_source(), 668909)
+
+
+def test_pitch_type_plan_refuses_partial_ids_and_only_changes_classifications():
+    existing = [("823001_1_1", "SL"), ("823001_1_2", "FF")]
+    official = validate_pitch_type_source(_source(), 592332)
+    assert plan_pitch_type_changes(existing, official) == [
+        {"pitch_id": "823001_1_1", "pitch_type": "ST", "pitch_name": "Sweeper"}
+    ]
+    with pytest.raises(PitchTypeSourceError, match="do not match"):
+        plan_pitch_type_changes(existing, {"823001_1_1": "ST"})
+    assert plan_pitch_type_changes(existing, {"823001_1_1": None, "823001_1_2": "FF"}) == []
+
+
+def test_pitch_type_refresh_dry_run_then_updates_only_names_and_codes(app, monkeypatch):
+    with app.app_context():
+        db.session.add(Player(mlb_id=592332, player_name="Pitch Type Refresh Test"))
+        db.session.add(
+            Game(
+                game_pk=823001,
+                season=2026,
+                game_date=date(2026, 8, 2),
+                home_team="BOS",
+                away_team="NYY",
+            )
+        )
+        db.session.flush()
+        for number, pitch_type in [(1, "SL"), (2, "FF")]:
+            db.session.add(
+                Pitch(
+                    pitch_id=f"823001_1_{number}",
+                    game_pk=823001,
+                    pitcher_id=592332,
+                    batter_id=592332,
+                    at_bat_number=1,
+                    pitch_number=number,
+                    pitch_type=pitch_type,
+                    pitch_name="Slider" if number == 1 else "Four-Seam Fastball",
+                    balls=0,
+                    strikes=0,
+                    velocity=91.5,
+                    arm_angle=39.4,
+                    delta_run_expectancy=-0.123,
+                )
+            )
+        db.session.commit()
+        monkeypatch.setattr(
+            "app.services.pitch_type_refresh.fetch_pitch_type_source",
+            lambda job: validate_pitch_type_source(_source(), 592332),
+        )
+        dry = refresh_pitch_types(pitcher_id=592332, season=2026, apply=False)
+        assert dry["verified"] == 1 and dry["changed_pitches"] == 1
+        assert db.session.get(Pitch, "823001_1_1").pitch_type == "SL"
+        done = refresh_pitch_types(pitcher_id=592332, season=2026, apply=True)
+        assert done["verified"] == 1 and done["changed_pitches"] == 1
+        db.session.expire_all()
+        pitch = db.session.scalar(select(Pitch).where(Pitch.pitch_id == "823001_1_1"))
+        assert pitch.pitch_type == "ST" and pitch.pitch_name == "Sweeper"
+        assert pitch.velocity == pytest.approx(91.5)
+        assert pitch.arm_angle == pytest.approx(39.4)
+        assert pitch.delta_run_expectancy == pytest.approx(-0.123)
