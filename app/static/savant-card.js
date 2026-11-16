@@ -300,6 +300,18 @@ if (root) {
   }
 
   function renderMetricCards(overall) {
+    const qualityNote = document.getElementById("xrv-quality-note");
+    if (qualityNote) {
+      const count = overall.expected_run_value_contact_count || 0;
+      const coverage = overall.expected_run_value_contact_coverage_pct;
+      const quality = overall.expected_run_value_quality;
+      const qualifier = quality === "limited_coverage" ? "Low tracking coverage"
+        : quality === "small_sample" ? "Small sample"
+        : quality === "unavailable" ? "Unavailable"
+        : "Descriptive only";
+      const coverageText = count ? `${formatNumber(coverage)}% of ${count.toLocaleString("en-US")} batted balls tracked` : "No scored contact";
+      qualityNote.childNodes[0].textContent = `Custom xRV · ${coverageText} · ${qualifier} · `;
+    }
     document.querySelectorAll("[data-metric]").forEach((element) => {
       const key = element.dataset.metric;
       element.textContent = formatMetric(key, overall[key]);
