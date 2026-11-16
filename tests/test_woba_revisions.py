@@ -44,10 +44,14 @@ def test_revised_outcome_dry_run_and_safe_apply(app, monkeypatch):
         db.session.commit()
         monkeypatch.setattr(
             "app.services.woba_refresh.fetch_woba_outcomes",
-            lambda job: {"899991_34_5": ("single", 0.890088, 1)},
+            lambda job: {
+                "899991_34_5": ("single", 0.890088, 1),
+                "source_only_1": ("field_out", 0.0, 1),
+            },
         )
         preview = reconcile_revised_woba_outcomes(pitcher_id=797001, season=2026, apply=False)
         assert preview["revised_outcomes"] == 1
+        assert preview["ignored_extra_source_pa"] == 1
         assert preview["revisions"][0] == {
             "pitch_id": "899991_34_5",
             "from": "field_error",
@@ -105,6 +109,6 @@ def test_revised_outcome_refuses_foreign_pitch_ids(app, monkeypatch):
             "app.services.woba_refresh.fetch_woba_outcomes",
             lambda job: {"wrong_pitch": ("single", 0.890088, 1)},
         )
-        with pytest.raises(ValueError, match="absent from local"):
+        with pytest.raises(ValueError, match="missing_local_pa=1"):
             reconcile_revised_woba_outcomes(pitcher_id=797002, season=2026, apply=True)
         assert db.session.get(Pitch, "899992_2_1").events == "field_error"
