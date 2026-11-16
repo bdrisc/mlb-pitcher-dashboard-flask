@@ -1086,3 +1086,79 @@ def test_arm_angle_shape_unavailable_when_tracking_is_missing(profile_client):
     for pitch in response.json["arsenal"]:
         assert pitch["avg_arm_angle"] is None
         assert pitch["arm_angle_pitch_count"] == 0
+
+
+def test_release_height_and_side_are_filter_aware_and_use_separate_coverage(profile_client, app):
+    with app.app_context():
+        coordinates = {
+            "1001_1_1": (-1.4, 5.8),
+            "1001_1_2": (None, 6.2),
+            "1002_2_1": (2.4, 4.8),
+            "1002_3_1": (0.0, None),
+        }
+        for pitch_id, (side, height) in coordinates.items():
+            pitch = db.session.get(Pitch, pitch_id)
+            pitch.release_pos_x = side
+            pitch.release_pos_z = height
+        db.session.commit()
+
+    url = f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026"
+    response = profile_client.get(url)
+    assert response.status_code == 200
+    arsenal = {pitch["pitch_type"]: pitch for pitch in response.json["arsenal"]}
+    assert arsenal["FF"]["avg_release_height"] == 6.0
+    assert arsenal["FF"]["release_height_pitch_count"] == 2
+    assert arsenal["FF"]["avg_release_side"] == -1.4
+    assert arsenal["FF"]["release_side_pitch_count"] == 1
+    assert arsenal["SL"]["avg_release_height"] == 4.8
+    assert arsenal["SL"]["release_height_pitch_count"] == 1
+    assert arsenal["SL"]["avg_release_side"] == 1.2
+    assert arsenal["SL"]["release_side_pitch_count"] == 2
+
+    first_count = profile_client.get(url + "&balls=0&strikes=0").json
+    filtered = {pitch["pitch_type"]: pitch for pitch in first_count["arsenal"]}
+    assert filtered["FF"]["avg_release_height"] == 5.8
+    assert filtered["FF"]["avg_release_side"] == -1.4
+    assert filtered["SL"]["avg_release_height"] == 4.8
+    assert filtered["SL"]["avg_release_side"] == 2.4
+
+    zero_side = profile_client.get(url + "&balls=1&strikes=0").json["arsenal"][0]
+    assert zero_side["pitch_type"] == "SL"
+    assert zero_side["avg_release_side"] == 0.0
+    assert zero_side["release_side_pitch_count"] == 1
+    assert zero_side["avg_release_height"] is None
+    assert zero_side["release_height_pitch_count"] == 0
+
+    righties = profile_client.get(url + "&batter_side=R").json["arsenal"]
+    assert len(righties) == 1
+    assert righties[0]["pitch_type"] == "FF"
+    assert righties[0]["avg_release_height"] == 6.0
+
+    april = profile_client.get(url + "&date_to=2026-04-30").json["arsenal"]
+    assert len(april) == 1
+    assert april[0]["avg_release_side"] == -1.4
+
+    with app.app_context():
+        db.session.get(Pitch, "1001_1_1").description = "automatic_ball"
+        db.session.commit()
+    eligible = profile_client.get(url + "&pitch_type=FF").json["arsenal"][0]
+    assert eligible["avg_release_height"] == 6.2
+    assert eligible["release_height_pitch_count"] == 1
+    assert eligible["avg_release_side"] is None
+    assert eligible["release_side_pitch_count"] == 0
+
+
+def test_release_shape_missing_tracking_displays_null_not_zero(profile_client, app):
+    with app.app_context():
+        for pitch_id in ("1001_1_1", "1001_1_2", "1002_2_1", "1002_3_1"):
+            pitch = db.session.get(Pitch, pitch_id)
+            pitch.release_pos_x = None
+            pitch.release_pos_z = None
+        db.session.commit()
+    response = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026")
+    assert response.status_code == 200
+    for pitch in response.json["arsenal"]:
+        assert pitch["avg_release_height"] is None
+        assert pitch["avg_release_side"] is None
+        assert pitch["release_height_pitch_count"] == 0
+        assert pitch["release_side_pitch_count"] == 0
