@@ -214,6 +214,21 @@ def test_profile_returns_identity_sample_overall_arsenal_and_splits(profile_clie
     ]
 
 
+def test_release_position_averages_round_to_tenths(app, profile_client):
+    with app.app_context():
+        for pitch in db.session.query(Pitch):
+            pitch.release_pos_z = 5.86
+            pitch.release_pos_x = -1.76
+        db.session.commit()
+
+    profile = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile").json
+    assert profile["overall"]["avg_release_height"] == 5.9
+    assert profile["overall"]["avg_release_side"] == -1.8
+    for pitch in profile["arsenal"]:
+        assert pitch["avg_release_height"] == 5.9
+        assert pitch["avg_release_side"] == -1.8
+
+
 def test_pitcher_directory_returns_ids_and_applies_shared_filters(profile_client):
     response = profile_client.get(
         "/api/v1/pitchers",
