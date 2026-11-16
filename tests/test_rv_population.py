@@ -48,11 +48,15 @@ def test_actual_rv_does_not_count_unknown_or_automatic_pitch_values(app):
                 )
             )
         db.session.commit()
-        record = db.session.execute(
-            select(*_metric_columns())
-            .select_from(Pitch)
-            .join(Game, Game.game_pk == Pitch.game_pk)
-        ).mappings().one()
+        record = (
+            db.session.execute(
+                select(*_metric_columns())
+                .select_from(Pitch)
+                .join(Game, Game.game_pk == Pitch.game_pk)
+            )
+            .mappings()
+            .one()
+        )
         metrics = _performance_metrics(record)
 
         assert metrics["run_value_denominator"] == 3
