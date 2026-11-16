@@ -77,12 +77,12 @@ def audit_season(season, min_half_pitches=300):
         "contact_total": total,
         "contact_scored": observed,
         "pitch_coverage_pct": _round(paired_total * 100 / physical_total, 2)
-        if physical_total else None,
+        if physical_total
+        else None,
         "contact_coverage_pct": _round(observed * 100 / total, 2) if total else None,
         "observed_contact_woba": _round(weighted / observed, 5) if observed else None,
         "expected_contact_woba": _round(expected / observed, 5) if observed else None,
-        "contact_woba_residual": _round((weighted - expected) / observed, 5)
-        if observed else None,
+        "contact_woba_residual": _round((weighted - expected) / observed, 5) if observed else None,
         "source": "Savant context-neutral RV + Statcast EV/LA xwOBA + FanGraphs Guts",
         "woba_scale": WOBA_SCALES.get(season),
         "comparison": "Paired RV/100 and xRV/100; full Savant RV/100 has a different denominator",
