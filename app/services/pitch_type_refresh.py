@@ -64,13 +64,16 @@ def fetch_pitch_type_source(job):
     csv_bytes = _download("/statcast_search/csv", params)
     frame = pd.read_csv(
         io.BytesIO(csv_bytes),
-        usecols=lambda column: column in {
-            "game_pk",
-            "at_bat_number",
-            "pitch_number",
-            "pitcher",
-            "pitch_type",
-        },
+        usecols=lambda column: (
+            column
+            in {
+                "game_pk",
+                "at_bat_number",
+                "pitch_number",
+                "pitcher",
+                "pitch_type",
+            }
+        ),
     )
     return validate_pitch_type_source(frame, pitcher_id)
 
@@ -104,8 +107,9 @@ def plan_pitch_type_changes(existing, official, *, max_change_fraction=0.10):
     return edits
 
 
-def refresh_pitch_types(*, pitcher_id=None, season=2026, audit_ids=None, apply=False,
-                        workers=4, progress=None):
+def refresh_pitch_types(
+    *, pitcher_id=None, season=2026, audit_ids=None, apply=False, workers=4, progress=None
+):
     """Check official pitch IDs and optionally update only pitch_type/pitch_name."""
     query = (
         select(Pitch.pitcher_id, Game.season, func.min(Game.game_date), func.max(Game.game_date))
@@ -118,9 +122,7 @@ def refresh_pitch_types(*, pitcher_id=None, season=2026, audit_ids=None, apply=F
         if not audit_ids:
             raise ValueError("The supplied audit contains no eligible pitcher IDs.")
         query = query.where(Pitch.pitcher_id.in_(audit_ids))
-    jobs = db.session.execute(
-        query.group_by(Pitch.pitcher_id, Game.season)
-    ).all()
+    jobs = db.session.execute(query.group_by(Pitch.pitcher_id, Game.season)).all()
     summary = {
         "pitcher_seasons": len(jobs),
         "verified": 0,
@@ -160,7 +162,5 @@ def refresh_pitch_types(*, pitcher_id=None, season=2026, audit_ids=None, apply=F
                     progress(f"{pid} ({year}): {action} {len(edits)} pitch classifications.")
             except Exception as error:
                 db.session.rollback()
-                summary["failed"].append(
-                    {"pitcher_id": pid, "season": year, "error": str(error)}
-                )
+                summary["failed"].append({"pitcher_id": pid, "season": year, "error": str(error)})
     return summary
