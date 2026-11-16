@@ -785,7 +785,7 @@ summary,
 }
 
 .overview-featured {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr) minmax(0, 1.45fr);
   margin: 0;
 }
 
@@ -823,6 +823,18 @@ summary,
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 48px), 1fr));
   align-content: start;
   gap: 8px 12px;
+}
+
+.overview-rv-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: 8px;
+}
+
+.overview-rv-pair > div + div {
+  border-left: 1px solid #dbe7e9;
+  padding-left: 8px;
 }
 
 .metric-card::before {
@@ -1219,6 +1231,10 @@ summary,
 }
 
 @media (max-width: 580px) {
+  .overview-featured {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .brand small {
     display: none;
   }
