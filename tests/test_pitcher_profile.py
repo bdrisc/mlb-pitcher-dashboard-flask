@@ -1035,3 +1035,54 @@ def test_pitch_shape_vs_avg_uses_verified_full_mlb_slot_reference(
     assert fastball["movement_joint_pitches"] == 2
     assert slider["hb_vs_avg"] is None
     assert slider["ivb_vs_avg"] is None
+
+
+def test_arm_angle_shape_uses_valid_tracked_pitches_and_active_filters(profile_client, app):
+    with app.app_context():
+        angles = {
+            "1001_1_1": 42.0,
+            "1001_1_2": 48.0,
+            "1002_2_1": None,
+            "1002_3_1": 35.0,
+        }
+        for pitch_id, angle in angles.items():
+            db.session.get(Pitch, pitch_id).arm_angle = angle
+        db.session.commit()
+
+    url = f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026"
+    response = profile_client.get(url)
+    assert response.status_code == 200
+    pitches = {row["pitch_type"]: row for row in response.json["arsenal"]}
+    assert pitches["FF"]["avg_arm_angle"] == 45.0
+    assert pitches["FF"]["arm_angle_pitch_count"] == 2
+    assert pitches["SL"]["avg_arm_angle"] == 35.0
+    assert pitches["SL"]["arm_angle_pitch_count"] == 1
+
+    exact_count = profile_client.get(url + "&balls=0&strikes=0").json
+    selected = {row["pitch_type"]: row for row in exact_count["arsenal"]}
+    assert selected["FF"]["avg_arm_angle"] == 42.0
+    assert selected["FF"]["arm_angle_pitch_count"] == 1
+    assert selected["SL"]["avg_arm_angle"] is None
+    assert selected["SL"]["arm_angle_pitch_count"] == 0
+
+    righties = profile_client.get(url + "&batter_side=R").json
+    assert [row["pitch_type"] for row in righties["arsenal"]] == ["FF"]
+    assert righties["arsenal"][0]["avg_arm_angle"] == 45.0
+
+    april = profile_client.get(url + "&date_to=2026-04-30").json
+    assert april["arsenal"][0]["avg_arm_angle"] == 45.0
+
+    with app.app_context():
+        db.session.get(Pitch, "1001_1_2").arm_angle = 125.0
+        db.session.commit()
+    valid_only = profile_client.get(url + "&pitch_type=FF").json["arsenal"][0]
+    assert valid_only["avg_arm_angle"] == 42.0
+    assert valid_only["arm_angle_pitch_count"] == 1
+
+
+def test_arm_angle_shape_unavailable_when_tracking_is_missing(profile_client):
+    response = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026")
+    assert response.status_code == 200
+    for pitch in response.json["arsenal"]:
+        assert pitch["avg_arm_angle"] is None
+        assert pitch["arm_angle_pitch_count"] == 0

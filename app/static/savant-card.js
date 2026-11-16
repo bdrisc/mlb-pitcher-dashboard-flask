@@ -101,7 +101,7 @@ if (root) {
       const number = Number(value) === 0 ? 0 : Number(value);
       return `${number > 0 ? "+" : ""}${formatNumber(number, 2)}°`;
     }
-    if (["vaa", "haa"].includes(key)) return `${formatNumber(Number(value) === 0 ? 0 : value)}°`;
+    if (["vaa", "haa", "avg_arm_angle"].includes(key)) return `${formatNumber(Number(value) === 0 ? 0 : value)}°`;
     if (percentageMetrics.has(key)) return `${formatNumber(value)}%`;
     if (key === "avg_spin" || ["stuff_plus", "location_plus", "pitching_plus"].includes(key)) return formatNumber(value, 0);
     if (["fip", "xfip", "siera", "xera"].includes(key)) return formatNumber(value, 2);
@@ -464,6 +464,7 @@ if (root) {
       tableCell(row, formatMetric("avg_velocity", pitch.avg_velocity));
       tableCell(row, formatMetric("max_velocity", pitch.max_velocity));
       tableCell(row, formatMetric("avg_spin", pitch.avg_spin));
+      tableCell(row, formatMetric("avg_arm_angle", pitch.avg_arm_angle)).title = `Average release arm angle measured from horizontal (0°) to over the top (90°). ${pitch.arm_angle_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} selected pitches have valid arm-angle tracking. Responds to active filters.`;
       tableCell(row, formatMetric("horizontal_break", pitch.horizontal_break));
       tableCell(row, formatMetric("vertical_break", pitch.vertical_break));
       tableCell(row, signedMovement(pitch.hb_vs_avg)).title = movementVsAverageTitle(pitch, "hb");
