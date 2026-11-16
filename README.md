@@ -384,6 +384,47 @@ angles than the local records. Never overwrite those fields blindly merely
 to make dashboard values match. A corrected canonical public import must
 be identity-validated and keep the source-of-truth rules explicit.
 
+### Aligning meaningful pitch-classification differences with Baseball Savant
+
+When public and local totals agree but pitch-type usage or pitch-pair
+metrics differ, source classifications may have changed over time. Prefer
+current Baseball Savant pitch identities and types instead of copying an
+older local type to the public DB. Small 0.01/0.1 display differences can
+be left alone without changing formulas or underlying measurements.
+
+To inspect the 2026 mismatched public pitchers on your local database:
+
+```powershell
+python -m flask --app wsgi statcast refresh-pitch-types --season 2026 --audit outputs/dashboard_parity_refined_2026.json
+```
+
+The command defaults to a **dry run**. To apply verified official pitch-type
+corrections to local records only:
+
+```powershell
+python -m flask --app wsgi statcast refresh-pitch-types --season 2026 --audit outputs/dashboard_parity_refined_2026.json --apply
+```
+
+Each pitcher-season is checked against Savant's current CSV. Pitch identities
+must match exactly (no missing/extra IDs), and >10% of pitches being
+reclassified fails safety verification. On a failed verification, the saved
+pitch types are retained. Successful updates change **only**
+`pitch_type` and `pitch_name`: velocity, trajectory, RV, xRV inputs,
+arm angle, xSLG, and all other measurements remain as stored.
+
+On the public Render deployment, enabling `SYNC_PITCH_TYPES_ON_STARTUP=1`
+runs the same verification for the **stored public pitcher pool only** during
+startup maintenance. The default is disabled. The public dashboard never
+needs a full-league pitch database simply to display the smaller pool,
+although its league reference models must remain sourced from the full MLB
+baseline.
+
+After both environments have used the same official source, rerun
+`python -m scripts.check_dashboard_parity --all --season 2026` to
+review remaining material differences. This refresh does not overwrite
+FanGraphs published grade snapshots, fix missing local arm angles, or resolve
+pitcher-seasons that fail separate RV source verification.
+
 ## API routes
 
 ```text
