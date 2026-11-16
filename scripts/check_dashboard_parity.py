@@ -143,11 +143,17 @@ def compare_one(client, pitcher_id, season, public_url, tolerance, *, day=None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Read-only local vs. public pitcher profile audit.")
+    parser = argparse.ArgumentParser(
+        description="Read-only local vs. public pitcher profile audit."
+    )
     parser.add_argument("--season", type=int, default=2026)
-    parser.add_argument("--pitcher", type=int, default=605400, help="MLB ID; defaults to Aaron Nola")
+    parser.add_argument(
+        "--pitcher", type=int, default=605400, help="MLB ID; defaults to Aaron Nola"
+    )
     parser.add_argument("--all", action="store_true", help="Check each publicly listed pitcher")
-    parser.add_argument("--by-game", action="store_true", help="Identify differing game dates for one pitcher")
+    parser.add_argument(
+        "--by-game", action="store_true", help="Identify differing game dates for one pitcher"
+    )
     parser.add_argument("--public-url", default=DEFAULT_PUBLIC_URL)
     parser.add_argument("--max-print", type=int, default=24)
     parser.add_argument("--output", type=Path, help="Optional local JSON report path")
@@ -158,10 +164,11 @@ def main():
     from dotenv import load_dotenv
 
     load_dotenv()
+    from sqlalchemy import select
+
     from app import create_app
     from app.extensions import db
     from app.models import Game, Pitch
-    from sqlalchemy import select
 
     application = create_app()
     report = {"season": args.season, "public_url": args.public_url, "results": []}
