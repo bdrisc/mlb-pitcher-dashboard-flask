@@ -293,6 +293,21 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         None if row["run_value_against"] is None else -float(row["run_value_against"])
     )
     xrv_scored = _integer(row, "xrv_scored_pitches")
+    contact_total = _integer(row, "xrv_eligible_contact")
+    contact_scored = _integer(row, "xrv_scored_contact")
+    contact_coverage = _rate(contact_scored, contact_total)
+    xrv_pitch_coverage = _rate(xrv_scored, run_value_denominator)
+    if not xrv_scored:
+        xrv_quality = "unavailable"
+    elif (
+        contact_total >= 30
+        and contact_scored / contact_total < 0.95
+    ) or (run_value_denominator >= 200 and xrv_scored / run_value_denominator < 0.95):
+        xrv_quality = "limited_coverage"
+    elif xrv_scored < 300 or contact_total < 30:
+        xrv_quality = "small_sample"
+    else:
+        xrv_quality = "descriptive"
     paired_actual = row["xrv_paired_actual"]
     paired_expected = row["xrv_paired_expected"]
     rv_minus_xrv = (
@@ -364,7 +379,11 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         "run_value_minus_expected": _rounded(rv_minus_xrv, 3),
         "run_value_minus_expected_per_100": _per_100(rv_minus_xrv),
         "expected_run_value_pitch_count": xrv_scored,
-        "expected_run_value_coverage_pct": _rate(xrv_scored, run_value_denominator),
+        "expected_run_value_coverage_pct": xrv_pitch_coverage,
+        "expected_run_value_contact_count": contact_total,
+        "expected_run_value_scored_contact_count": contact_scored,
+        "expected_run_value_contact_coverage_pct": contact_coverage,
+        "expected_run_value_quality": xrv_quality,
         "expected_run_value_unscored_contact": _integer(row, "xrv_missing_contact"),
         "expected_run_value_unsupported_contact": _integer(row, "xrv_unsupported_contact"),
         "expected_run_value_missing_actual": _integer(row, "xrv_missing_actual"),
