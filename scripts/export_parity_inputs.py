@@ -4,7 +4,8 @@ Read-only and restricted to pitcher IDs present in a prior public parity audit.
 The resulting two files include the pitch-level and independently published
 FanGraphs inputs needed to diagnose the remaining profile differences.
 
-    python -m scripts.export_parity_inputs --audit outputs/dashboard_parity_after_rv_refresh_2026.json
+    python -m scripts.export_parity_inputs \
+        --audit outputs/dashboard_parity_after_rv_refresh_2026.json
 
 No credentials, connection strings, or unrelated MLB pitchers are exported.
 """
