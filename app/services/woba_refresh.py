@@ -143,3 +143,69 @@ def refresh_woba(*, season=None, pitcher_id=None, workers=4, progress=None):
                 line = f"wOBA {pid} ({year}): {len(updates):,} verified outcomes."
                 progress(f"{line} {error}" if error else line)
     return summary
+
+
+def reconcile_revised_woba_outcomes(*, pitcher_id, season=2026, apply=False):
+    """Repair revised official PA outcomes only after Savant aggregate verification.
+
+    The normal wOBA backfill deliberately skips saved event labels that differ
+    from Savant. For re-scored plays, verify the complete official PA sample,
+    identify the exact pitch ID, and change only its event and wOBA components.
+    Default is a dry run. Other pitch measurements are never touched.
+    """
+    rows = db.session.execute(
+        select(
+            Pitch.pitch_id,
+            Pitch.events,
+            Game.game_date,
+        )
+        .join(Game, Game.game_pk == Pitch.game_pk)
+        .where(Pitch.pitcher_id == pitcher_id, Game.season == season)
+    ).all()
+    if not rows:
+        raise ValueError(f"No stored pitches for pitcher {pitcher_id} in {season}.")
+    stored = {row.pitch_id: row.events for row in rows}
+    dates = [row.game_date for row in rows]
+    official = fetch_woba_outcomes((pitcher_id, season, min(dates), max(dates)))
+    missing = set(official) - set(stored)
+    if missing:
+        raise ValueError(
+            f"{len(missing)} official plate appearances are absent from local pitches."
+        )
+    patches = []
+    revisions = []
+    for key, (event, numerator, denominator) in official.items():
+        current = stored[key]
+        if current is None or current == "" or current in NON_PA_EVENTS:
+            continue
+        if current == event:
+            continue
+        patches.append(
+            {
+                "pitch_id": key,
+                "events": event,
+                "savant_woba_numerator": numerator,
+                "savant_woba_denominator": denominator,
+            }
+        )
+        revisions.append({"pitch_id": key, "from": current, "to": event})
+    # Unexpectedly large changes suggest a wrong source window or data vintage.
+    if len(patches) > min(10, max(2, int(len(official) * 0.02))):
+        raise ValueError(
+            f"{len(patches)} outcome revisions exceed the safety cap; no data changed."
+        )
+    if apply and patches:
+        try:
+            db.session.execute(update(Pitch), patches)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise
+    return {
+        "pitcher_id": pitcher_id,
+        "season": season,
+        "official_pa_verified": len(official),
+        "revised_outcomes": len(patches),
+        "applied": apply,
+        "revisions": revisions,
+    }
