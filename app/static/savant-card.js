@@ -102,10 +102,10 @@ if (root) {
       return `${number > 0 ? "+" : ""}${formatNumber(number, 2)}°`;
     }
     if (["vaa", "haa", "avg_arm_angle"].includes(key)) return `${formatNumber(Number(value) === 0 ? 0 : value)}°`;
-    if (key === "avg_release_height") return `${formatNumber(value, 2)} ft`;
+    if (key === "avg_release_height") return `${formatNumber(value, 1)} ft`;
     if (key === "avg_release_side") {
       const number = Number(value) === 0 ? 0 : Number(value);
-      return `${number > 0 ? "+" : ""}${formatNumber(number, 2)} ft`;
+      return `${number > 0 ? "+" : ""}${formatNumber(number, 1)} ft`;
     }
     if (percentageMetrics.has(key)) return `${formatNumber(value)}%`;
     if (key === "avg_spin" || ["stuff_plus", "location_plus", "pitching_plus"].includes(key)) return formatNumber(value, 0);
