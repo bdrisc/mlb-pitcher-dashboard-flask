@@ -26,7 +26,7 @@ def load_sample():
     samples = [
         ("ball", None, 0.1, None, None, None),
         ("hit_into_play", "field_out", -0.3, 0.0, 0.4, 0.0),
-        ("hit_into_play_score", "home_run", 1.1, 2.079, 0.6, None),
+        ("hit_into_play_score", "home_run", 1.1, 2.049, 0.6, None),
         ("hit_into_play", "field_out", -0.2, 0.0, None, None),
         ("hit_into_play", "sac_bunt", -0.05, 0.0, 0.3, None),
         ("automatic_ball", None, 0.2, None, None, None),
@@ -73,9 +73,10 @@ def test_expected_value_only_replaces_outcomes_on_tracked_contact(app):
         assert record["xrv_unsupported_contact"] == 1
         assert record["xrv_missing_actual"] == 1
         assert record["xrv_unknown_scale"] == 0
+        assert record["xrv_imported_weight_mismatch"] == 1
         assert record["xrv_paired_actual"] == pytest.approx(-0.9)
         # Non-contact ball value is identical in the actual and expected totals.
-        correction = (0.0 - 0.4 + 2.079 - 0.6) / WOBA_SCALES[2026]
+        correction = (0.0 - 0.4 + 2.049 - 0.6) / WOBA_SCALES[2026]
         assert record["xrv_paired_expected"] == pytest.approx(-0.9 + correction)
 
 
@@ -92,12 +93,13 @@ def test_per_100_and_gap_use_the_same_paired_pitch_population(app):
             .one()
         )
         metrics = _performance_metrics(record)
-        delta = (0.4 - 2.079 + 0.6) / WOBA_SCALES[2026]
+        delta = (0.4 - 2.049 + 0.6) / WOBA_SCALES[2026]
 
         assert metrics["run_value_denominator"] == 6
         assert metrics["expected_run_value_pitch_count"] == 3
         assert metrics["expected_run_value_coverage_pct"] == 50.0
         assert metrics["expected_run_value_unscored_contact"] == 2
+        assert metrics["expected_run_value_imported_weight_mismatch"] == 1
         assert metrics["expected_run_value_unsupported_contact"] == 1
         assert metrics["paired_actual_run_value"] == pytest.approx(-0.9)
         assert metrics["run_value_minus_expected"] == pytest.approx(round(delta, 3))
