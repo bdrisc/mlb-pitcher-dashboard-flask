@@ -110,7 +110,7 @@ if (root) {
     if (percentageMetrics.has(key)) return `${formatNumber(value)}%`;
     if (key === "avg_spin" || ["stuff_plus", "location_plus", "pitching_plus"].includes(key)) return formatNumber(value, 0);
     if (["fip", "xfip", "siera", "xera"].includes(key)) return formatNumber(value, 2);
-    if (["run_value_per_100", "expected_run_value_per_100", "run_value_minus_expected", "run_value_minus_expected_per_100"].includes(key)) {
+    if (["run_value_per_100", "paired_actual_run_value_per_100", "expected_run_value_per_100", "run_value_minus_expected", "run_value_minus_expected_per_100"].includes(key)) {
       const formatted = formatNumber(value);
       return value > 0 ? `+${formatted}` : formatted;
     }
@@ -309,6 +309,7 @@ if (root) {
       if (key === "xba") element.title = xbaTitle(overall);
       if (key === "xslg") element.title = xslgTitle(overall);
       if (key === "run_value_per_100") element.title = runValueTitle(overall);
+      if (key === "paired_actual_run_value_per_100") element.title = pairedRunValueTitle(overall);
       if (key === "expected_run_value_per_100") element.title = expectedRunValueTitle(overall);
       if (key === "run_value_minus_expected" || key === "run_value_minus_expected_per_100") {
         element.title = runValueDifferenceTitle(overall);
@@ -387,6 +388,26 @@ if (root) {
     return `Context-neutral runs prevented per 100 pitches; higher is better. ${count.toLocaleString("en-US")} of ${(metrics.run_value_denominator || 0).toLocaleString("en-US")} pitches have run-value data (${formatNumber(metrics.run_value_coverage_pct || 0)}% coverage).`;
   }
 
+  function pairedRunValueTitle(metrics) {
+    const scored = metrics.expected_run_value_pitch_count || 0;
+    return `Savant-aligned actual pitcher RV divided by the SAME ${scored.toLocaleString("en-US")} scored pitches used for xRV/100. Compare this matched RV/100 directly with xRV/100. The main RV/100 includes every physical pitch and can differ slightly when expected contact data are missing. ${expectedRunValueQualityTitle(metrics)}`;
+  }
+
+  function expectedRunValueQualityTitle(metrics) {
+    const total = metrics.expected_run_value_contact_count || 0;
+    const tracked = metrics.expected_run_value_scored_contact_count || 0;
+    const coverage = metrics.expected_run_value_contact_coverage_pct;
+    const percent = coverage === null || coverage === undefined ? "not applicable" : `${formatNumber(coverage)}%`;
+    const status = metrics.expected_run_value_quality || "unavailable";
+    const advisory = {
+      descriptive: "Adequate descriptive sample; not a validated talent projection.",
+      small_sample: "Small sample: interpret rates cautiously and avoid standalone rankings.",
+      limited_coverage: "Incomplete tracking: the observed-versus-expected comparison may be biased.",
+      unavailable: "No paired expected RV sample."
+    };
+    return `${tracked.toLocaleString("en-US")} / ${total.toLocaleString("en-US")} eligible contact plays tracked (${percent}); ${advisory[status] || advisory.unavailable}`;
+  }
+
   function expectedRunValueTitle(metrics) {
     const scored = metrics.expected_run_value_pitch_count || 0;
     const total = metrics.run_value_denominator || 0;
@@ -395,7 +416,7 @@ if (root) {
     const unsupported = metrics.expected_run_value_unsupported_contact || 0;
     const unknownScale = metrics.expected_run_value_unknown_scale || 0;
     const mismatches = metrics.expected_run_value_imported_weight_mismatch || 0;
-    return `Custom contact-adjusted xRV, NOT an official Baseball Savant xRV metric. Starts with stored context-neutral pitcher RV (verified when the Savant refresh has run), then adds (seasonal FanGraphs outcome wOBA weight − Statcast estimated wOBA on contact) / the SAME season's FanGraphs wOBAScale. This prevents older exported wOBA weights from being mixed with updated seasonal scales. Balls, strikes, whiffs, walks and HBP retain actual pitch RV. ${scored.toLocaleString("en-US")} of ${total.toLocaleString("en-US")} physical pitches scored (${formatNumber(metrics.expected_run_value_coverage_pct || 0)}% coverage); ${missing.toLocaleString("en-US")} unscored batted balls, including ${unsupported.toLocaleString("en-US")} excluded unusual events; ${missingRV.toLocaleString("en-US")} missing RV; ${unknownScale.toLocaleString("en-US")} missing seasonal scales; ${mismatches.toLocaleString("en-US")} stored contact weights differ from the current FanGraphs constants. Missing contact is NOT treated as zero difference. Higher xRV is better for pitchers.`;
+    return `Custom contact-adjusted xRV, NOT an official Baseball Savant xRV metric. Starts with stored context-neutral pitcher RV (verified when the Savant refresh has run), then adds (seasonal FanGraphs outcome wOBA weight − Statcast estimated wOBA on contact) / the SAME season's FanGraphs wOBAScale. This prevents older exported wOBA weights from being mixed with updated seasonal scales. Balls, strikes, whiffs, walks and HBP retain actual pitch RV. ${scored.toLocaleString("en-US")} of ${total.toLocaleString("en-US")} physical pitches scored (${formatNumber(metrics.expected_run_value_coverage_pct || 0)}% coverage); ${missing.toLocaleString("en-US")} unscored batted balls, including ${unsupported.toLocaleString("en-US")} excluded unusual events; ${missingRV.toLocaleString("en-US")} missing RV; ${unknownScale.toLocaleString("en-US")} missing seasonal scales; ${mismatches.toLocaleString("en-US")} stored contact weights differ from the current FanGraphs constants. Missing contact is NOT treated as zero difference. Higher xRV is better for pitchers. ${expectedRunValueQualityTitle(metrics)}. This metric was calibrated against observed contact on the public 2026 cohort; it has not shown statistically reliable superior future-RV prediction versus actual RV.`;
   }
 
   function runValueDifferenceTitle(metrics) {
@@ -482,6 +503,7 @@ if (root) {
       tableCell(row, formatMetric("usage_pct", pitch.usage_pct), "emphasized-cell");
       tableCell(row, Number(pitch.pitch_count).toLocaleString("en-US"));
       tableCell(row, formatMetric("run_value_per_100", pitch.run_value_per_100)).title = runValueTitle(pitch);
+      tableCell(row, formatMetric("paired_actual_run_value_per_100", pitch.paired_actual_run_value_per_100)).title = pairedRunValueTitle(pitch);
       tableCell(row, formatMetric("expected_run_value_per_100", pitch.expected_run_value_per_100)).title = expectedRunValueTitle(pitch);
       tableCell(row, formatMetric("run_value_minus_expected_per_100", pitch.run_value_minus_expected_per_100)).title = runValueDifferenceTitle(pitch);
       tableCell(row, formatMetric("stuff_plus", pitch.stuff_plus));
