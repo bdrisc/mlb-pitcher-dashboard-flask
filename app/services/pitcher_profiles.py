@@ -11,6 +11,7 @@ from sqlalchemy.engine import RowMapping
 from app.extensions import db
 from app.models import Game, Pitch, Player
 from app.services.database_queries import pitch_filter_conditions, pitcher_team_expression
+from app.services.expected_run_value import expected_run_value_columns
 from app.services.fangraphs_stuff import profile_grades
 from app.services.filters import PitchFilters
 from app.services.movement_reference import movement_vs_average
@@ -201,6 +202,7 @@ def _metric_columns() -> list[Any]:
         ).label("run_value_denominator"),
         func.sum(Pitch.delta_run_expectancy).label("run_value_against"),
         func.count(Pitch.delta_run_expectancy).label("run_value_pitches"),
+        *expected_run_value_columns(),
         func.avg(Pitch.velocity).label("avg_velocity"),
         func.avg(Pitch.vaa).label("vaa"),
         func.avg(Pitch.expected_vaa).label("expected_vaa"),
@@ -290,6 +292,21 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
     pitcher_run_value = (
         None if row["run_value_against"] is None else -float(row["run_value_against"])
     )
+    xrv_scored = _integer(row, "xrv_scored_pitches")
+    paired_actual = row["xrv_paired_actual"]
+    paired_expected = row["xrv_paired_expected"]
+    rv_minus_xrv = (
+        None
+        if paired_actual is None or paired_expected is None
+        else float(paired_actual) - float(paired_expected)
+    )
+
+    def _per_100(value):
+        if value is None or not xrv_scored:
+            return None
+        calculated = Decimal(str(round(float(value), 9))) * 100 / xrv_scored
+        return float(calculated.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP))
+
     woba_denom = _integer(row, "woba_denominator")
     woba_pending = _integer(row, "woba_pending_outcomes")
     woba = None
@@ -340,6 +357,18 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         "run_value_pitch_count": run_value_pitches,
         "run_value_denominator": run_value_denominator,
         "run_value_coverage_pct": _rate(run_value_pitches, run_value_denominator),
+        "expected_run_value": _rounded(paired_expected, 3),
+        "expected_run_value_per_100": _per_100(paired_expected),
+        "paired_actual_run_value": _rounded(paired_actual, 3),
+        "paired_actual_run_value_per_100": _per_100(paired_actual),
+        "run_value_minus_expected": _rounded(rv_minus_xrv, 3),
+        "run_value_minus_expected_per_100": _per_100(rv_minus_xrv),
+        "expected_run_value_pitch_count": xrv_scored,
+        "expected_run_value_coverage_pct": _rate(xrv_scored, run_value_denominator),
+        "expected_run_value_unscored_contact": _integer(row, "xrv_missing_contact"),
+        "expected_run_value_unsupported_contact": _integer(row, "xrv_unsupported_contact"),
+        "expected_run_value_missing_actual": _integer(row, "xrv_missing_actual"),
+        "expected_run_value_unknown_scale": _integer(row, "xrv_unknown_scale"),
         "avg_velocity": _rounded(row["avg_velocity"]),
         "vaa": _rounded(row["vaa"]),
         "expected_vaa": _rounded(row["expected_vaa"], 2),
