@@ -498,6 +498,22 @@ def backfill_woba_command(season, pitcher_id, workers):
         raise click.ClickException("Some wOBA outcomes remain unverified; saved data retained.")
 
 
+@statcast_cli.command("reconcile-woba-outcomes")
+@click.option("--pitcher-id", required=True, type=click.IntRange(min=1))
+@click.option("--season", type=click.IntRange(2015, 2100), default=2026, show_default=True)
+@click.option("--apply", is_flag=True, help="Commit verified revised PA events and wOBA weights.")
+@with_appcontext
+def reconcile_woba_outcomes_command(pitcher_id, season, apply):
+    """Inspect or correct post-ingestion Savant revisions to game outcomes."""
+    from app.services.woba_refresh import reconcile_revised_woba_outcomes
+
+    try:
+        summary = reconcile_revised_woba_outcomes(pitcher_id=pitcher_id, season=season, apply=apply)
+    except Exception as error:
+        raise click.ClickException(str(error)) from error
+    click.echo(summary)
+
+
 @statcast_cli.command("backfill-xslg")
 @click.option("--season", type=click.IntRange(2015, 2100), default=2026, show_default=True)
 @click.option(
