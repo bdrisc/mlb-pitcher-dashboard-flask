@@ -58,11 +58,15 @@ def load_sample():
 def test_expected_value_only_replaces_outcomes_on_tracked_contact(app):
     with app.app_context():
         load_sample()
-        record = db.session.execute(
-            select(*expected_run_value_columns())
-            .select_from(Pitch)
-            .join(Game, Game.game_pk == Pitch.game_pk)
-        ).mappings().one()
+        record = (
+            db.session.execute(
+                select(*expected_run_value_columns())
+                .select_from(Pitch)
+                .join(Game, Game.game_pk == Pitch.game_pk)
+            )
+            .mappings()
+            .one()
+        )
 
         assert record["xrv_scored_pitches"] == 3
         assert record["xrv_missing_contact"] == 2
@@ -78,11 +82,15 @@ def test_expected_value_only_replaces_outcomes_on_tracked_contact(app):
 def test_per_100_and_gap_use_the_same_paired_pitch_population(app):
     with app.app_context():
         load_sample()
-        record = db.session.execute(
-            select(*_metric_columns())
-            .select_from(Pitch)
-            .join(Game, Game.game_pk == Pitch.game_pk)
-        ).mappings().one()
+        record = (
+            db.session.execute(
+                select(*_metric_columns())
+                .select_from(Pitch)
+                .join(Game, Game.game_pk == Pitch.game_pk)
+            )
+            .mappings()
+            .one()
+        )
         metrics = _performance_metrics(record)
         delta = (0.4 - 2.079 + 0.6) / WOBA_SCALES[2026]
 
@@ -96,9 +104,7 @@ def test_per_100_and_gap_use_the_same_paired_pitch_population(app):
         assert metrics["run_value_minus_expected_per_100"] == pytest.approx(
             round(delta * 100 / 3, 1), abs=0.1
         )
-        assert metrics["expected_run_value"] == pytest.approx(
-            round(-0.9 - delta, 3), abs=0.001
-        )
+        assert metrics["expected_run_value"] == pytest.approx(round(-0.9 - delta, 3), abs=0.001)
 
 
 def test_no_source_run_values_yield_null_expectations(app):
@@ -106,11 +112,15 @@ def test_no_source_run_values_yield_null_expectations(app):
         load_sample()
         db.session.query(Pitch).update({Pitch.delta_run_expectancy: None})
         db.session.commit()
-        record = db.session.execute(
-            select(*_metric_columns())
-            .select_from(Pitch)
-            .join(Game, Game.game_pk == Pitch.game_pk)
-        ).mappings().one()
+        record = (
+            db.session.execute(
+                select(*_metric_columns())
+                .select_from(Pitch)
+                .join(Game, Game.game_pk == Pitch.game_pk)
+            )
+            .mappings()
+            .one()
+        )
         metrics = _performance_metrics(record)
         assert metrics["expected_run_value"] is None
         assert metrics["expected_run_value_per_100"] is None
