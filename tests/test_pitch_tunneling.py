@@ -244,9 +244,9 @@ def test_independent_metric_coverage_and_read_only_api(app, tunnel_client):
     # Changing a tracked release-side coordinate legitimately changes the new
     # release-side shape metric, but no unrelated profile or tunneling values.
     side_metrics = {"avg_release_side", "release_side_pitch_count"}
-    assert {
-        key: value for key, value in before["overall"].items() if key not in side_metrics
-    } == {key: value for key, value in after["overall"].items() if key not in side_metrics}
+    assert {key: value for key, value in before["overall"].items() if key not in side_metrics} == {
+        key: value for key, value in after["overall"].items() if key not in side_metrics
+    }
     assert after["overall"]["release_side_pitch_count"] == (
         before["overall"]["release_side_pitch_count"] - 1
     )
