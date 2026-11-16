@@ -50,6 +50,22 @@ ZERO_WEIGHT_CONTACT_EVENTS = (
 VALID_CONTACT_EVENTS = HIT_EVENTS + ZERO_WEIGHT_CONTACT_EVENTS
 
 
+def xrv_quality_status(*, scored, physical, contact_total, contact_scored):
+    """Describe tracking/sample sufficiency, not future predictive reliability.
+
+    Thresholds are presentation guardrails, NOT learned calibration parameters.
+    """
+    if not scored:
+        return "unavailable"
+    if (contact_total >= 30 and contact_scored / contact_total < 0.95) or (
+        physical >= 200 and scored / physical < 0.95
+    ):
+        return "limited_coverage"
+    if scored < 300 or contact_total < 30:
+        return "small_sample"
+    return "descriptive"
+
+
 def _season_constant(column):
     """Produce a SQL expression returning a Guts constant for Game.season."""
     return case(
