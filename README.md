@@ -425,6 +425,35 @@ review remaining material differences. This refresh does not overwrite
 FanGraphs published grade snapshots, fix missing local arm angles, or resolve
 pitcher-seasons that fail separate RV source verification.
 
+### Fixing a revised official plate-appearance outcome
+
+The normal wOBA backfill deliberately preserves stored outcomes whose event
+labels differ from Savant. When a scoring revision occurs later, this can
+leave local season wOBA blank even though the public DB has the newer label.
+For example, Joey Cantillo's September 24, 2026 pitch `824707_34_5` was
+originally stored as `field_error` locally but later recorded as `single`
+by the public database and MLB Gameday.
+
+Preview official scoring revisions with no database writes:
+
+```powershell
+python -m flask --app wsgi statcast reconcile-woba-outcomes --pitcher-id 676282 --season 2026
+```
+
+Apply **only** source-verified revised events and their exact Savant wOBA
+components after reviewing the preview:
+
+```powershell
+python -m flask --app wsgi statcast reconcile-woba-outcomes --pitcher-id 676282 --season 2026 --apply
+```
+
+This independently verifies all pitcher-season plate appearances against
+Savant's published total, rejects unknown pitch IDs and unexpectedly large
+revisions, and touches only revised `events` and their published
+`savant_woba_*` weights. Original movement, release/trajectory, xSLG,
+pitch type, RV and other observations remain unchanged. It does not run
+automatically at deployment.
+
 ## API routes
 
 ```text
