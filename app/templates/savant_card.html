@@ -211,6 +211,14 @@
               </dl>
             </div>
           </section>
+          <section class="overview-group" aria-labelledby="expected-run-value-heading">
+            <h3 id="expected-run-value-heading">Run Value vs. Expected</h3>
+            <dl class="overview-values">
+              {{ metric('expected_run_value_per_100', 'xRV/100', 'Expected Runs Prevented / 100') }}
+              {{ metric('run_value_minus_expected', 'RV − xRV', 'Runs Above Expected') }}
+              {{ metric('run_value_minus_expected_per_100', 'RV − xRV/100', 'Above Expected / 100') }}
+            </dl>
+          </section>
           <section class="overview-group" aria-labelledby="run-prevention-heading">
             <div class="overview-group-heading">
               <h3 id="run-prevention-heading">Run Prevention</h3>
@@ -296,6 +304,8 @@
                 <th scope="col" role="columnheader">Usage</th>
                 <th scope="col" role="columnheader" data-mobile-label="Pitches">#</th>
                 <th scope="col" role="columnheader" data-view="results" title="Context-neutral runs prevented per 100 pitches; higher is better">RV/100</th>
+                <th scope="col" role="columnheader" data-view="results" title="Contact-adjusted expected pitcher run value per 100 matched pitches; higher is better">xRV/100</th>
+                <th scope="col" role="columnheader" data-view="results" title="Matched actual minus expected pitcher run value per 100 pitches; positive means better observed results">RV − xRV/100</th>
                 <th scope="col" role="columnheader" data-view="grades" hidden>Stuff+</th>
                 <th scope="col" role="columnheader" data-view="grades" hidden>Location+</th>
                 <th scope="col" role="columnheader" data-view="grades" hidden>Pitching+</th>

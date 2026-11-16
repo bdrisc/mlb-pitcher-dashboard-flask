@@ -247,6 +247,20 @@ pitch rows. That keeps arsenal usage, trends, splits, and rate denominators inte
 The checked-in production file contains 133,933 pitches from the 50 busiest pitchers through
 September 14, 2026. The full league cache remains local and is never committed.
 
+## Expected run value (xRV)
+
+The pitcher report now includes contact-adjusted **xRV/100**, **RV − xRV**
+and **(RV − xRV)/100** overall and by pitch type. Existing context-neutral
+Baseball Savant-aligned RV/100 remains unchanged. xRV is a custom metric
+built from the original per-pitch RV plus the gap between observed wOBA
+and Statcast expected wOBA on contact, converted to runs with the relevant
+season's FanGraphs wOBA scale.
+
+The API tracks scored-pitch coverage and excluded batted balls explicitly;
+actual-vs-expected comparisons use the same paired pitch population.
+This is **not** an official Baseball Savant xRV or FanGraphs xPV statistic.
+See [methodology, exclusions and sources](docs/expected_run_value.md).
+
 ## API routes
 
 ```text
