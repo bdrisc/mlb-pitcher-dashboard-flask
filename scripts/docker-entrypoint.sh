@@ -103,6 +103,16 @@ echo "Starting web server on port ${PORT:-10000}."
         fi
     fi
 
+    # Optional: align stored pitch classifications to current Savant pitch IDs.
+    # Read-only source verification comes first; only pitch type/name are updated.
+    # Missing or extra pitch IDs stop a pitcher-season from being changed.
+    if [ "$maintenance_ok" = "1" ] && [ "${SYNC_PITCH_TYPES_ON_STARTUP:-0}" = "1" ]; then
+        echo "Checking official pitch classifications for the stored pitcher pool."
+        if ! flask --app wsgi statcast refresh-pitch-types --season 2026 --apply; then
+            echo "Some official pitch classifications could not be verified; saved types retained." >&2
+        fi
+    fi
+
     # Statcast ingestion replaces imported RV fields on existing pitches.
     # Verify AFTER recent sync so late-season upserts cannot overwrite verified
     # Savant values before the app serves its final RV and xRV snapshots.
