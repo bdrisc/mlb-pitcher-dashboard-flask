@@ -11,7 +11,7 @@ from sqlalchemy.engine import RowMapping
 from app.extensions import db
 from app.models import Game, Pitch, Player
 from app.services.database_queries import pitch_filter_conditions, pitcher_team_expression
-from app.services.expected_run_value import expected_run_value_columns
+from app.services.expected_run_value import expected_run_value_columns, xrv_quality_status
 from app.services.fangraphs_stuff import profile_grades
 from app.services.filters import PitchFilters
 from app.services.movement_reference import movement_vs_average
@@ -297,17 +297,12 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
     contact_scored = _integer(row, "xrv_scored_contact")
     contact_coverage = _rate(contact_scored, contact_total)
     xrv_pitch_coverage = _rate(xrv_scored, run_value_denominator)
-    if not xrv_scored:
-        xrv_quality = "unavailable"
-    elif (
-        contact_total >= 30
-        and contact_scored / contact_total < 0.95
-    ) or (run_value_denominator >= 200 and xrv_scored / run_value_denominator < 0.95):
-        xrv_quality = "limited_coverage"
-    elif xrv_scored < 300 or contact_total < 30:
-        xrv_quality = "small_sample"
-    else:
-        xrv_quality = "descriptive"
+    xrv_quality = xrv_quality_status(
+        scored=xrv_scored,
+        physical=run_value_denominator,
+        contact_total=contact_total,
+        contact_scored=contact_scored,
+    )
     paired_actual = row["xrv_paired_actual"]
     paired_expected = row["xrv_paired_expected"]
     rv_minus_xrv = (
