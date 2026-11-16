@@ -108,6 +108,12 @@ def expected_run_value_columns():
         func.abs(source_weight - observed_weight) > 0.005,
     )
     return [
+        func.count(Pitch.pitch_id).filter(has_actual_rv, is_batted_ball).label(
+            "xrv_eligible_contact"
+        ),
+        func.count(Pitch.pitch_id).filter(has_actual_rv, usable_contact).label(
+            "xrv_scored_contact"
+        ),
         func.count(Pitch.pitch_id).filter(matched).label("xrv_scored_pitches"),
         func.sum(paired_actual).label("xrv_paired_actual"),
         func.sum(paired_expected).label("xrv_paired_expected"),
