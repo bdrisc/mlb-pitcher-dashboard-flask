@@ -196,12 +196,8 @@ def _metric_columns() -> list[Any]:
         _count_where(event_name.in_(("strikeout", "strikeout_double_play"))).label("strikeouts"),
         _count_where(event_name.in_(("walk", "intent_walk"))).label("walks"),
         _count_where(physical_rv_pitch).label("run_value_denominator"),
-        func.sum(Pitch.delta_run_expectancy)
-        .filter(physical_rv_pitch)
-        .label("run_value_against"),
-        func.count(Pitch.delta_run_expectancy)
-        .filter(physical_rv_pitch)
-        .label("run_value_pitches"),
+        func.sum(Pitch.delta_run_expectancy).filter(physical_rv_pitch).label("run_value_against"),
+        func.count(Pitch.delta_run_expectancy).filter(physical_rv_pitch).label("run_value_pitches"),
         *expected_run_value_columns(),
         func.avg(Pitch.velocity).label("avg_velocity"),
         func.avg(Pitch.vaa).label("vaa"),
