@@ -369,6 +369,9 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         "expected_run_value_unsupported_contact": _integer(row, "xrv_unsupported_contact"),
         "expected_run_value_missing_actual": _integer(row, "xrv_missing_actual"),
         "expected_run_value_unknown_scale": _integer(row, "xrv_unknown_scale"),
+        "expected_run_value_imported_weight_mismatch": _integer(
+            row, "xrv_imported_weight_mismatch"
+        ),
         "avg_velocity": _rounded(row["avg_velocity"]),
         "vaa": _rounded(row["vaa"]),
         "expected_vaa": _rounded(row["expected_vaa"], 2),
