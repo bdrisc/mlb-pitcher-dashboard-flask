@@ -83,11 +83,16 @@ def plan_pitch_type_changes(existing, official, *, max_change_fraction=0.10):
     by_id = dict(existing)
     if len(by_id) != len(existing):
         raise PitchTypeSourceError("Stored pitch IDs are duplicated.")
-    if set(by_id) != set(official):
-        missing = len(set(by_id) - set(official))
-        extra = len(set(official) - set(by_id))
+    missing = set(by_id) - set(official)
+    extras = set(official) - set(by_id)
+    # Savant can include additional source rows that were never ingested.
+    # They are not local pitches and must never be inserted or updated here.
+    # Every stored ID must still exist in Savant, and extras must be small.
+    max_extras = max(3, int(len(by_id) * 0.02))
+    if missing or len(extras) > max_extras:
         raise PitchTypeSourceError(
-            f"Official pitch IDs do not match the stored season (missing={missing}, extra={extra})."
+            "Official source cannot safely match stored pitches "
+            f"(missing={len(missing)}, extra={len(extras)}, max_extra={max_extras})."
         )
     edits = []
     for pitch_id, current in by_id.items():
@@ -127,6 +132,7 @@ def refresh_pitch_types(
         "pitcher_seasons": len(jobs),
         "verified": 0,
         "changed_pitches": 0,
+        "ignored_extra_source_pitches": 0,
         "applied": apply,
         "failed": [],
     }
@@ -157,9 +163,14 @@ def refresh_pitch_types(
                     db.session.commit()
                 summary["verified"] += 1
                 summary["changed_pitches"] += len(edits)
+                extra = len(set(official) - {pitch_id for pitch_id, _ in existing})
+                summary["ignored_extra_source_pitches"] += extra
                 if progress:
                     action = "updated" if apply else "would update"
-                    progress(f"{pid} ({year}): {action} {len(edits)} pitch classifications.")
+                    progress(
+                        f"{pid} ({year}): {action} {len(edits)} pitch classifications; "
+                        f"ignored {extra} source-only IDs."
+                    )
             except Exception as error:
                 db.session.rollback()
                 summary["failed"].append({"pitcher_id": pid, "season": year, "error": str(error)})
