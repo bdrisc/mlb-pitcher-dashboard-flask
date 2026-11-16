@@ -43,12 +43,19 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b'id="database-freshness"' in response.data
     assert b'id="arsenal-body"' in response.data
     assert b'id="platoon-splits"' in response.data
-    assert b'data-metric="expected_run_value_per_100"' in response.data
-    assert b'data-metric="run_value_minus_expected"' in response.data
-    assert b'data-metric="run_value_minus_expected_per_100"' in response.data
-    assert b'data-metric="paired_actual_run_value_per_100"' in response.data
-    assert b'id="xrv-quality-note"' in response.data
-    assert response.data.count(b'data-metric="') == 36
+    assert b'class="metric-card overview-rv-pair"' in response.data
+    assert response.data.count(b'data-metric="run_value_per_100"') == 1
+    assert response.data.count(b'data-metric="expected_run_value_per_100"') == 1
+    assert b"Run Value vs. Expected" not in response.data
+    assert b'id="xrv-quality-note"' not in response.data
+    assert b"methodology and validation" not in response.data
+    assert b'data-metric="run_value_minus_expected"' not in response.data
+    assert b'data-metric="run_value_minus_expected_per_100"' not in response.data
+    assert b'data-metric="paired_actual_run_value_per_100"' not in response.data
+    assert b">Paired RV/100</th>" not in response.data
+    assert b">\xce\x94RV/100</th>" not in response.data
+    assert b">xRV/100</th>" in response.data
+    assert response.data.count(b'data-metric="') == 33
     for metric in (b"gb_pct", b"fb_pct", b"ld_pct", b"pu_pct"):
         assert b'data-metric="' + metric + b'"' in response.data
     assert b"Batted-Ball Profile" in response.data

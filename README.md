@@ -249,17 +249,18 @@ September 14, 2026. The full league cache remains local and is never committed.
 
 ## Expected run value (xRV)
 
-The pitcher report now includes contact-adjusted **xRV/100**, **RV − xRV**
-and **(RV − xRV)/100** overall and by pitch type. Existing context-neutral
-Baseball Savant-aligned RV/100 remains unchanged. xRV is a custom metric
-built from the original per-pitch RV plus the gap between observed wOBA
-and Statcast expected wOBA on contact, converted to runs with the relevant
-season's FanGraphs wOBA scale.
+The pitcher report shows **xRV/100** directly beside the existing,
+unchanged Savant-aligned **RV/100**, in the same featured card and the arsenal
+Results table. The separate run-value comparison section, sample-coverage
+banner, and additional RV-minus-xRV columns are hidden from the interface.
 
-The API tracks scored-pitch and batted-ball coverage and warns about small
-or incomplete samples. Both the overview and arsenal table show
-**Paired RV/100** beside **xRV/100** for strictly matched actual-versus-expected
-comparisons; the original full-population Savant RV/100 remains unchanged.
+xRV is a custom contact-adjusted metric calculated from observed per-pitch
+RV plus the difference between observed and Statcast expected contact
+wOBA, converted to runs using the corresponding seasonal FanGraphs scale.
+The API still includes paired RV, actual-minus-expected values, contact
+coverage, and sample-quality warnings for deeper analysis. The displayed
+RV/100 uses all qualifying physical pitches, while xRV/100 uses only
+pitches that can be scored; their denominators may differ slightly.
 
 A real 2026 public-cohort audit covered 50 pitchers and 24,200 tracked
 contact plays. Contact wOBA was well calibrated in aggregate, but the

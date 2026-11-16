@@ -156,11 +156,19 @@ kept fixed.
 
 ### Interpreting the displayed pair
 
-The dashboard now displays **Paired RV/100** immediately beside **xRV/100**
-both overall and by arsenal pitch type. They are calculated from *exactly
-the same observed pitches and denominator*, so their difference is
-**ΔRV/100**. The original, standalone Savant-aligned **RV/100** still shows
-the full physical pitch population and is **not** altered.
+The dashboard places **xRV/100** in the same featured metric card as the
+original **RV/100**, and displays these two rates side by side in the
+arsenal Results table. RV/100 remains Savant-aligned and uses its full
+physical-pitch sample, while xRV/100 uses only scorable matched pitches.
+They may therefore have slightly different denominators.
+
+For a mathematically matched comparison, use the API's
+`paired_actual_run_value_per_100` and
+`expected_run_value_per_100`. Their exact difference is the API's
+`run_value_minus_expected_per_100`. These extra rates are retained for
+analysis but are no longer displayed as separate dashboard cards or
+arsenal columns. The visible coverage banner has also been removed;
+the hover tooltip still provides coverage and methodological context.
 
 The API also exposes number of tracked and eligible contact events, their
 coverage percentage, and a conservative descriptive quality flag:
