@@ -405,10 +405,13 @@ corrections to local records only:
 python -m flask --app wsgi statcast refresh-pitch-types --season 2026 --audit outputs/dashboard_parity_refined_2026.json --apply
 ```
 
-Each pitcher-season is checked against Savant's current CSV. Pitch identities
-must match exactly (no missing/extra IDs), and >10% of pitches being
-reclassified fails safety verification. On a failed verification, the saved
-pitch types are retained. Successful updates change **only**
+Each pitcher-season is checked against Savant's current CSV. Every
+locally stored pitch ID must appear in the official source. A small number
+of additional *source-only* Savant rows (at most 2% of local pitches) may
+be ignored: they are **never inserted or updated**. Missing local IDs,
+too many source-only IDs, or >10% of pitches being reclassified fail
+verification and preserve the saved types. The command reports how many
+additional source IDs were ignored. Successful updates change **only**
 `pitch_type` and `pitch_name`: velocity, trajectory, RV, xRV inputs,
 arm angle, xSLG, and all other measurements remain as stored.
 
@@ -448,8 +451,11 @@ python -m flask --app wsgi statcast reconcile-woba-outcomes --pitcher-id 676282 
 ```
 
 This independently verifies all pitcher-season plate appearances against
-Savant's published total, rejects unknown pitch IDs and unexpectedly large
-revisions, and touches only revised `events` and their published
+Savant's published total, requires every locally stored completed PA to
+occur in the official source, and ignores at most a few additional
+source-only PA identities (never inventing missing local pitches).
+It rejects unexplained local PAs, large source discrepancies, or unexpectedly
+large revisions, and touches only revised `events` and their published
 `savant_woba_*` weights. Original movement, release/trajectory, xSLG,
 pitch type, RV and other observations remain unchanged. It does not run
 automatically at deployment.

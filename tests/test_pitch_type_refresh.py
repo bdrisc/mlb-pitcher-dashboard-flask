@@ -57,6 +57,25 @@ def test_pitch_type_plan_refuses_partial_ids_and_only_changes_classifications():
     assert plan_pitch_type_changes(existing, {"823001_1_1": None, "823001_1_2": "FF"}) == []
 
 
+def test_source_extra_rows_are_ignored_but_missing_local_ids_still_fail():
+    existing = [("823001_1_1", "SL"), ("823001_1_2", "FF")]
+    source = {
+        "823001_1_1": "ST",
+        "823001_1_2": "FF",
+        "823001_1_3": "CU",
+    }
+    assert plan_pitch_type_changes(existing, source) == [
+        {"pitch_id": "823001_1_1", "pitch_type": "ST", "pitch_name": "Sweeper"}
+    ]
+    with pytest.raises(PitchTypeSourceError, match="missing=1"):
+        plan_pitch_type_changes(existing, {"823001_1_1": "ST", "823001_1_3": "CU"})
+    with pytest.raises(PitchTypeSourceError, match="extra=4"):
+        plan_pitch_type_changes(
+            existing,
+            {**source, "source_extra_1": "FF", "source_extra_2": "FF", "source_extra_3": "FF"},
+        )
+
+
 def test_pitch_type_refresh_dry_run_then_updates_only_names_and_codes(app, monkeypatch):
     with app.app_context():
         db.session.add(Player(mlb_id=592332, player_name="Pitch Type Refresh Test"))

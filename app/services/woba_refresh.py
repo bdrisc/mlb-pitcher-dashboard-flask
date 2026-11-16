@@ -167,14 +167,24 @@ def reconcile_revised_woba_outcomes(*, pitcher_id, season=2026, apply=False):
     stored = {row.pitch_id: row.events for row in rows}
     dates = [row.game_date for row in rows]
     official = fetch_woba_outcomes((pitcher_id, season, min(dates), max(dates)))
-    missing = set(official) - set(stored)
-    if missing:
+    extras = set(official) - set(stored)
+    stored_pa = {key for key, event in stored.items() if event and event not in NON_PA_EVENTS}
+    missing_local_pa = stored_pa - set(official)
+    max_extras = min(10, max(2, int(len(official) * 0.01)))
+    # Savant's verified season aggregate may contain a few PA pitch IDs that
+    # were never ingested locally. Ignore only these extra source records,
+    # never invent pitches, and require every stored official PA to be covered.
+    if missing_local_pa or len(extras) > max_extras:
         raise ValueError(
-            f"{len(missing)} official plate appearances are absent from local pitches."
+            "Official Savant plate appearances cannot safely match local pitches "
+            f"(missing_local_pa={len(missing_local_pa)}, extra_source_pa={len(extras)}, "
+            f"max_extra={max_extras})."
         )
     patches = []
     revisions = []
     for key, (event, numerator, denominator) in official.items():
+        if key in extras:
+            continue
         current = stored[key]
         if current is None or current == "" or current in NON_PA_EVENTS:
             continue
@@ -205,6 +215,7 @@ def reconcile_revised_woba_outcomes(*, pitcher_id, season=2026, apply=False):
         "pitcher_id": pitcher_id,
         "season": season,
         "official_pa_verified": len(official),
+        "ignored_extra_source_pa": len(extras),
         "revised_outcomes": len(patches),
         "applied": apply,
         "revisions": revisions,
