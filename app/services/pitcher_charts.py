@@ -212,6 +212,7 @@ def _inning_progression(
 
     payload = []
     for (pitch_type, inning_pitched), group in sorted(groups.items()):
+
         def mean(prefix: str) -> float | None:
             count = group[f"{prefix}_count"]
             return _rounded(group[f"{prefix}_sum"] / count) if count else None
