@@ -384,7 +384,8 @@ def test_transition_matrix_filters_second_pitch_not_predecessor(tunnel_client):
     assert filtered["total_transitions"] == 1
     assert len(filtered["rows"]) == 1
     assert filtered["rows"][0]["pitch_type"] == "FF"
-    assert filtered["rows"][0]["cells"][0]["pct"] == 100.0
+    filtered_cells = {cell["pitch_type"]: cell for cell in filtered["rows"][0]["cells"]}
+    assert filtered_cells["SL"]["pct"] == 100.0
 
 
 def test_transition_matrix_respects_true_adjacency_and_no_geometry_requirement(
