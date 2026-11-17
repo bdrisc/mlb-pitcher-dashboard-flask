@@ -43,7 +43,6 @@ if (root) {
     transitionBody: document.querySelector("#transition-body"),
     transitionTable: document.querySelector("#transition-table"),
     transitionEmpty: document.querySelector("#transition-empty"),
-    transitionCoverage: document.querySelector("#transition-coverage"),
     splits: document.querySelector("#platoon-splits"),
     databaseFreshness: document.querySelector("#database-freshness"),
   };
@@ -584,20 +583,17 @@ if (root) {
   }
 
   function renderTransitions(matrix) {
-    const { pitch_types: types, rows, total_transitions: total } = matrix;
+    const { pitch_types: types, rows } = matrix;
     elements.transitionHead.replaceChildren();
     elements.transitionBody.replaceChildren();
 
     setVisible(elements.transitionEmpty, rows.length === 0);
     setVisible(elements.transitionTable, rows.length > 0);
-    elements.transitionCoverage.textContent = total
-      ? `${total.toLocaleString("en-US")} observed consecutive pitch pairs in this filtered sample.`
-      : "No observed consecutive pitch pairs in this sample.";
     if (!rows.length) return;
 
     const firstHeading = document.createElement("th");
     firstHeading.scope = "col";
-    firstHeading.textContent = "Previous ↓ / Next →";
+    firstHeading.textContent = "After This Pitch ↓ / Next Pitch →";
     elements.transitionHead.append(firstHeading);
     types.forEach((pitch) => {
       const heading = document.createElement("th");
