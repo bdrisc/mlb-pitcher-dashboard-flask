@@ -349,7 +349,6 @@ def test_pooling_uses_metric_specific_counts_and_missing_pairs():
     assert missing["release_pair_count"] == missing["late_separation_pair_count"] == 0
 
 
-
 def test_transition_matrix_counts_and_same_type_repeats(tunnel_client):
     payload = tunnel_client.get(URL).json
     matrix = payload["pitch_transition_matrix"]
@@ -378,9 +377,7 @@ def test_transition_matrix_filters_second_pitch_not_predecessor(tunnel_client):
     assert rows["SL"]["total"] == 1
     assert rows["FF"]["cells"][0]["count"] == 2
     assert rows["FF"]["cells"][0]["pct"] == 100.0
-    filtered = tunnel_client.get(URL + "?pitch_type=SL&strikes=1").json[
-        "pitch_transition_matrix"
-    ]
+    filtered = tunnel_client.get(URL + "?pitch_type=SL&strikes=1").json["pitch_transition_matrix"]
     assert filtered["total_transitions"] == 1
     assert len(filtered["rows"]) == 1
     assert filtered["rows"][0]["pitch_type"] == "FF"
@@ -388,9 +385,7 @@ def test_transition_matrix_filters_second_pitch_not_predecessor(tunnel_client):
     assert filtered_cells["SL"]["pct"] == 100.0
 
 
-def test_transition_matrix_respects_true_adjacency_and_no_geometry_requirement(
-    app, tunnel_client
-):
+def test_transition_matrix_respects_true_adjacency_and_no_geometry_requirement(app, tunnel_client):
     with app.app_context():
         db.session.delete(db.session.get(Pitch, "tunnel_2"))
         db.session.get(Pitch, "tunnel_4").ax = None
