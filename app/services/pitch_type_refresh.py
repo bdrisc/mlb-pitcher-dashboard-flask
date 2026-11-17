@@ -78,6 +78,25 @@ def fetch_pitch_type_source(job):
     return validate_pitch_type_source(frame, pitcher_id)
 
 
+def _is_bulk_knuckle_curve_relabel(by_id, edits):
+    """Allow a narrow, verified historical CU-to-KC source-vintage correction.
+
+    Gavin Williams' older 2026 source labeled almost every knuckle curve as CU.
+    Savant now uses KC. This is different from an arbitrary change to 20%+
+    of a pitcher's classifications, so keep strict bounds on all other edits.
+    """
+    if not edits or len(edits) > int(len(by_id) * 0.30):
+        return False
+    curve_relabels = sum(
+        by_id[item["pitch_id"]] == "CU" and item["pitch_type"] == "KC" for item in edits
+    )
+    return (
+        curve_relabels >= 100
+        and curve_relabels * 100 >= 98 * len(edits)
+        and len(edits) - curve_relabels <= 2
+    )
+
+
 def plan_pitch_type_changes(existing, official, *, max_change_fraction=0.10):
     """Return updates only for changed codes, never missing source classifications."""
     by_id = dict(existing)
@@ -106,9 +125,10 @@ def plan_pitch_type_changes(existing, official, *, max_change_fraction=0.10):
                 }
             )
     if len(edits) > max(1, int(len(by_id) * max_change_fraction)):
-        raise PitchTypeSourceError(
-            f"{len(edits)} reclassifications exceed the safety cap; saved data preserved."
-        )
+        if not _is_bulk_knuckle_curve_relabel(by_id, edits):
+            raise PitchTypeSourceError(
+                f"{len(edits)} reclassifications exceed the safety cap; saved data preserved."
+            )
     return edits
 
 
@@ -132,6 +152,7 @@ def refresh_pitch_types(
         "pitcher_seasons": len(jobs),
         "verified": 0,
         "changed_pitches": 0,
+        "knuckle_curve_relabels": 0,
         "ignored_extra_source_pitches": 0,
         "applied": apply,
         "failed": [],
@@ -163,13 +184,19 @@ def refresh_pitch_types(
                     db.session.commit()
                 summary["verified"] += 1
                 summary["changed_pitches"] += len(edits)
-                extra = len(set(official) - {pitch_id for pitch_id, _ in existing})
+                by_id = dict(existing)
+                curve_relabels = sum(
+                    by_id[item["pitch_id"]] == "CU" and item["pitch_type"] == "KC"
+                    for item in edits
+                )
+                summary["knuckle_curve_relabels"] += curve_relabels
+                extra = len(set(official) - set(by_id))
                 summary["ignored_extra_source_pitches"] += extra
                 if progress:
                     action = "updated" if apply else "would update"
                     progress(
-                        f"{pid} ({year}): {action} {len(edits)} pitch classifications; "
-                        f"ignored {extra} source-only IDs."
+                        f"{pid} ({year}): {action} {len(edits)} pitch classifications "
+                        f"({curve_relabels} CU->KC); ignored {extra} source-only IDs."
                     )
             except Exception as error:
                 db.session.rollback()
