@@ -369,12 +369,6 @@
             <h2 id="transition-heading">Pitch Sequencing Transition Matrix</h2>
           </div>
         </div>
-        <p class="transition-description">
-          Rows show the previous pitch; columns show the next pitch to the same batter.
-          Each cell shows the percentage of that row's observed transitions and the number of occurrences.
-          Darker cells represent more common selections.
-        </p>
-        <p id="transition-coverage" class="transition-coverage" aria-live="polite"></p>
         <p id="transition-empty" class="separation-note" hidden>
           No consecutive, classified pitch pairs match these filters.
         </p>
@@ -384,13 +378,6 @@
             <tbody id="transition-body"></tbody>
           </table>
         </div>
-        <p class="transition-footnote">
-          Consecutive pitch numbers within one game and plate appearance only.
-          Automatic calls and unclassified pitch types are excluded.
-          Active filters apply to the <strong>next pitch</strong>; its real previous pitch remains
-          unfiltered. Percentages are conditional on the filtered next-pitch sample,
-          so selecting a single pitch type limits the matrix to transitions into that type.
-        </p>
       </section>
 
       <section class="dashboard-section chart-section" aria-labelledby="charts-heading">
