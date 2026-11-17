@@ -593,7 +593,7 @@ if (root) {
 
     const firstHeading = document.createElement("th");
     firstHeading.scope = "col";
-    firstHeading.textContent = "After This Pitch ↓ / Next Pitch →";
+    firstHeading.textContent = "Previous Pitch ↓ / Next Pitch Probability →";
     elements.transitionHead.append(firstHeading);
     types.forEach((pitch) => {
       const heading = document.createElement("th");
