@@ -101,7 +101,10 @@ def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
 
     assert response.status_code == 200
     assert b".overview-rate-values" in response.data
-    assert b"grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));" in response.data
+    assert (
+        b"grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));"
+        in response.data
+    )
     assert b".location-pitch-panels {" in response.data
     assert b".plotly-chart.location-heatmap-plot {" in response.data
     assert b"height: 210px;" in response.data
