@@ -264,7 +264,14 @@
       return;
     }
 
-    const charts = inningData.pitch_types.map((pitch) => {
+    // Rank by pitch count within the active filters, not by pitch name or code.
+    const orderedPitches = [...inningData.pitch_types].sort(
+      (a, b) =>
+        b.pitch_count - a.pitch_count ||
+        a.pitch_name.localeCompare(b.pitch_name) ||
+        a.pitch_type.localeCompare(b.pitch_type),
+    );
+    const charts = orderedPitches.map((pitch) => {
       const card = document.createElement("article");
       card.className = "chart-card";
 
@@ -327,11 +334,11 @@
         container,
         [trace],
         baseLayout({
-          height: 300,
-          margin: { l: 57, r: 18, t: 20, b: 55 },
+          height: 280,
+          margin: { l: 55, r: 16, t: 14, b: 38 },
           showlegend: false,
           xaxis: {
-            title: "Inning of Appearance",
+            title: { text: "Inning of Appearance", standoff: 3 },
             type: "linear",
             dtick: 1,
             gridcolor: "#e8ebee",

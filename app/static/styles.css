@@ -1091,7 +1091,12 @@ summary,
 }
 
 .inning-chart {
-  min-height: 300px;
+  min-height: 280px;
+}
+
+/* Trim extra space after the x-axis without changing the other charts. */
+.inning-chart-grid > .chart-card {
+  padding-bottom: 3px;
 }
 
 .inning-empty {

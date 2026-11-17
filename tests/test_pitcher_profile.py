@@ -383,6 +383,39 @@ def test_inning_progression_groups_by_inning_of_pitcher_appearance(app, profile_
     assert filtered["rows"][0]["pitch_count"] == 1
 
 
+def test_inning_pitch_types_are_ranked_by_filtered_usage(app, profile_client):
+    with app.app_context():
+        for pitch in db.session.query(Pitch).filter_by(pitcher_id=PITCHER_ID):
+            pitch.inning = 1
+        db.session.add(
+            _pitch(
+                pitch_id="1002_4_1",
+                game_pk=1002,
+                batter_id=201,
+                at_bat_number=4,
+                pitch_number=1,
+                inning=1,
+                pitch_type="SL",
+                pitch_name="Slider",
+                balls=0,
+                strikes=0,
+                velocity=85.5,
+            )
+        )
+        db.session.commit()
+
+    chart = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/charts").json["charts"][
+        "inning_progression"
+    ]
+    assert [entry["pitch_type"] for entry in chart["pitch_types"]] == ["SL", "FF"]
+    assert [entry["pitch_count"] for entry in chart["pitch_types"]] == [3, 2]
+
+    filtered = profile_client.get(
+        f"/api/v1/pitchers/{PITCHER_ID}/charts?pitch_type=FF"
+    ).json["charts"]["inning_progression"]
+    assert [entry["pitch_type"] for entry in filtered["pitch_types"]] == ["FF"]
+
+
 def test_inning_progression_uses_independent_tracked_counts_and_handedness(app, profile_client):
     with app.app_context():
         db.session.get(Player, PITCHER_ID).throws = "L"

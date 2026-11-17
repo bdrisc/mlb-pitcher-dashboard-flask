@@ -93,6 +93,8 @@ def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
 
     assert response.status_code == 200
     assert b".overview-rate-values" in response.data
+    assert b".inning-chart-grid > .chart-card" in response.data
+    assert b"min-height: 280px;" in response.data
     assert b".overview-outcome-values" in response.data
     assert b".overview-rv-values" in response.data
     assert b".compact-metric strong" in response.data
@@ -116,7 +118,10 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b"window.Plotly.react" in charts_response.data
     assert b"inning_progression" in charts_response.data
     assert b"renderInningCharts" in charts_response.data
-    assert b"inningData.pitch_types.map" in charts_response.data
+    assert b"orderedPitches.map" in charts_response.data
+    assert b"b.pitch_count - a.pitch_count" in charts_response.data
+    assert b"height: 280" in charts_response.data
+    assert b"t: 14, b: 38" in charts_response.data
     assert b"inningMetricSelect.addEventListener" in charts_response.data
     assert b"inningPitchSelect" not in charts_response.data
 
