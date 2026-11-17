@@ -1403,26 +1403,6 @@ summary,
 
 /* Row-conditional transition heatmap. Preserve the matrix on narrow screens:
    unlike the separation table, a stacked mobile card would hide comparisons. */
-.transition-description,
-.transition-coverage,
-.transition-footnote {
-  margin: 0 0 10px;
-  color: var(--muted);
-  font-size: 0.82rem;
-  line-height: 1.5;
-  text-align: center;
-}
-
-.transition-coverage {
-  color: var(--ink);
-  font-weight: 750;
-}
-
-.transition-footnote {
-  margin: 10px 0 0;
-  font-size: 0.73rem;
-}
-
 .transition-shell {
   max-width: 100%;
 }
