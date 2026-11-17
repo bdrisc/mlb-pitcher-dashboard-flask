@@ -105,10 +105,7 @@ def test_large_arbitrary_reclassification_still_rejected():
 
 
 def test_large_curve_relabel_rejects_many_unrelated_edits_and_excess_extras():
-    existing = [
-        (f"829991_1_{i}", "CU" if i <= 665 else "FF")
-        for i in range(1, 2961)
-    ]
+    existing = [(f"829991_1_{i}", "CU" if i <= 665 else "FF") for i in range(1, 2961)]
     official = {
         pitch_id: ("KC" if i <= 600 else "SL" if i <= 665 else original)
         for i, (pitch_id, original) in enumerate(existing, start=1)
