@@ -395,9 +395,9 @@ def test_inning_progression_uses_independent_tracked_counts_and_handedness(app, 
         first.vertical_break_inches = None
         db.session.commit()
 
-    chart = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/charts").json[
-        "charts"
-    ]["inning_progression"]
+    chart = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/charts").json["charts"][
+        "inning_progression"
+    ]
     row = next(entry for entry in chart["rows"] if entry["pitch_type"] == "FF")
     assert row["pitch_count"] == 2
     assert row["game_count"] == 1
