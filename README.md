@@ -409,9 +409,15 @@ Each pitcher-season is checked against Savant's current CSV. Every
 locally stored pitch ID must appear in the official source. A small number
 of additional *source-only* Savant rows (at most 2% of local pitches) may
 be ignored: they are **never inserted or updated**. Missing local IDs,
-too many source-only IDs, or >10% of pitches being reclassified fail
-verification and preserve the saved types. The command reports how many
-additional source IDs were ignored. Successful updates change **only**
+too many source-only IDs, or >10% of pitches being arbitrarily reclassified
+fail verification and preserve the saved types. A narrowly defined exception
+allows a verified historical `CU` (curveball) to `KC` (knuckle curve) relabel:
+at least 98% of the changed codes must be `CU->KC`, at most two other
+classifications may change, at least 100 curve labels must be affected, and
+no more than 30% of all stored pitches can change. Every stored pitch ID
+must still match Savant and the source-only ID limit remains in force.
+The command reports the curve relabel count and how many source-only
+IDs were ignored. Successful updates change **only**
 `pitch_type` and `pitch_name`: velocity, trajectory, RV, xRV inputs,
 arm angle, xSLG, and all other measurements remain as stored.
 
@@ -421,6 +427,15 @@ startup maintenance. The default is disabled. The public dashboard never
 needs a full-league pitch database simply to display the smaller pool,
 although its league reference models must remain sourced from the full MLB
 baseline.
+
+Gavin Williams' 2026 data triggered the default cap because the locally
+stored 665 ordinary curveballs are largely designated as knuckle curves
+by current Savant. You can preview and then apply his official changes alone:
+
+```powershell
+python -m flask --app wsgi statcast refresh-pitch-types --pitcher 668909 --season 2026
+python -m flask --app wsgi statcast refresh-pitch-types --pitcher 668909 --season 2026 --apply
+```
 
 After both environments have used the same official source, rerun
 `python -m scripts.check_dashboard_parity --all --season 2026` to
