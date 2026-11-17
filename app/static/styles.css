@@ -1090,13 +1090,20 @@ summary,
   gap: 12px;
 }
 
-.inning-chart {
+/* Override the shared 365px Plotly minimum so the 280px inning plots
+   do not leave an empty gray strip beneath their x-axes. */
+.plotly-chart.inning-chart {
+  height: 280px;
   min-height: 280px;
 }
 
-/* Trim extra space after the x-axis without changing the other charts. */
 .inning-chart-grid > .chart-card {
   padding-bottom: 3px;
+}
+
+/* Keep an odd final pitch card the same width as its neighbors. */
+.inning-chart-grid > .chart-card:last-child:nth-child(odd) {
+  grid-column: auto;
 }
 
 .inning-empty {

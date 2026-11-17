@@ -271,6 +271,12 @@
         a.pitch_name.localeCompare(b.pitch_name) ||
         a.pitch_type.localeCompare(b.pitch_type),
     );
+    // Use the latest observed inning across every pitch type for all x-axes.
+    // Do not invent points where a particular pitch was no longer thrown.
+    const maxInning = inningData.rows.reduce(
+      (latest, row) => Math.max(latest, row.inning_pitched),
+      1,
+    );
     const charts = orderedPitches.map((pitch) => {
       const card = document.createElement("article");
       card.className = "chart-card";
@@ -341,6 +347,7 @@
             title: { text: "Inning of Appearance", standoff: 3 },
             type: "linear",
             dtick: 1,
+            range: [0.5, maxInning + 0.5],
             gridcolor: "#e8ebee",
           },
           yaxis: {
