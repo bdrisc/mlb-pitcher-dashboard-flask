@@ -73,7 +73,7 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b">Release SD</th>" in response.data
     assert response.data.index(b">Release Side</th>") < response.data.index(b">Release SD</th>")
     assert response.data.count(b'class="plotly-chart') == 4
-    assert b"Location Heatmaps by Pitch Type and Batter Hand" in response.data
+    assert b"Location Heatmaps by Pitch Type and Batter Handedness" in response.data
     assert b'id="location-heatmap-grid"' in response.data
     assert b"location-heatmap-column-headings" not in response.data
     assert b"<h3>Pitch Location</h3>" not in response.data
