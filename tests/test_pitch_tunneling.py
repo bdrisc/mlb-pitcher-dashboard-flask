@@ -410,8 +410,8 @@ def test_transition_matrix_empty_and_dashboard_section(app, tunnel_client):
     assert 'id="transition-heading"' in html
     assert 'id="transition-head"' in html
     assert 'id="transition-body"' in html
-    assert 'transition-description' not in html
-    assert 'transition-coverage' not in html
-    assert 'transition-footnote' not in html
+    assert "transition-description" not in html
+    assert "transition-coverage" not in html
+    assert "transition-footnote" not in html
     assert html.index('id="separation-heading"') < html.index('id="transition-heading"')
     assert html.index('id="transition-heading"') < html.index('id="charts-heading"')
