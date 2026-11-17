@@ -105,6 +105,9 @@ def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
     )
     assert b".location-pitch-panels {" in response.data
     assert b".plotly-chart.location-heatmap-plot {" in response.data
+    assert b".location-heatmap-panel {" in response.data
+    assert b"max-width: 100%;" in response.data
+    assert b"overflow: hidden;" in response.data
     assert b"height: 210px;" in response.data
     assert b"min-height: 210px;" in response.data
     assert b".location-heatmap-column-headings" not in response.data
@@ -135,6 +138,10 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert charts_response.mimetype in {"application/javascript", "text/javascript"}
     assert b"window.Plotly.react" in charts_response.data
     assert b"renderLocationHeatmaps" in charts_response.data
+    assert b"autosize: false" in charts_response.data
+    assert b"width: panelWidth" in charts_response.data
+    assert b"new ResizeObserver(" in charts_response.data
+    assert b"window.Plotly.relayout(plot, { width })" in charts_response.data
     assert b"height: 210" in charts_response.data
     assert b"caption.append(batterSide, sample)" in charts_response.data
     assert b"location_heatmaps" in charts_response.data

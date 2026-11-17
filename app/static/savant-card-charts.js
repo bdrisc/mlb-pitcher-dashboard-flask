@@ -25,6 +25,7 @@
   const inningDisplayMode = document.querySelector("#inning-display-mode");
   const inningGrid = document.querySelector("#inning-chart-grid");
   const locationHeatmapGrid = document.querySelector("#location-heatmap-grid");
+  let heatmapResizeObserver = null;
   let inningData = { pitch_types: [], rows: [] };
   const status = document.querySelector("#chart-status");
   const chartGrid = document.querySelector("#chart-grid");
@@ -232,6 +233,11 @@
   ];
 
   async function renderLocationHeatmaps(chart) {
+    // Disconnect the previous pitch cards before creating the replacement set.
+    if (heatmapResizeObserver) {
+      heatmapResizeObserver.disconnect();
+      heatmapResizeObserver = null;
+    }
     locationHeatmapGrid.querySelectorAll(".location-heatmap-plot").forEach((plot) => {
       if (window.Plotly) window.Plotly.purge(plot);
     });
@@ -250,6 +256,7 @@
       chart.panels.map((panel) => [`${panel.pitch_type}:${panel.batter_side}`, panel]),
     );
     const plots = [];
+    const plotPanels = [];
 
     chart.pitch_types.forEach((pitch) => {
       const row = document.createElement("section");
@@ -291,6 +298,7 @@
         );
         wrapper.append(plot);
         sides.append(wrapper);
+        plotPanels.push({ wrapper, plot });
 
         const hasDensity = Boolean(panel?.density);
         const trace = hasDensity
@@ -318,7 +326,12 @@
               showlegend: false,
             };
         const zone = chart.strike_zone;
+        // Plotly may otherwise use its 700px fallback width inside a narrow
+        // CSS grid cell. Size each SVG to its actual batter-hand panel.
+        const panelWidth = Math.max(1, Math.floor(plot.getBoundingClientRect().width));
         const layout = baseLayout({
+          autosize: false,
+          width: panelWidth,
           height: 210,
           margin: { l: 4, r: 4, t: 3, b: 3 },
           showlegend: false,
@@ -361,6 +374,21 @@
     });
 
     await Promise.all(plots);
+
+    // Recalculate exact widths when cards wrap or the browser is resized.
+    if (typeof ResizeObserver !== "undefined") {
+      heatmapResizeObserver = new ResizeObserver((entries) => {
+        entries.forEach(({ target }) => {
+          const plot = target.querySelector(".location-heatmap-plot");
+          if (!plot || !plot._fullLayout) return;
+          const width = Math.max(1, Math.floor(target.getBoundingClientRect().width));
+          if (Math.abs(plot._fullLayout.width - width) > 1) {
+            void window.Plotly.relayout(plot, { width });
+          }
+        });
+      });
+      plotPanels.forEach(({ wrapper }) => heatmapResizeObserver.observe(wrapper));
+    }
   }
 
   const inningMeasures = {
