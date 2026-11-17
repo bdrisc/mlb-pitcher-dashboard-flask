@@ -410,9 +410,9 @@ def test_inning_pitch_types_are_ranked_by_filtered_usage(app, profile_client):
     assert [entry["pitch_type"] for entry in chart["pitch_types"]] == ["SL", "FF"]
     assert [entry["pitch_count"] for entry in chart["pitch_types"]] == [3, 2]
 
-    filtered = profile_client.get(
-        f"/api/v1/pitchers/{PITCHER_ID}/charts?pitch_type=FF"
-    ).json["charts"]["inning_progression"]
+    filtered = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/charts?pitch_type=FF").json[
+        "charts"
+    ]["inning_progression"]
     assert [entry["pitch_type"] for entry in filtered["pitch_types"]] == ["FF"]
 
 
