@@ -227,12 +227,8 @@ def _metric_columns() -> list[Any]:
         func.avg(Pitch.release_pos_x).filter(physical_pitch).label("avg_release_side"),
         func.count(Pitch.release_pos_x).filter(physical_pitch).label("release_side_pitch_count"),
         _count_where(joint_release).label("release_point_sd_pitch_count"),
-        func.stddev_samp(Pitch.release_pos_x)
-        .filter(joint_release)
-        .label("release_side_sd_ft"),
-        func.stddev_samp(Pitch.release_pos_z)
-        .filter(joint_release)
-        .label("release_height_sd_ft"),
+        func.stddev_samp(Pitch.release_pos_x).filter(joint_release).label("release_side_sd_ft"),
+        func.stddev_samp(Pitch.release_pos_z).filter(joint_release).label("release_height_sd_ft"),
         func.avg(Pitch.horizontal_break_inches).label("horizontal_break"),
         func.avg(Pitch.vertical_break_inches).label("vertical_break"),
         func.avg(Pitch.arm_angle).filter(joint_movement).label("movement_arm_angle"),

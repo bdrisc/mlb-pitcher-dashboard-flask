@@ -1315,9 +1315,9 @@ def test_release_point_sd_excludes_automatic_calls(profile_client, app):
     with app.app_context():
         db.session.get(Pitch, "1001_1_2").description = "automatic_ball"
         db.session.commit()
-    fastball = profile_client.get(
-        f"/api/v1/pitchers/{PITCHER_ID}/profile?pitch_type=FF"
-    ).json["arsenal"][0]
+    fastball = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile?pitch_type=FF").json[
+        "arsenal"
+    ][0]
     assert fastball["release_point_sd_pitch_count"] == 1
     assert fastball["release_point_sd_inches"] is None
 
