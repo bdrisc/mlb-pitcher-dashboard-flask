@@ -625,7 +625,7 @@ if (root) {
         const percentage = document.createElement("strong");
         percentage.textContent = `${formatNumber(cell.pct)}%`;
         const count = document.createElement("small");
-        count.textContent = `n=${cell.count.toLocaleString("en-US")}`;
+        count.textContent = `${cell.count.toLocaleString("en-US")} PC`;
         value.title = `${transition.pitch_name} → ${pitchNames.get(cell.pitch_type)}: ${cell.count.toLocaleString("en-US")} of ${transition.total.toLocaleString("en-US")} observed transitions (${formatNumber(cell.pct)}%). Filters apply to the next pitch.`;
         value.append(percentage, count);
         row.append(value);
