@@ -183,33 +183,27 @@
             {% if context %}<small>{{ context }}</small>{% endif %}
           </dd>
         {% endmacro %}
-        {% macro metric(key, label, context='', featured=false) %}
-          {% if featured %}
-            <dl class="metric-card">{{ metric_value(key, label, context) }}</dl>
-          {% else %}
-            <div class="compact-metric">{{ metric_value(key, label, context) }}</div>
-          {% endif %}
+        {% macro metric(key, label, context='') %}
+          <div class="compact-metric">{{ metric_value(key, label, context) }}</div>
         {% endmacro %}
         <div class="overview-groups">
           <section class="overview-results" aria-labelledby="overall-results-heading">
             <h3 id="overall-results-heading">Overall Results</h3>
             <div class="overview-results-grid">
-              <div class="overview-featured">
-                {{ metric('k_minus_bb_pct', 'K-BB%', 'K% Minus BB%', featured=true) }}
-                <dl class="metric-card overview-woba-pair">
-                  <div>{{ metric_value('woba_against', 'wOBA', 'Actual') }}</div>
-                  <div>{{ metric_value('xwoba_against', 'xwOBA', 'Expected') }}</div>
-                   <div>{{ metric_value('xba', 'xBA', 'Expected') }}</div>
-                   <div>{{ metric_value('xslg', 'xSLG', 'Expected') }}</div>
-                </dl>
-                <dl class="metric-card overview-rv-pair">
-                  <div>{{ metric_value('run_value_per_100', 'RV/100', 'Runs Prevented / 100') }}</div>
-                  <div>{{ metric_value('expected_run_value_per_100', 'xRV/100', 'Expected Runs Prevented / 100') }}</div>
-                </dl>
-              </div>
-              <dl class="overview-values overview-supporting">
+              <dl class="overview-values overview-rate-values">
                 {{ metric('strikeout_pct', 'K%', 'Plate Appearances') }}
                 {{ metric('walk_pct', 'BB%', 'Plate Appearances') }}
+                {{ metric('k_minus_bb_pct', 'K-BB%', 'K% Minus BB%') }}
+              </dl>
+              <dl class="overview-values overview-outcome-values">
+                {{ metric('woba_against', 'wOBA', 'Actual') }}
+                {{ metric('xwoba_against', 'xwOBA', 'Expected') }}
+                {{ metric('xba', 'xBA', 'Expected') }}
+                {{ metric('xslg', 'xSLG', 'Expected') }}
+              </dl>
+              <dl class="overview-values overview-rv-values">
+                {{ metric('run_value_per_100', 'RV/100', 'Runs Prevented / 100') }}
+                {{ metric('expected_run_value_per_100', 'xRV/100', 'Expected Runs Prevented / 100') }}
               </dl>
             </div>
           </section>

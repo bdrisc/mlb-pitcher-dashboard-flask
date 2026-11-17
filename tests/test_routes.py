@@ -20,10 +20,10 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     response = client.get("/savant-card")
 
     assert response.status_code == 200
-    assert b"<h1>Pitcher Report</h1>" in response.data
+    assert b"<h1>MLB Pitcher Dashboard</h1>" in response.data
     assert (
         b"A filterable dashboard built from pitch-level Statcast data in PostgreSQL."
-        in response.data
+        not in response.data
     )
     assert b"Performance Metrics" in response.data
     assert b"K-BB%" in response.data
@@ -43,7 +43,15 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b'id="database-freshness"' in response.data
     assert b'id="arsenal-body"' in response.data
     assert b'id="platoon-splits"' in response.data
-    assert b'class="metric-card overview-rv-pair"' in response.data
+    assert b'class="overview-values overview-rate-values"' in response.data
+    assert b'class="overview-values overview-outcome-values"' in response.data
+    assert b'class="overview-values overview-rv-values"' in response.data
+    assert b'class="metric-card' not in response.data
+    assert (
+        response.data.index(b'data-metric="strikeout_pct"')
+        < response.data.index(b'data-metric="walk_pct"')
+        < response.data.index(b'data-metric="k_minus_bb_pct"')
+    )
     assert response.data.count(b'data-metric="run_value_per_100"') == 1
     assert response.data.count(b'data-metric="expected_run_value_per_100"') == 1
     assert b"Run Value vs. Expected" not in response.data
@@ -68,6 +76,17 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b"Metric definitions and sample notes" not in response.data
     assert b'data-charts-url-template="/api/v1/pitchers/0/charts"' in response.data
     assert b"plotly-4.0.0.min.js" in response.data
+
+
+def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
+    response = client.get("/static/styles.css")
+
+    assert response.status_code == 200
+    assert b".overview-rate-values" in response.data
+    assert b".overview-outcome-values" in response.data
+    assert b".overview-rv-values" in response.data
+    assert b".compact-metric strong" in response.data
+    assert b".metric-card::before" not in response.data
 
 
 def test_savant_card_javascript_is_served_as_a_static_asset(client):

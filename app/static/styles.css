@@ -746,7 +746,7 @@ summary,
 }
 
 .overview-group,
-.overview-supporting {
+.overview-results {
   min-width: 0;
   padding: 12px 14px;
   background: var(--surface-soft);
@@ -773,7 +773,6 @@ summary,
 }
 
 .overview-results-grid,
-.overview-featured,
 .overview-values {
   display: grid;
   min-width: 0;
@@ -781,12 +780,7 @@ summary,
 }
 
 .overview-results-grid {
-  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
-}
-
-.overview-featured {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr) minmax(0, 1.45fr);
-  margin: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .overview-values {
@@ -794,87 +788,76 @@ summary,
   margin: 0;
 }
 
-.overview-whiffs {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 65px), 1fr));
+.overview-rate-values {
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.overview-supporting {
+.overview-outcome-values {
+  grid-column: span 2;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.overview-rv-values {
+  grid-column: span 1;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: center;
+}
+
+.overview-whiffs {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 65px), 1fr));
 }
 
 .overview-grades {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.metric-card {
-  position: relative;
-  min-width: 0;
-  margin: 0;
-  padding: 13px clamp(8px, 1.2vw, 16px) 12px;
-  overflow: hidden;
-  background: linear-gradient(180deg, #fff, #f2f8f9);
-  border: 1px solid #dbe7e9;
-  border-radius: 10px;
-}
-
-.overview-woba-pair {
+/* Every performance metric uses identical label, value and caption sizing. */
+.compact-metric {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 48px), 1fr));
+  grid-template-rows: 2.25rem minmax(0, 1fr);
+  justify-items: center;
   align-content: start;
-  gap: 8px 12px;
+  min-width: 0;
+  min-height: 108px;
+  padding: 11px 8px;
+  background: #fff;
+  border: 1px solid #e3e7eb;
+  border-radius: 8px;
+  text-align: center;
 }
 
-.overview-rv-pair {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: center;
-  gap: 8px;
-}
-
-.overview-rv-pair > div + div {
-  border-left: 1px solid #dbe7e9;
-  padding-left: 8px;
-}
-
-.metric-card::before {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  background: linear-gradient(90deg, var(--brand), var(--accent));
-  content: "";
-}
-
-.metric-card dt,
 .compact-metric dt {
+  display: grid;
+  place-items: center;
   color: #5b6670;
-  font-size: 0.66rem;
-  font-weight: 850;
-  letter-spacing: 0.045em;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0.015em;
   overflow-wrap: anywhere;
 }
 
-.metric-card dd,
 .compact-metric dd {
   display: grid;
+  grid-template-rows: 1.65rem auto;
+  align-content: start;
+  justify-items: center;
   gap: 3px;
-  margin: 4px 0 0;
-}
-
-.metric-card strong {
-  color: var(--brand-dark);
-  font-size: clamp(1.2rem, 2.5vw, 1.9rem);
-  letter-spacing: -0.035em;
-  overflow-wrap: anywhere;
+  width: 100%;
+  min-width: 0;
+  margin: 5px 0 0;
 }
 
 .compact-metric strong {
-  font-size: 1.05rem;
-  letter-spacing: -0.025em;
+  color: var(--brand-dark);
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
   overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 
-.metric-card small,
 .compact-metric small {
   color: var(--muted);
   font-size: 0.65rem;
@@ -1217,6 +1200,11 @@ summary,
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .overview-outcome-values,
+  .overview-rv-values {
+    grid-column: 1 / -1;
+  }
+
   .split-grid {
     grid-template-columns: 1fr;
   }
@@ -1249,6 +1237,10 @@ summary,
   .filter-grid,
   .overview-values:not(.overview-grades) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .overview-values.overview-rate-values {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .field-wide {
@@ -1482,7 +1474,6 @@ summary,
 
 /* Keep stat headers, figures and captions aligned to each column's center.
    Scope these rules to the pitcher dashboard; don't shift site-wide tables. */
-.dashboard-shell .metric-card,
 .dashboard-shell .compact-metric,
 .dashboard-shell .overview-group,
 .dashboard-shell .overview-results,
@@ -1491,12 +1482,10 @@ summary,
   text-align: center;
 }
 
-.dashboard-shell .metric-card dd,
 .dashboard-shell .compact-metric dd {
   justify-items: center;
 }
 
-.dashboard-shell .metric-card strong,
 .dashboard-shell .compact-metric strong,
 .dashboard-shell .sample-strip dd,
 .dashboard-shell .split-card dd {
