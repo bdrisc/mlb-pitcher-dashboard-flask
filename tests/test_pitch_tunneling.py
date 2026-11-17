@@ -347,3 +347,68 @@ def test_pooling_uses_metric_specific_counts_and_missing_pairs():
     assert missing["release_gap_inches"] is None
     assert missing["late_separation_inches"] is None
     assert missing["release_pair_count"] == missing["late_separation_pair_count"] == 0
+
+
+def test_transition_matrix_counts_and_same_type_repeats(tunnel_client):
+    payload = tunnel_client.get(URL).json
+    matrix = payload["pitch_transition_matrix"]
+    assert matrix["method"] == "consecutive_same_pa_pitch_type_v1"
+    assert matrix["filter_pitch"] == "second"
+    assert matrix["total_transitions"] == 4
+    assert matrix["includes_same_type_pairs"] is True
+    assert [pitch["pitch_type"] for pitch in matrix["pitch_types"]] == ["SL", "FF"]
+    rows = {row["pitch_type"]: row for row in matrix["rows"]}
+    assert rows["FF"]["total"] == 2
+    assert rows["SL"]["total"] == 2
+    ff = {cell["pitch_type"]: cell for cell in rows["FF"]["cells"]}
+    sl = {cell["pitch_type"]: cell for cell in rows["SL"]["cells"]}
+    assert ff["SL"] == {"pitch_type": "SL", "count": 2, "pct": 100.0}
+    assert ff["FF"] == {"pitch_type": "FF", "count": 0, "pct": 0.0}
+    assert sl["FF"] == {"pitch_type": "FF", "count": 1, "pct": 50.0}
+    assert sl["SL"] == {"pitch_type": "SL", "count": 1, "pct": 50.0}
+    assert sum(row["total"] for row in matrix["rows"]) == matrix["total_transitions"]
+
+
+def test_transition_matrix_filters_second_pitch_not_predecessor(tunnel_client):
+    matrix = tunnel_client.get(URL + "?pitch_type=SL").json["pitch_transition_matrix"]
+    assert matrix["total_transitions"] == 3
+    rows = {row["pitch_type"]: row for row in matrix["rows"]}
+    assert rows["FF"]["total"] == 2
+    assert rows["SL"]["total"] == 1
+    assert rows["FF"]["cells"][0]["count"] == 2
+    assert rows["FF"]["cells"][0]["pct"] == 100.0
+    filtered = tunnel_client.get(URL + "?pitch_type=SL&strikes=1").json["pitch_transition_matrix"]
+    assert filtered["total_transitions"] == 1
+    assert len(filtered["rows"]) == 1
+    assert filtered["rows"][0]["pitch_type"] == "FF"
+    filtered_cells = {cell["pitch_type"]: cell for cell in filtered["rows"][0]["cells"]}
+    assert filtered_cells["SL"]["pct"] == 100.0
+
+
+def test_transition_matrix_respects_true_adjacency_and_no_geometry_requirement(app, tunnel_client):
+    with app.app_context():
+        db.session.delete(db.session.get(Pitch, "tunnel_2"))
+        db.session.get(Pitch, "tunnel_4").ax = None
+        db.session.commit()
+    profile = tunnel_client.get(URL).json
+    matrix = profile["pitch_transition_matrix"]
+    assert matrix["total_transitions"] == 2
+    assert profile["pitch_tunneling"]["overall"]["pair_count"] == 0
+    rows = {row["pitch_type"]: row for row in matrix["rows"]}
+    assert rows["FF"]["total"] == rows["SL"]["total"] == 1
+
+
+def test_transition_matrix_empty_and_dashboard_section(app, tunnel_client):
+    with app.app_context():
+        db.session.get(Pitch, "tunnel_1").balls = 3
+        db.session.commit()
+    matrix = tunnel_client.get(URL + "?balls=3").json["pitch_transition_matrix"]
+    assert matrix["total_transitions"] == 0
+    assert matrix["rows"] == []
+    assert matrix["pitch_types"] == []
+    html = tunnel_client.get("/savant-card").get_data(as_text=True)
+    assert 'id="transition-heading"' in html
+    assert 'id="transition-head"' in html
+    assert 'id="transition-body"' in html
+    assert html.index('id="separation-heading"') < html.index('id="transition-heading"')
+    assert html.index('id="transition-heading"') < html.index('id="charts-heading"')
