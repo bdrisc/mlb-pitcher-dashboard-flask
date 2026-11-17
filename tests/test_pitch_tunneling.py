@@ -241,9 +241,16 @@ def test_independent_metric_coverage_and_read_only_api(app, tunnel_client):
     assert o["metric_pair_counts"]["release_gap_inches"] == 1
     assert o["metric_pair_counts"]["flight_time_gap_ms"] == 3
     assert o["metric_pair_counts"]["tunnel_gap_inches"] == 4
-    # Changing a tracked release-side coordinate legitimately changes the new
-    # release-side shape metric, but no unrelated profile or tunneling values.
-    side_metrics = {"avg_release_side", "release_side_pitch_count"}
+    # Missing release-side tracking affects the release mean and paired SD,
+    # but no unrelated profile or tunneling values.
+    side_metrics = {
+        "avg_release_side",
+        "release_side_pitch_count",
+        "release_point_sd_inches",
+        "release_height_sd_inches",
+        "release_side_sd_inches",
+        "release_point_sd_pitch_count",
+    }
     assert {key: value for key, value in before["overall"].items() if key not in side_metrics} == {
         key: value for key, value in after["overall"].items() if key not in side_metrics
     }
@@ -251,6 +258,9 @@ def test_independent_metric_coverage_and_read_only_api(app, tunnel_client):
         before["overall"]["release_side_pitch_count"] - 1
     )
     assert before["overall"]["avg_release_side"] != after["overall"]["avg_release_side"]
+    assert after["overall"]["release_point_sd_pitch_count"] == (
+        before["overall"]["release_point_sd_pitch_count"] - 1
+    )
     with app.app_context():
         assert db.session.query(Pitch).count() == rows
 
