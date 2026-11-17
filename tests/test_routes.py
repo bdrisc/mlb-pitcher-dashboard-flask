@@ -75,8 +75,8 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert response.data.count(b'class="plotly-chart') == 4
     assert b"Location Heatmaps by Pitch Type and Batter Hand" in response.data
     assert b'id="location-heatmap-grid"' in response.data
-    assert b'RHH</span>' in response.data
-    assert b'LHH</span>' in response.data
+    assert b"RHH</span>" in response.data
+    assert b"LHH</span>" in response.data
     assert b"<h3>Pitch Location</h3>" not in response.data
     assert b'id="location-chart"' not in response.data
     assert b"Velocity and Movement Changes by Inning" in response.data

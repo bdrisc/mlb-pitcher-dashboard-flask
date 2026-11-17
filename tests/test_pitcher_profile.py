@@ -396,8 +396,7 @@ def test_location_heatmaps_are_split_by_pitch_type_and_batter_side(app, profile_
     assert len(fastball_right["density"]) == len(heatmaps["grid"]["y"])
     assert len(fastball_right["density"][0]) == len(heatmaps["grid"]["x"])
     assert (
-        max(value for row in fastball_right["density"] for value in row if value is not None)
-        == 1.0
+        max(value for row in fastball_right["density"] for value in row if value is not None) == 1.0
     )
 
     right_only = profile_client.get(url + "?batter_side=R").json["charts"]["location_heatmaps"]

@@ -36,9 +36,7 @@ def _density_grid(coordinates: list[tuple[float, float]]) -> tuple[list[list[flo
 
     for start in range(0, sample_size, 192):
         deviations = targets[:, None, :] - points[None, start : start + 192, :]
-        squared_distance = np.einsum(
-            "pni,ij,pnj->pn", deviations, inverse_covariance, deviations
-        )
+        squared_distance = np.einsum("pni,ij,pnj->pn", deviations, inverse_covariance, deviations)
         density += np.exp(-0.5 * squared_distance).sum(axis=1)
 
     maximum = float(density.max())
@@ -46,8 +44,7 @@ def _density_grid(coordinates: list[tuple[float, float]]) -> tuple[list[list[flo
     if maximum > 0:
         matrix = matrix / maximum
     return [
-        [round(float(value), 3) if value >= 0.05 else None for value in row]
-        for row in matrix
+        [round(float(value), 3) if value >= 0.05 else None for value in row] for row in matrix
     ], sample_size
 
 
