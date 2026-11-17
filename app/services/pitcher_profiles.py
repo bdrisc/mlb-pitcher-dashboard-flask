@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from decimal import ROUND_HALF_UP, Decimal
-from math import hypot
+from math import hypot, sqrt
 from typing import Any
 
 from sqlalchemy import and_, func, or_, select
@@ -227,8 +227,14 @@ def _metric_columns() -> list[Any]:
         func.avg(Pitch.release_pos_x).filter(physical_pitch).label("avg_release_side"),
         func.count(Pitch.release_pos_x).filter(physical_pitch).label("release_side_pitch_count"),
         _count_where(joint_release).label("release_point_sd_pitch_count"),
-        func.stddev_samp(Pitch.release_pos_x).filter(joint_release).label("release_side_sd_ft"),
-        func.stddev_samp(Pitch.release_pos_z).filter(joint_release).label("release_height_sd_ft"),
+        func.sum(Pitch.release_pos_x).filter(joint_release).label("release_side_sum"),
+        func.sum(Pitch.release_pos_z).filter(joint_release).label("release_height_sum"),
+        func.sum(Pitch.release_pos_x * Pitch.release_pos_x)
+        .filter(joint_release)
+        .label("release_side_sum_sq"),
+        func.sum(Pitch.release_pos_z * Pitch.release_pos_z)
+        .filter(joint_release)
+        .label("release_height_sum_sq"),
         func.avg(Pitch.horizontal_break_inches).label("horizontal_break"),
         func.avg(Pitch.vertical_break_inches).label("vertical_break"),
         func.avg(Pitch.arm_angle).filter(joint_movement).label("movement_arm_angle"),
@@ -283,11 +289,22 @@ def _batted_ball_percentages(counts: tuple[int, int, int, int]) -> tuple[float |
 
 
 def _performance_metrics(row: RowMapping) -> dict[str, Any]:
-    # A sample SD needs at least two *paired* tracked release coordinates.
-    release_side_sd_ft = row["release_side_sd_ft"]
-    release_height_sd_ft = row["release_height_sd_ft"]
+    # Calculate a sample SD from SQL sums so both PostgreSQL and SQLite work.
+    # Each component uses the same paired, physical-pitch sample (n >= 2).
+    release_count = _integer(row, "release_point_sd_pitch_count")
+
+    def release_component_sd(axis: str) -> float | None:
+        if release_count < 2:
+            return None
+        total = float(row[f"release_{axis}_sum"])
+        total_sq = float(row[f"release_{axis}_sum_sq"])
+        variance = (total_sq - total * total / release_count) / (release_count - 1)
+        return sqrt(max(0.0, variance))
+
+    release_side_sd_ft = release_component_sd("side")
+    release_height_sd_ft = release_component_sd("height")
     release_sd_inches = (
-        hypot(float(release_side_sd_ft), float(release_height_sd_ft)) * 12
+        hypot(release_side_sd_ft, release_height_sd_ft) * 12
         if release_side_sd_ft is not None and release_height_sd_ft is not None
         else None
     )
