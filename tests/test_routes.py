@@ -70,6 +70,8 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b">Arm Angle</th>" in response.data
     assert b">Release Height</th>" in response.data
     assert b">Release Side</th>" in response.data
+    assert b">Release SD</th>" in response.data
+    assert response.data.index(b">Release Side</th>") < response.data.index(b">Release SD</th>")
     assert response.data.count(b'class="plotly-chart') == 5
     assert b"Velocity and Movement Changes by Inning" in response.data
     assert b'id="inning-metric"' in response.data
@@ -113,6 +115,7 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert response.mimetype in {"application/javascript", "text/javascript"}
     assert b"/profile" in response.data
     assert b"URLSearchParams" in response.data
+    assert b'formatMetric("release_point_sd_inches"' in response.data
 
     charts_response = client.get("/static/savant-card-charts.js")
     assert charts_response.status_code == 200

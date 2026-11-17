@@ -1264,6 +1264,64 @@ def test_release_height_and_side_are_filter_aware_and_use_separate_coverage(prof
     assert eligible["release_side_pitch_count"] == 0
 
 
+def test_release_point_sd_uses_paired_coordinates_by_pitch_type_and_filters(profile_client, app):
+    with app.app_context():
+        for pitch_id, (side, height) in {
+            "1001_1_1": (-1.6, 5.8),
+            "1001_1_2": (-2.0, 6.2),
+            "1002_2_1": (1.0, 5.0),
+            "1002_3_1": (1.0, 5.0),
+        }.items():
+            pitch = db.session.get(Pitch, pitch_id)
+            pitch.release_pos_x = side
+            pitch.release_pos_z = height
+        db.session.commit()
+
+    response = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026")
+    assert response.status_code == 200
+    arsenal = {p["pitch_type"]: p for p in response.json["arsenal"]}
+    fastball, slider = arsenal["FF"], arsenal["SL"]
+    assert fastball["release_point_sd_pitch_count"] == 2
+    assert fastball["release_side_sd_inches"] == 3.4
+    assert fastball["release_height_sd_inches"] == 3.4
+    assert fastball["release_point_sd_inches"] == 4.8
+    assert slider["release_point_sd_inches"] == 0.0
+    assert slider["release_point_sd_pitch_count"] == 2
+
+    # One pitch does not define a sample standard deviation.
+    filtered = profile_client.get(
+        f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026&pitch_type=FF&strikes=1"
+    ).json["arsenal"][0]
+    assert filtered["release_point_sd_pitch_count"] == 1
+    assert filtered["release_point_sd_inches"] is None
+    assert filtered["release_side_sd_inches"] is None
+    assert filtered["release_height_sd_inches"] is None
+
+    with app.app_context():
+        # Do not calculate each axis with a different denominator.
+        db.session.get(Pitch, "1001_1_2").release_pos_x = None
+        db.session.commit()
+    partially_tracked = profile_client.get(
+        f"/api/v1/pitchers/{PITCHER_ID}/profile?pitch_type=FF"
+    ).json["arsenal"][0]
+    assert partially_tracked["release_height_pitch_count"] == 2
+    assert partially_tracked["release_side_pitch_count"] == 1
+    assert partially_tracked["release_point_sd_pitch_count"] == 1
+    assert partially_tracked["release_point_sd_inches"] is None
+    assert partially_tracked["release_height_sd_inches"] is None
+
+
+def test_release_point_sd_excludes_automatic_calls(profile_client, app):
+    with app.app_context():
+        db.session.get(Pitch, "1001_1_2").description = "automatic_ball"
+        db.session.commit()
+    fastball = profile_client.get(
+        f"/api/v1/pitchers/{PITCHER_ID}/profile?pitch_type=FF"
+    ).json["arsenal"][0]
+    assert fastball["release_point_sd_pitch_count"] == 1
+    assert fastball["release_point_sd_inches"] is None
+
+
 def test_release_shape_missing_tracking_displays_null_not_zero(profile_client, app):
     with app.app_context():
         for pitch_id in ("1001_1_1", "1001_1_2", "1002_2_1", "1002_3_1"):
@@ -1278,3 +1336,5 @@ def test_release_shape_missing_tracking_displays_null_not_zero(profile_client, a
         assert pitch["avg_release_side"] is None
         assert pitch["release_height_pitch_count"] == 0
         assert pitch["release_side_pitch_count"] == 0
+        assert pitch["release_point_sd_inches"] is None
+        assert pitch["release_point_sd_pitch_count"] == 0

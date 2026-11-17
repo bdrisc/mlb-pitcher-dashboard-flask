@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from decimal import ROUND_HALF_UP, Decimal
+from math import hypot
 from typing import Any
 
 from sqlalchemy import and_, func, or_, select
@@ -104,6 +105,12 @@ def _metric_columns() -> list[Any]:
     classified_bbe = and_(bbe, Pitch.launch_speed_angle.between(1, 6))
     batted_ball_kind = func.lower(func.trim(Pitch.batted_ball_type))
     valid_arm_angle = and_(physical_pitch, Pitch.arm_angle.between(0, 90))
+    # Evaluate both axes on exactly the same physical pitches.
+    joint_release = and_(
+        physical_pitch,
+        Pitch.release_pos_x.is_not(None),
+        Pitch.release_pos_z.is_not(None),
+    )
     joint_movement = and_(
         Pitch.arm_angle.is_not(None),
         Pitch.horizontal_break_inches.is_not(None),
@@ -219,6 +226,13 @@ def _metric_columns() -> list[Any]:
         func.count(Pitch.release_pos_z).filter(physical_pitch).label("release_height_pitch_count"),
         func.avg(Pitch.release_pos_x).filter(physical_pitch).label("avg_release_side"),
         func.count(Pitch.release_pos_x).filter(physical_pitch).label("release_side_pitch_count"),
+        _count_where(joint_release).label("release_point_sd_pitch_count"),
+        func.stddev_samp(Pitch.release_pos_x)
+        .filter(joint_release)
+        .label("release_side_sd_ft"),
+        func.stddev_samp(Pitch.release_pos_z)
+        .filter(joint_release)
+        .label("release_height_sd_ft"),
         func.avg(Pitch.horizontal_break_inches).label("horizontal_break"),
         func.avg(Pitch.vertical_break_inches).label("vertical_break"),
         func.avg(Pitch.arm_angle).filter(joint_movement).label("movement_arm_angle"),
@@ -273,6 +287,14 @@ def _batted_ball_percentages(counts: tuple[int, int, int, int]) -> tuple[float |
 
 
 def _performance_metrics(row: RowMapping) -> dict[str, Any]:
+    # A sample SD needs at least two *paired* tracked release coordinates.
+    release_side_sd_ft = row["release_side_sd_ft"]
+    release_height_sd_ft = row["release_height_sd_ft"]
+    release_sd_inches = (
+        hypot(float(release_side_sd_ft), float(release_height_sd_ft)) * 12
+        if release_side_sd_ft is not None and release_height_sd_ft is not None
+        else None
+    )
     pitches = _integer(row, "pitch_count")
     swings = _integer(row, "swings")
     location_tracked = _integer(row, "location_tracked")
@@ -402,6 +424,14 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         "release_height_pitch_count": _integer(row, "release_height_pitch_count"),
         "avg_release_side": _rounded(row["avg_release_side"], 1),
         "release_side_pitch_count": _integer(row, "release_side_pitch_count"),
+        "release_point_sd_inches": _rounded(release_sd_inches),
+        "release_height_sd_inches": _rounded(
+            float(release_height_sd_ft) * 12 if release_height_sd_ft is not None else None
+        ),
+        "release_side_sd_inches": _rounded(
+            float(release_side_sd_ft) * 12 if release_side_sd_ft is not None else None
+        ),
+        "release_point_sd_pitch_count": _integer(row, "release_point_sd_pitch_count"),
         "horizontal_break": _rounded(row["horizontal_break"]),
         "vertical_break": _rounded(row["vertical_break"]),
         "release_extension": _rounded(row["release_extension"]),

@@ -544,6 +544,15 @@ The original five visualizations are:
 4. pitch location with the sample's average strike zone;
 5. pitch usage within each count.
 
+**Release SD** appears in *Arsenal Performance → Pitch Shape* for each pitch type.
+It combines horizontal and vertical release-point **sample standard deviations**:
+`12 × sqrt(SD(release_pos_x)² + SD(release_pos_z)²)`, reported in inches.
+Both SD components use the same set of selected, physically thrown pitches with
+non-null horizontal and vertical release tracking; fewer than two paired pitches
+returns null, not zero. Hovering shows horizontal SD, vertical SD, and sample
+coverage. A lower value indicates less spatial release variation, not necessarily
+better location or command; long-date-range samples can include delivery changes.
+
 **Velocity and Movement Changes by Inning** lets users choose velocity (mph), horizontal
 break (inches, arm-side positive), or induced vertical break (inches), then displays one
 time-in-appearance chart per pitch type. The display can show averages or changes
