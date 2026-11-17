@@ -186,8 +186,7 @@ def refresh_pitch_types(
                 summary["changed_pitches"] += len(edits)
                 by_id = dict(existing)
                 curve_relabels = sum(
-                    by_id[item["pitch_id"]] == "CU" and item["pitch_type"] == "KC"
-                    for item in edits
+                    by_id[item["pitch_id"]] == "CU" and item["pitch_type"] == "KC" for item in edits
                 )
                 summary["knuckle_curve_relabels"] += curve_relabels
                 extra = len(set(official) - set(by_id))
