@@ -1431,6 +1431,12 @@ summary,
   letter-spacing: 0;
 }
 
+.dashboard-shell .transition-table thead th:first-child {
+  max-width: 185px;
+  white-space: normal;
+  line-height: 1.35;
+}
+
 .dashboard-shell .transition-table .transition-cell {
   min-width: 76px;
   background-clip: padding-box;
