@@ -527,7 +527,8 @@ loads pitcher data from the versioned JSON API. The page includes:
 - loading, empty-database, empty-sample, and structured API-error states;
 - 10 headline metrics with denominator-aware formatting;
 - a pitch-level arsenal table and right/left platoon cards;
-- five interactive Plotly charts with hover details, legend isolation, zoom, pan, and PNG export;
+- interactive Plotly charts with hover details, legend isolation, zoom, pan, and PNG export;
+- inning-by-inning velocity, horizontal break, and induced vertical break with pitch-type and change/average controls;
 - responsive layouts for desktop, tablet, and mobile screens.
 
 The page does not calculate baseball metrics in the browser. It sends the active filter set to
@@ -535,13 +536,22 @@ the pitcher profile API and renders the returned SQL aggregates, keeping the API
 source of truth. It sends the same normalized filters to the chart-data API, so every metric,
 table, and chart represents the same sample.
 
-The five visualizations are:
+The original five visualizations are:
 
 1. movement profile by pitch type;
 2. average velocity by game date;
 3. release-point consistency;
 4. pitch location with the sample's average strike zone;
 5. pitch usage within each count.
+
+**Velocity and Movement Changes by Inning** adds three time-in-appearance charts. For any selected
+pitch type, the display can show average velocity (mph), horizontal break (inches, arm-side
+positive), and induced vertical break (inches), or their changes relative to the earliest
+observed inning with tracking for that pitch type and metric. Inning 1 is the pitcher's
+first inning of appearance within each game, including relief outings. The inning
+index uses all stored pitches for that pitcher/game even if filters hide earlier
+pitches. Values are pooled across the selected games and filters; tooltips report
+metric-specific tracked pitch counts and games so late-inning small samples remain visible.
 
 Dense scatter plots are sampled deterministically at 6,000 points for browser performance, while
 the velocity and count-usage calculations continue to use the complete filtered sample. Plotly.js
@@ -560,11 +570,13 @@ filters, including a partial `pitcher` name search.
 - pitch-level arsenal usage and performance metrics; and
 - right- and left-handed batter splits.
 
-`GET /api/v1/pitchers/<pitcher_id>/charts` returns five chart-ready datasets. It selects only the
+`GET /api/v1/pitchers/<pitcher_id>/charts` returns the original five datasets plus the inning-progression dataset. It selects only the
 database columns needed for the visualizations, applies the shared filter contract before data
 leaves PostgreSQL, and retains `null` rates when a pitch type has no valid opportunity denominator.
 
-All aggregations execute in SQL. The API reports rates as percentages, returns `null` when a
+Pitcher profile aggregations execute in SQL; chart series are summarized from the full
+filtered pitch-level chart sample rather than the capped browser scatter points.
+The API reports rates as percentages, returns `null` when a
 rate has no valid denominator. Avg Exit Velocity, Hard-Hit%, and `xwoba_on_contact` use only
 tracked balls in play; foul-ball exit readings and pitch-level plate-appearance estimates are
 excluded.

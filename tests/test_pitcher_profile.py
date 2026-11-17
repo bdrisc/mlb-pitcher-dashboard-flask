@@ -317,7 +317,7 @@ def test_profile_returns_404_when_known_player_has_no_matching_pitches(profile_c
     }
 
 
-def test_chart_data_returns_all_five_filtered_datasets(profile_client):
+def test_chart_data_returns_all_filtered_datasets(profile_client):
     response = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/charts")
 
     assert response.status_code == 200
@@ -327,6 +327,7 @@ def test_chart_data_returns_all_five_filtered_datasets(profile_client):
     assert set(payload["charts"]) == {
         "movement",
         "velocity_trend",
+        "inning_progression",
         "release_point",
         "location",
         "usage_by_count",
@@ -336,9 +337,76 @@ def test_chart_data_returns_all_five_filtered_datasets(profile_client):
     assert payload["charts"]["location"]["available_points"] == 4
     assert len(payload["charts"]["velocity_trend"]["rows"]) == 2
     assert len(payload["charts"]["usage_by_count"]["rows"]) == 4
+    assert payload["charts"]["inning_progression"]["rows"] == []
+    assert payload["charts"]["inning_progression"]["pitch_types"] == []
     movement = payload["charts"]["movement"]["points"]
     assert next(point for point in movement if point["pitch_type"] == "FF")["horizontal_break"] > 0
     assert next(point for point in movement if point["pitch_type"] == "SL")["horizontal_break"] < 0
+
+
+def test_inning_progression_groups_by_inning_of_pitcher_appearance(app, profile_client):
+    with app.app_context():
+        for pitch_id, inning in (
+            ("1001_1_1", 1),
+            ("1001_1_2", 2),
+            ("1002_2_1", 5),
+            ("1002_3_1", 6),
+        ):
+            db.session.get(Pitch, pitch_id).inning = inning
+        db.session.commit()
+
+    payload = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/charts").json
+    chart = payload["charts"]["inning_progression"]
+    assert chart["inning_definition"] == "pitcher_inning_of_appearance"
+    assert chart["horizontal_direction"] == "arm_side_positive"
+    assert [entry["pitch_type"] for entry in chart["pitch_types"]] == ["FF", "SL"]
+    lookup = {(row["pitch_type"], row["inning_pitched"]): row for row in chart["rows"]}
+    assert len(lookup) == 4
+    assert lookup["FF", 1]["avg_velocity"] == 95.0
+    assert lookup["FF", 2]["avg_velocity"] == 96.0
+    assert lookup["FF", 1]["avg_hb"] == 8.0
+    assert lookup["FF", 2]["avg_ivb"] == 17.0
+    # Relief entry in the 5th game inning starts at appearance inning 1.
+    assert lookup["SL", 1]["avg_velocity"] == 86.0
+    assert lookup["SL", 2]["avg_velocity"] == 85.0
+    assert lookup["SL", 1]["avg_hb"] == -4.0
+    assert lookup["SL", 1]["game_count"] == 1
+    assert lookup["SL", 1]["velocity_count"] == 1
+
+    # Filtering out the first inning must not rebase the appearance index.
+    filtered = profile_client.get(
+        f"/api/v1/pitchers/{PITCHER_ID}/charts",
+        query_string={"pitch_type": "SL", "balls": 1},
+    ).json["charts"]["inning_progression"]
+    assert len(filtered["rows"]) == 1
+    assert filtered["rows"][0]["inning_pitched"] == 2
+    assert filtered["rows"][0]["pitch_count"] == 1
+
+
+def test_inning_progression_uses_independent_tracked_counts_and_handedness(app, profile_client):
+    with app.app_context():
+        db.session.get(Player, PITCHER_ID).throws = "L"
+        first = db.session.get(Pitch, "1001_1_1")
+        second = db.session.get(Pitch, "1001_1_2")
+        first.inning = 1
+        second.inning = 1
+        second.velocity = None
+        second.horizontal_break_inches = None
+        first.vertical_break_inches = None
+        db.session.commit()
+
+    chart = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/charts").json[
+        "charts"
+    ]["inning_progression"]
+    row = next(entry for entry in chart["rows"] if entry["pitch_type"] == "FF")
+    assert row["pitch_count"] == 2
+    assert row["game_count"] == 1
+    assert row["velocity_count"] == 1
+    assert row["avg_velocity"] == 95.0
+    assert row["hb_count"] == 1
+    assert row["avg_hb"] == -8.0  # LHP: no horizontal sign flip.
+    assert row["ivb_count"] == 1
+    assert row["avg_ivb"] == 17.0
 
 
 def test_chart_data_uses_the_shared_filter_contract(profile_client):
