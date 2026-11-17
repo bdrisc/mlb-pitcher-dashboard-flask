@@ -39,6 +39,11 @@ if (root) {
     separationBody: document.querySelector("#separation-body"),
     separationTable: document.querySelector("#separation-table"),
     separationEmpty: document.querySelector("#separation-empty"),
+    transitionHead: document.querySelector("#transition-head"),
+    transitionBody: document.querySelector("#transition-body"),
+    transitionTable: document.querySelector("#transition-table"),
+    transitionEmpty: document.querySelector("#transition-empty"),
+    transitionCoverage: document.querySelector("#transition-coverage"),
     splits: document.querySelector("#platoon-splits"),
     databaseFreshness: document.querySelector("#database-freshness"),
   };
@@ -578,6 +583,67 @@ if (root) {
     prepareResponsiveRows(elements.separationBody);
   }
 
+  function renderTransitions(matrix) {
+    const { pitch_types: types, rows, total_transitions: total } = matrix;
+    elements.transitionHead.replaceChildren();
+    elements.transitionBody.replaceChildren();
+
+    setVisible(elements.transitionEmpty, rows.length === 0);
+    setVisible(elements.transitionTable, rows.length > 0);
+    elements.transitionCoverage.textContent = total
+      ? `${total.toLocaleString("en-US")} observed consecutive pitch pairs in this filtered sample.`
+      : "No observed consecutive pitch pairs in this sample.";
+    if (!rows.length) return;
+
+    const firstHeading = document.createElement("th");
+    firstHeading.scope = "col";
+    firstHeading.textContent = "Previous ↓ / Next →";
+    elements.transitionHead.append(firstHeading);
+    types.forEach((pitch) => {
+      const heading = document.createElement("th");
+      heading.scope = "col";
+      heading.textContent = pitch.pitch_type;
+      heading.title = `Next pitch: ${pitch.pitch_name} (${pitch.pitch_type})`;
+      elements.transitionHead.append(heading);
+    });
+    const totalHeading = document.createElement("th");
+    totalHeading.scope = "col";
+    totalHeading.textContent = "Row Total";
+    elements.transitionHead.append(totalHeading);
+
+    const pitchNames = new Map(types.map((pitch) => [pitch.pitch_type, pitch.pitch_name]));
+    rows.forEach((transition) => {
+      const row = document.createElement("tr");
+      const label = document.createElement("th");
+      label.scope = "row";
+      label.textContent = transition.pitch_type;
+      label.title = `Previous pitch: ${transition.pitch_name}`;
+      row.append(label);
+
+      transition.cells.forEach((cell) => {
+        const value = document.createElement("td");
+        value.className = "transition-cell";
+        if (cell.count) {
+          value.style.backgroundColor = `rgba(26, 122, 126, ${(0.04 + cell.pct * 0.005).toFixed(3)})`;
+        }
+        const percentage = document.createElement("strong");
+        percentage.textContent = `${formatNumber(cell.pct)}%`;
+        const count = document.createElement("small");
+        count.textContent = `n=${cell.count.toLocaleString("en-US")}`;
+        value.title = `${transition.pitch_name} → ${pitchNames.get(cell.pitch_type)}: ${cell.count.toLocaleString("en-US")} of ${transition.total.toLocaleString("en-US")} observed transitions (${formatNumber(cell.pct)}%). Filters apply to the next pitch.`;
+        value.append(percentage, count);
+        row.append(value);
+      });
+
+      const rowTotal = document.createElement("td");
+      rowTotal.className = "transition-row-total";
+      rowTotal.textContent = transition.total.toLocaleString("en-US");
+      rowTotal.title = `Observed consecutive pitches following ${transition.pitch_name} in the filtered sample.`;
+      row.append(rowTotal);
+      elements.transitionBody.append(row);
+    });
+  }
+
   function splitMetric(label, key, value) {
     const wrapper = document.createElement("div");
     const term = document.createElement("dt");
@@ -636,6 +702,7 @@ if (root) {
     renderMetricCards(overall);
     renderArsenal(profile.arsenal);
     renderSeparation(profile.pitch_separation, pitcher.mlb_id);
+    renderTransitions(profile.pitch_transition_matrix);
     renderSplits(profile.platoon_splits);
     setVisible(elements.content, true);
   }
