@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.extensions import db
 from app.models import Game, Pitch, Player
@@ -165,8 +165,87 @@ def _usage_by_count(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(payload, key=lambda row: (order_lookup[row["count"]], row["pitch_type"]))
 
 
+def _inning_progression(
+    rows: list[dict[str, Any]],
+    throws: str | None,
+    first_innings: dict[int, int],
+) -> dict[str, Any]:
+    """Pool each pitch type by the pitcher's inning of appearance, not game inning."""
+    horizontal_multiplier = -1 if (throws or "").upper() == "R" else 1
+    groups: dict[tuple[str, int], dict[str, Any]] = {}
+    usage: dict[str, int] = defaultdict(int)
+    names: dict[str, str] = {}
+
+    for row in rows:
+        first = first_innings.get(row["game_pk"])
+        inning = row["inning"]
+        if first is None or inning is None or inning < first:
+            continue
+        inning_pitched = int(inning - first + 1)
+        pitch_type = row["pitch_type"]
+        names.setdefault(pitch_type, row["pitch_name"])
+        usage[pitch_type] += 1
+        group = groups.setdefault(
+            (pitch_type, inning_pitched),
+            {
+                "games": set(),
+                "pitch_count": 0,
+                "velocity_sum": 0.0,
+                "velocity_count": 0,
+                "hb_sum": 0.0,
+                "hb_count": 0,
+                "ivb_sum": 0.0,
+                "ivb_count": 0,
+            },
+        )
+        group["games"].add(row["game_pk"])
+        group["pitch_count"] += 1
+        for field, prefix, multiplier in (
+            ("velocity", "velocity", 1),
+            ("horizontal_break", "hb", horizontal_multiplier),
+            ("vertical_break", "ivb", 1),
+        ):
+            value = row[field]
+            if value is not None:
+                group[f"{prefix}_sum"] += float(value) * multiplier
+                group[f"{prefix}_count"] += 1
+
+    payload = []
+    for (pitch_type, inning_pitched), group in sorted(groups.items()):
+        def mean(prefix: str) -> float | None:
+            count = group[f"{prefix}_count"]
+            return _rounded(group[f"{prefix}_sum"] / count) if count else None
+
+        payload.append(
+            {
+                "pitch_type": pitch_type,
+                "pitch_name": names[pitch_type],
+                "inning_pitched": inning_pitched,
+                "pitch_count": group["pitch_count"],
+                "game_count": len(group["games"]),
+                "velocity_count": group["velocity_count"],
+                "hb_count": group["hb_count"],
+                "ivb_count": group["ivb_count"],
+                "avg_velocity": mean("velocity"),
+                "avg_hb": mean("hb"),
+                "avg_ivb": mean("ivb"),
+            }
+        )
+
+    ordered_types = sorted(usage, key=lambda code: (-usage[code], code))
+    return {
+        "inning_definition": "pitcher_inning_of_appearance",
+        "horizontal_direction": "arm_side_positive",
+        "pitch_types": [
+            {"pitch_type": code, "pitch_name": names[code], "pitch_count": usage[code]}
+            for code in ordered_types
+        ],
+        "rows": payload,
+    }
+
+
 def build_pitcher_chart_data(pitcher_id: int, filters: PitchFilters) -> dict[str, Any]:
-    """Return five chart-ready datasets for one filtered pitcher sample."""
+    """Return filtered chart datasets for one pitcher sample."""
     player = db.session.get(Player, pitcher_id)
     if player is None:
         raise PitcherNotFoundError(pitcher_id)
@@ -175,6 +254,8 @@ def build_pitcher_chart_data(pitcher_id: int, filters: PitchFilters) -> dict[str
     statement = (
         select(
             Pitch.pitch_id,
+            Pitch.game_pk,
+            Pitch.inning,
             Game.game_date,
             Pitch.pitch_type,
             Pitch.pitch_name,
@@ -210,6 +291,16 @@ def build_pitcher_chart_data(pitcher_id: int, filters: PitchFilters) -> dict[str
     if not rows:
         raise NoMatchingPitchesError(pitcher_id, filters)
 
+    # An active pitch-type/count filter can exclude earlier pitches in an outing.
+    # Derive the first inning from all of the pitcher's stored pitches instead.
+    first_innings = dict(
+        db.session.execute(
+            select(Pitch.game_pk, func.min(Pitch.inning))
+            .where(Pitch.pitcher_id == pitcher_id, Pitch.inning >= 1)
+            .group_by(Pitch.game_pk)
+        ).all()
+    )
+
     return {
         "pitcher_id": pitcher_id,
         "query": filters.to_dict(),
@@ -217,6 +308,7 @@ def build_pitcher_chart_data(pitcher_id: int, filters: PitchFilters) -> dict[str
         "charts": {
             "movement": _movement_payload(rows, player.throws),
             "velocity_trend": {"rows": _velocity_trend(rows)},
+            "inning_progression": _inning_progression(rows, player.throws, first_innings),
             "release_point": _release_payload(rows),
             "location": _location_payload(rows),
             "usage_by_count": {"rows": _usage_by_count(rows)},
