@@ -1401,6 +1401,99 @@ summary,
 }
 
 
+/* Row-conditional transition heatmap. Preserve the matrix on narrow screens:
+   unlike the separation table, a stacked mobile card would hide comparisons. */
+.transition-description,
+.transition-coverage,
+.transition-footnote {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.transition-coverage {
+  color: var(--ink);
+  font-weight: 750;
+}
+
+.transition-footnote {
+  margin: 10px 0 0;
+  font-size: 0.73rem;
+}
+
+.transition-shell {
+  max-width: 100%;
+}
+
+.dashboard-shell .transition-table {
+  min-width: 700px;
+  width: 100%;
+  table-layout: auto;
+}
+
+.dashboard-shell .transition-table th,
+.dashboard-shell .transition-table td {
+  min-width: 74px;
+  padding: 11px 7px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-shell .transition-table th:first-child {
+  min-width: 148px;
+  text-align: center;
+}
+
+.dashboard-shell .transition-table thead th {
+  font-size: 0.7rem;
+  letter-spacing: 0;
+}
+
+.dashboard-shell .transition-table .transition-cell {
+  min-width: 76px;
+  background-clip: padding-box;
+}
+
+.transition-cell strong,
+.transition-cell small {
+  display: block;
+}
+
+.transition-cell strong {
+  color: #162f36;
+  font-size: 0.88rem;
+}
+
+.transition-cell small {
+  color: #3e5860;
+  font-size: 0.7rem;
+  margin-top: 3px;
+}
+
+.dashboard-shell .transition-table .transition-row-total {
+  font-weight: 750;
+  color: var(--brand);
+  background: #f4f6f8;
+}
+
+@media (max-width: 700px) {
+  .dashboard-shell .transition-table {
+    min-width: max-content;
+  }
+
+  .dashboard-shell .transition-table th,
+  .dashboard-shell .transition-table td {
+    min-width: 70px;
+  }
+
+  .dashboard-shell .transition-table th:first-child {
+    min-width: 124px;
+  }
+}
+
+
 /* Keep stat headers, figures and captions aligned to each column's center.
    Scope these rules to the pitcher dashboard; don't shift site-wide tables. */
 .dashboard-shell .metric-card,
