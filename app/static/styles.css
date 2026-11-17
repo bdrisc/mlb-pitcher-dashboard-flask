@@ -1084,18 +1084,9 @@ summary,
   width: min(100%, 260px);
 }
 
-.inning-note {
-  max-width: 880px;
-  margin: 0 auto 14px;
-  color: var(--muted);
-  font-size: 0.7rem;
-  line-height: 1.5;
-  text-align: center;
-}
-
 .inning-chart-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -1103,7 +1094,15 @@ summary,
   min-height: 300px;
 }
 
-@media (max-width: 1050px) {
+.inning-empty {
+  grid-column: 1 / -1;
+  padding: 16px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.76rem;
+}
+
+@media (max-width: 800px) {
   .inning-chart-grid {
     grid-template-columns: minmax(0, 1fr);
   }

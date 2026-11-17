@@ -21,11 +21,8 @@
     release: document.querySelector("#release-chart"),
     location: document.querySelector("#location-chart"),
     countUsage: document.querySelector("#count-usage-chart"),
-    inningVelocity: document.querySelector("#inning-velocity-chart"),
-    inningHb: document.querySelector("#inning-hb-chart"),
-    inningIvb: document.querySelector("#inning-ivb-chart"),
   };
-  const inningPitchSelect = document.querySelector("#inning-pitch-type");
+  const inningMetricSelect = document.querySelector("#inning-metric");
   const inningDisplayMode = document.querySelector("#inning-display-mode");
   const inningGrid = document.querySelector("#inning-chart-grid");
   let inningData = { pitch_types: [], rows: [] };
@@ -243,47 +240,83 @@
     });
   }
 
-  const inningMeasures = [
-    { container: containers.inningVelocity, key: "avg_velocity", count: "velocity_count", unit: "mph", title: "Velocity" },
-    { container: containers.inningHb, key: "avg_hb", count: "hb_count", unit: "in.", title: "Horizontal Break" },
-    { container: containers.inningIvb, key: "avg_ivb", count: "ivb_count", unit: "in.", title: "Induced Vertical Break" },
-  ];
+  const inningMeasures = {
+    velocity: { key: "avg_velocity", count: "velocity_count", unit: "mph", title: "Velocity" },
+    hb: { key: "avg_hb", count: "hb_count", unit: "in.", title: "Horizontal Break" },
+    ivb: { key: "avg_ivb", count: "ivb_count", unit: "in.", title: "Induced Vertical Break" },
+  };
 
   async function renderInningCharts() {
-    const type = inningPitchSelect.value;
-    const selected = inningData.pitch_types.find((pitch) => pitch.pitch_type === type);
-    const rows = inningData.rows
-      .filter((row) => row.pitch_type === type)
-      .sort((a, b) => a.inning_pitched - b.inning_pitched);
+    const measure = inningMeasures[inningMetricSelect.value];
     const showChange = inningDisplayMode.value === "change";
-    const promises = inningMeasures.map((measure) => {
-      const firstMeasured = rows.find(
+
+    // Dispose of Plotly's listeners before replacing the pitch-type cards.
+    inningGrid.querySelectorAll(".plotly-chart").forEach((chart) => {
+      if (window.Plotly) window.Plotly.purge(chart);
+    });
+    inningGrid.replaceChildren();
+
+    if (!inningData.pitch_types.length) {
+      const empty = document.createElement("p");
+      empty.className = "inning-empty";
+      empty.textContent = "No pitches with inning data are available for this sample.";
+      inningGrid.append(empty);
+      return;
+    }
+
+    const charts = inningData.pitch_types.map((pitch) => {
+      const card = document.createElement("article");
+      card.className = "chart-card";
+
+      const heading = document.createElement("div");
+      heading.className = "chart-card-heading";
+      const name = document.createElement("h3");
+      name.textContent = `${pitch.pitch_name} (${pitch.pitch_type})`;
+      const sample = document.createElement("span");
+      sample.textContent = `${pitch.pitch_count.toLocaleString("en-US")} PC`;
+      heading.append(name, sample);
+
+      const container = document.createElement("div");
+      container.className = "plotly-chart inning-chart";
+      container.setAttribute("role", "img");
+      container.setAttribute(
+        "aria-label",
+        `${pitch.pitch_name}: ${measure.title} by inning of appearance`,
+      );
+      card.append(heading, container);
+      inningGrid.append(card);
+
+      const rows = inningData.rows
+        .filter((row) => row.pitch_type === pitch.pitch_type)
+        .sort((a, b) => a.inning_pitched - b.inning_pitched);
+      const tracked = rows.filter(
         (row) => row[measure.key] !== null && row[measure.key] !== undefined,
       );
-      if (!firstMeasured) {
-        return draw(measure.container, [], baseLayout(), "No tracked pitches for this metric.");
+      if (!tracked.length) {
+        return draw(container, [], baseLayout(), "No tracked pitches for this metric.");
       }
-      const baseline = firstMeasured[measure.key];
-      const traced = rows.filter(
-        (row) => row[measure.key] !== null && row[measure.key] !== undefined,
-      );
+
+      const baselineInning = tracked[0].inning_pitched;
+      const baseline = tracked[0][measure.key];
       const trace = {
         type: "scatter",
         mode: "lines+markers",
-        name: selected?.pitch_type || type,
-        x: traced.map((row) => row.inning_pitched),
-        y: traced.map((row) => showChange ? +(row[measure.key] - baseline).toFixed(1) : row[measure.key]),
-        customdata: traced.map((row) => [
+        name: pitch.pitch_type,
+        x: tracked.map((row) => row.inning_pitched),
+        y: tracked.map((row) =>
+          showChange ? +(row[measure.key] - baseline).toFixed(1) : row[measure.key],
+        ),
+        customdata: tracked.map((row) => [
           row[measure.key],
           +(row[measure.key] - baseline).toFixed(1),
           row[measure.count],
           row.game_count,
-          firstMeasured.inning_pitched,
+          baselineInning,
         ]),
-        marker: { color: pitchColor(type), size: 8 },
-        line: { color: pitchColor(type), width: 2.5 },
+        marker: { color: pitchColor(pitch.pitch_type), size: 8 },
+        line: { color: pitchColor(pitch.pitch_type), width: 2.5 },
         hovertemplate:
-          "<b>" + (selected?.pitch_name || type) + "</b><br>Inning of appearance: %{x}" +
+          "<b>" + pitch.pitch_name + "</b><br>Inning of appearance: %{x}" +
           "<br>Average: %{customdata[0]:.1f} " + measure.unit +
           "<br>Change: %{customdata[1]:+.1f} " + measure.unit +
           "<br>Tracked pitches: %{customdata[2]}" +
@@ -291,7 +324,7 @@
           "<br>Baseline inning: %{customdata[4]}<extra></extra>",
       };
       return draw(
-        measure.container,
+        container,
         [trace],
         baseLayout({
           height: 300,
@@ -313,28 +346,16 @@
         "No tracked pitches for this metric.",
       );
     });
-    await Promise.all(promises);
+    await Promise.all(charts);
   }
 
-  function syncInningPitchTypes(chart) {
-    const prior = inningPitchSelect.value;
+  function syncInningData(chart) {
     inningData = chart || { pitch_types: [], rows: [] };
-    inningPitchSelect.replaceChildren();
-    inningData.pitch_types.forEach((pitch) => {
-      const option = document.createElement("option");
-      option.value = pitch.pitch_type;
-      option.textContent = `${pitch.pitch_name} (${pitch.pitch_type})`;
-      inningPitchSelect.append(option);
-    });
-    inningPitchSelect.disabled = !inningData.pitch_types.length;
-    if (inningData.pitch_types.some((pitch) => pitch.pitch_type === prior)) {
-      inningPitchSelect.value = prior;
-    }
     inningGrid.classList.remove("charts-unavailable");
     return renderInningCharts();
   }
 
-  inningPitchSelect.addEventListener("change", () => {
+  inningMetricSelect.addEventListener("change", () => {
     void renderInningCharts();
   });
   inningDisplayMode.addEventListener("change", () => {
@@ -353,7 +374,7 @@
     const releaseXRange = paddedRange(charts.release_point.points, "release_pos_x", 2.4, 0.35);
     const releaseYRange = paddedRange(charts.release_point.points, "release_pos_z", 2.4, 0.35);
     await Promise.all([
-      syncInningPitchTypes(charts.inning_progression),
+      syncInningData(charts.inning_progression),
       draw(
         containers.movement,
         movementTraces(charts.movement),

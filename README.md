@@ -528,7 +528,7 @@ loads pitcher data from the versioned JSON API. The page includes:
 - 10 headline metrics with denominator-aware formatting;
 - a pitch-level arsenal table and right/left platoon cards;
 - interactive Plotly charts with hover details, legend isolation, zoom, pan, and PNG export;
-- inning-by-inning velocity, horizontal break, and induced vertical break with pitch-type and change/average controls;
+- inning-by-inning velocity, horizontal break, and induced vertical break with a metric selector, a chart for every pitch type, and change/average controls;
 - responsive layouts for desktop, tablet, and mobile screens.
 
 The page does not calculate baseball metrics in the browser. It sends the active filter set to
@@ -544,10 +544,10 @@ The original five visualizations are:
 4. pitch location with the sample's average strike zone;
 5. pitch usage within each count.
 
-**Velocity and Movement Changes by Inning** adds three time-in-appearance charts. For any selected
-pitch type, the display can show average velocity (mph), horizontal break (inches, arm-side
-positive), and induced vertical break (inches), or their changes relative to the earliest
-observed inning with tracking for that pitch type and metric. Inning 1 is the pitcher's
+**Velocity and Movement Changes by Inning** lets users choose velocity (mph), horizontal
+break (inches, arm-side positive), or induced vertical break (inches), then displays one
+time-in-appearance chart per pitch type. The display can show averages or changes
+relative to the earliest observed inning with tracking for each pitch type and metric. Inning 1 is the pitcher's
 first inning of appearance within each game, including relief outings. The inning
 index uses all stored pitches for that pitcher/game even if filters hide earlier
 pitches. Values are pooled across the selected games and filters; tooltips report

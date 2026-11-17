@@ -70,13 +70,17 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b">Arm Angle</th>" in response.data
     assert b">Release Height</th>" in response.data
     assert b">Release Side</th>" in response.data
-    assert response.data.count(b'class="plotly-chart') == 8
+    assert response.data.count(b'class="plotly-chart') == 5
     assert b"Velocity and Movement Changes by Inning" in response.data
-    assert b'id="inning-pitch-type"' in response.data
+    assert b'id="inning-metric"' in response.data
+    assert b'<option value="velocity">Velocity</option>' in response.data
+    assert b'<option value="hb">Horizontal Break (HB)</option>' in response.data
+    assert b'<option value="ivb">Induced Vertical Break (IVB)</option>' in response.data
     assert b'id="inning-display-mode"' in response.data
-    assert b'id="inning-velocity-chart"' in response.data
-    assert b'id="inning-hb-chart"' in response.data
-    assert b'id="inning-ivb-chart"' in response.data
+    assert b'id="inning-chart-grid"' in response.data
+    assert b'id="inning-pitch-type"' not in response.data
+    assert b'id="inning-velocity-chart"' not in response.data
+    assert b"Inning 1 is the pitcher" not in response.data
     assert b"Avg Exit Velo" in response.data
     assert b"Pitch-type performance" not in response.data
     assert b"Metric definitions and sample notes" not in response.data
@@ -112,6 +116,9 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b"window.Plotly.react" in charts_response.data
     assert b"inning_progression" in charts_response.data
     assert b"renderInningCharts" in charts_response.data
+    assert b"inningData.pitch_types.map" in charts_response.data
+    assert b"inningMetricSelect.addEventListener" in charts_response.data
+    assert b"inningPitchSelect" not in charts_response.data
 
 
 def test_health_reports_the_loaded_dataset(client):
