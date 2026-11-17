@@ -475,6 +475,36 @@ large revisions, and touches only revised `events` and their published
 pitch type, RV and other observations remain unchanged. It does not run
 automatically at deployment.
 
+### Pitch sequencing transition matrix
+
+Both the local PostgreSQL dashboard and public Render/Neon dashboard display
+a **Pitch Sequencing Transition Matrix** immediately after Pitch Separation.
+Rows are the prior pitch type; columns are the next pitch type thrown to the
+same hitter in the **same game and plate appearance**. Each heatmap cell
+shows the conditional row share plus the observed transition count:
+
+```text
+P(next = SL | previous = FF, active next-pitch filters)
+  = observed FF -> SL pairs / all observed pairs from FF with a matching next pitch
+```
+
+- Only pitches with adjacent `pitch_number` values count. A missing record
+  cannot cause two nonadjacent pitches to be paired; a new PA never connects
+  to the old one. Consecutive repeats such as FF→FF are included.
+- Automatic balls/strikes and missing or unknown pitch types are excluded.
+  Trajectory, RV and movement data are **not** required for a valid observed
+  pitch-type transition.
+- Existing season, date, handedness, team, venue, count and pitch-type filters
+  apply to the **second** pitch only. The previous pitch is the real unfiltered
+  predecessor. Selecting just one next pitch type conditions the denominator
+  on that selected type; it does **not** estimate an unrestricted pitch-choice
+  probability. Empty or small samples are displayed honestly with counts.
+- The matrix reuses the source-verified consecutive pairs already aggregated
+  for Pitch Tunneling, without a second SQL query or new database table.
+  It is returned in `/api/v1/pitchers/<pitcher_id>/profile` as
+  `pitch_transition_matrix`, works for every pitcher available in that
+  environment, and updates when profile filters change.
+
 ## API routes
 
 ```text
