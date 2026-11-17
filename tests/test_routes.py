@@ -87,6 +87,9 @@ def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
     assert b".overview-rv-values" in response.data
     assert b".compact-metric strong" in response.data
     assert b".metric-card::before" not in response.data
+    assert b"min-height: 108px;" not in response.data
+    assert b"grid-template-rows: 2.25rem" not in response.data
+    assert b"flex-direction: column;" in response.data
 
 
 def test_savant_card_javascript_is_served_as_a_static_asset(client):
@@ -253,8 +256,8 @@ def test_dashboard_stat_alignment_css_applies_to_desktop_and_mobile(client):
     assert ".dashboard-shell .arsenal-table td," in css
     assert ".dashboard-shell .responsive-table tbody td {" in css
     assert ".dashboard-shell .pitch-label {" in css
-    assert ".dashboard-shell .metric-card," in css
     assert ".dashboard-shell .compact-metric," in css
+    assert ".dashboard-shell .metric-card," not in css
     assert ".dashboard-shell .split-card dl > div {" in css
     assert ".dashboard-shell .dashboard-section > .section-heading {" in css
     assert "grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);" in css
