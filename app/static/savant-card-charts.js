@@ -19,12 +19,12 @@
     movement: document.querySelector("#movement-chart"),
     velocity: document.querySelector("#velocity-chart"),
     release: document.querySelector("#release-chart"),
-    location: document.querySelector("#location-chart"),
     countUsage: document.querySelector("#count-usage-chart"),
   };
   const inningMetricSelect = document.querySelector("#inning-metric");
   const inningDisplayMode = document.querySelector("#inning-display-mode");
   const inningGrid = document.querySelector("#inning-chart-grid");
+  const locationHeatmapGrid = document.querySelector("#location-heatmap-grid");
   let inningData = { pitch_types: [], rows: [] };
   const status = document.querySelector("#chart-status");
   const chartGrid = document.querySelector("#chart-grid");
@@ -196,26 +196,6 @@
     }));
   }
 
-  function locationTraces(chart) {
-    return [...pitchGroups(chart.points).entries()].map(([pitchType, rows]) => ({
-      type: "scatter",
-      mode: "markers",
-      name: pitchType,
-      x: rows.map((row) => row.plate_x),
-      y: rows.map((row) => row.plate_z),
-      customdata: rows.map((row) => [row.pitch_name, row.count, row.description || "—"]),
-      marker: {
-        color: pitchColor(pitchType),
-        size: 9,
-        opacity: 0.68,
-        line: { color: "white", width: 0.8 },
-      },
-      hovertemplate:
-        "<b>%{customdata[0]}</b><br>Plate X: %{x:.2f} ft<br>Plate Z: %{y:.2f} ft" +
-        "<br>Count: %{customdata[1]}<br>%{customdata[2]}<extra></extra>",
-    }));
-  }
-
   function countUsageTraces(chart) {
     const countOrder = ["0-0", "0-1", "0-2", "1-0", "1-1", "1-2", "2-0", "2-1", "2-2", "3-0", "3-1", "3-2"];
     const observedCounts = countOrder.filter((count) =>
@@ -238,6 +218,149 @@
           "<br>Pitches: %{customdata[1]}<extra></extra>",
       };
     });
+  }
+
+  // Blue-to-red RdBu_r palette: hotter reds indicate more frequent locations.
+  const densityColors = [
+    [0, "#2166ac"],
+    [0.2, "#67a9cf"],
+    [0.4, "#d1e5f0"],
+    [0.5, "#f7f7f7"],
+    [0.65, "#fddbc7"],
+    [0.8, "#ef8a62"],
+    [1, "#b2182b"],
+  ];
+
+  async function renderLocationHeatmaps(chart) {
+    locationHeatmapGrid.querySelectorAll(".location-heatmap-plot").forEach((plot) => {
+      if (window.Plotly) window.Plotly.purge(plot);
+    });
+    locationHeatmapGrid.replaceChildren();
+    locationHeatmapGrid.classList.remove("charts-unavailable");
+
+    if (!chart?.pitch_types?.length) {
+      const empty = document.createElement("p");
+      empty.className = "location-heatmap-empty";
+      empty.textContent = "No tracked pitch locations match these filters.";
+      locationHeatmapGrid.append(empty);
+      return;
+    }
+
+    const panelLookup = new Map(
+      chart.panels.map((panel) => [`${panel.pitch_type}:${panel.batter_side}`, panel]),
+    );
+    const plots = [];
+
+    chart.pitch_types.forEach((pitch) => {
+      const row = document.createElement("section");
+      row.className = "location-pitch-row";
+      const heading = document.createElement("div");
+      heading.className = "location-pitch-heading";
+      const name = document.createElement("h3");
+      name.textContent = `${pitch.pitch_name} (${pitch.pitch_type})`;
+      const total = document.createElement("span");
+      total.textContent = `${pitch.pitch_count.toLocaleString("en-US")} PC`;
+      heading.append(name, total);
+      row.append(heading);
+
+      const sides = document.createElement("div");
+      sides.className = "location-pitch-panels";
+      row.append(sides);
+      locationHeatmapGrid.append(row);
+
+      ["R", "L"].forEach((side) => {
+        const panel = panelLookup.get(`${pitch.pitch_type}:${side}`);
+        const count = panel?.pitch_count || 0;
+        const wrapper = document.createElement("div");
+        wrapper.className = "location-heatmap-panel";
+        const caption = document.createElement("div");
+        caption.className = "location-heatmap-panel-caption";
+        const batterSide = document.createElement("strong");
+        batterSide.textContent = side === "R" ? "RHH" : "LHH";
+        const sample = document.createElement("small");
+        sample.textContent = `${count.toLocaleString("en-US")} pitches`;
+        caption.append(batterSide, sample);
+        wrapper.append(caption);
+
+        const plot = document.createElement("div");
+        plot.className = "plotly-chart location-heatmap-plot";
+        plot.setAttribute("role", "img");
+        plot.setAttribute(
+          "aria-label",
+          `${pitch.pitch_name} location against ${side === "R" ? "right" : "left"}-handed hitters, ${count} pitches`,
+        );
+        wrapper.append(plot);
+        sides.append(wrapper);
+
+        const hasDensity = Boolean(panel?.density);
+        const trace = hasDensity
+          ? {
+              type: "heatmap",
+              x: chart.grid.x,
+              y: chart.grid.y,
+              z: panel.density,
+              zsmooth: "best",
+              zmin: 0,
+              zmax: 1,
+              colorscale: densityColors,
+              showscale: false,
+              opacity: 0.9,
+              hovertemplate:
+                "Plate X: %{x:.2f} ft<br>Height: %{y:.2f} ft" +
+                "<br>Relative density: %{z:.0%}<extra></extra>",
+            }
+          : {
+              type: "scatter",
+              mode: "markers",
+              x: [],
+              y: [],
+              hoverinfo: "skip",
+              showlegend: false,
+            };
+        const zone = chart.strike_zone;
+        const layout = baseLayout({
+          height: 276,
+          margin: { l: 6, r: 6, t: 5, b: 5 },
+          showlegend: false,
+          xaxis: {
+            range: [-1.4, 1.4],
+            visible: false,
+            fixedrange: true,
+            constrain: "domain",
+          },
+          yaxis: {
+            range: [0.6, 4.4],
+            visible: false,
+            fixedrange: true,
+            scaleanchor: "x",
+            scaleratio: 1,
+          },
+          shapes: [{
+            type: "rect",
+            x0: zone.left,
+            x1: zone.right,
+            y0: zone.bottom,
+            y1: zone.top,
+            line: { color: "#151b23", width: 1.6 },
+            fillcolor: "rgba(0,0,0,0)",
+            layer: "above",
+          }],
+          annotations: hasDensity ? [] : [{
+            text: count === 0 ? "No data" : `Not enough data (n=${count})`,
+            x: 0.5,
+            y: 0.5,
+            xref: "paper",
+            yref: "paper",
+            showarrow: false,
+            font: { size: 12, color: "#667583" },
+            bgcolor: "rgba(255,255,255,0.86)",
+          }],
+        });
+        plots.push(draw(plot, [trace], layout, "No tracked pitch locations."));
+      });
+    });
+
+    await Promise.all(plots);
   }
 
   const inningMeasures = {
@@ -384,7 +507,6 @@
     status.hidden = true;
     chartGrid.classList.remove("charts-unavailable");
     const charts = payload.charts;
-    const zone = charts.location.strike_zone;
     const releaseXRange = paddedRange(charts.release_point.points, "release_pos_x", 2.4, 0.35);
     const releaseYRange = paddedRange(charts.release_point.points, "release_pos_z", 2.4, 0.35);
     await Promise.all([
@@ -417,28 +539,7 @@
         }),
         "No release-point data are available for this sample.",
       ),
-      draw(
-        containers.location,
-        locationTraces(charts.location),
-        baseLayout({
-          showlegend: true,
-          shapes: [
-            {
-              type: "rect",
-              x0: zone.left,
-              x1: zone.right,
-              y0: zone.bottom,
-              y1: zone.top,
-              line: { color: "#17202a", width: 3 },
-              fillcolor: "rgba(122,0,25,0.035)",
-              layer: "above",
-            },
-          ],
-          xaxis: { title: "Horizontal Location (ft.)", range: [-3, 3], gridcolor: "#e8ebee" },
-          yaxis: { title: "Vertical Location (ft.)", range: [0, 5.5], gridcolor: "#e8ebee", scaleanchor: "x", scaleratio: 1 },
-        }),
-        "No plate-location data are available for this sample.",
-      ),
+      renderLocationHeatmaps(charts.location_heatmaps),
       draw(
         containers.countUsage,
         countUsageTraces(charts.usage_by_count),
@@ -472,6 +573,7 @@
     status.textContent = message;
     chartGrid.classList.add("charts-unavailable");
     inningGrid.classList.add("charts-unavailable");
+    locationHeatmapGrid.classList.add("charts-unavailable");
   }
 
   window.SavantCharts = { render, setLoading, showError };

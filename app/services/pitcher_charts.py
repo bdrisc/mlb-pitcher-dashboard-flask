@@ -11,6 +11,7 @@ from app.extensions import db
 from app.models import Game, Pitch, Player
 from app.services.database_queries import pitch_filter_conditions
 from app.services.filters import PitchFilters
+from app.services.location_heatmaps import build_location_heatmaps
 from app.services.pitch_data import PITCH_NAME_MAP
 from app.services.pitcher_profiles import NoMatchingPitchesError, PitcherNotFoundError
 
@@ -82,31 +83,6 @@ def _release_payload(rows: list[dict[str, Any]]) -> dict[str, Any]:
         if row["release_pos_x"] is not None and row["release_pos_z"] is not None
     ]
     return _sample_points(points)
-
-
-def _location_payload(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    eligible = [row for row in rows if row["plate_x"] is not None and row["plate_z"] is not None]
-    points = [
-        {
-            "pitch_type": row["pitch_type"],
-            "pitch_name": row["pitch_name"],
-            "plate_x": _rounded(row["plate_x"], 2),
-            "plate_z": _rounded(row["plate_z"], 2),
-            "count": f"{row['balls']}-{row['strikes']}",
-            "description": row["description"],
-        }
-        for row in eligible
-    ]
-    tops = [float(row["strike_zone_top"]) for row in eligible if row["strike_zone_top"]]
-    bottoms = [float(row["strike_zone_bottom"]) for row in eligible if row["strike_zone_bottom"]]
-    payload = _sample_points(points)
-    payload["strike_zone"] = {
-        "left": -0.83,
-        "right": 0.83,
-        "bottom": _rounded(sum(bottoms) / len(bottoms), 2) if bottoms else 1.5,
-        "top": _rounded(sum(tops) / len(tops), 2) if tops else 3.5,
-    }
-    return payload
 
 
 def _velocity_trend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -260,6 +236,7 @@ def build_pitcher_chart_data(pitcher_id: int, filters: PitchFilters) -> dict[str
             Game.game_date,
             Pitch.pitch_type,
             Pitch.pitch_name,
+            Pitch.batter_side,
             Pitch.balls,
             Pitch.strikes,
             Pitch.zone,
@@ -311,7 +288,7 @@ def build_pitcher_chart_data(pitcher_id: int, filters: PitchFilters) -> dict[str
             "velocity_trend": {"rows": _velocity_trend(rows)},
             "inning_progression": _inning_progression(rows, player.throws, first_innings),
             "release_point": _release_payload(rows),
-            "location": _location_payload(rows),
+            "location_heatmaps": build_location_heatmaps(rows),
             "usage_by_count": {"rows": _usage_by_count(rows)},
         },
     }

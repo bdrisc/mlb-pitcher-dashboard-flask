@@ -1120,6 +1120,106 @@ summary,
   }
 }
 
+.location-heatmap-column-headings,
+.location-pitch-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+}
+
+.location-heatmap-column-headings {
+  padding: 0 12px 10px;
+  text-align: center;
+  color: var(--brand-dark);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.025em;
+}
+
+.location-heatmap-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.location-heatmap-grid.charts-unavailable {
+  opacity: 0.55;
+}
+
+.location-pitch-row {
+  min-width: 0;
+  padding: 12px 14px 6px;
+  border: 1px solid #e0e4e8;
+  border-radius: 11px;
+  background: linear-gradient(180deg, #fff, #fafbfc);
+}
+
+.location-pitch-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.location-pitch-heading h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.location-pitch-heading > span {
+  color: var(--muted);
+  font-size: 0.67rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.location-heatmap-panel {
+  min-width: 0;
+}
+
+.location-heatmap-panel-caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+
+.location-heatmap-panel-caption strong {
+  display: none;
+  color: var(--brand-dark);
+  font-size: 0.73rem;
+}
+
+.plotly-chart.location-heatmap-plot {
+  height: 276px;
+  min-height: 276px;
+}
+
+.location-heatmap-empty {
+  margin: 0;
+  padding: 20px;
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .location-heatmap-column-headings {
+    display: none;
+  }
+
+  .location-pitch-panels {
+    grid-template-columns: 1fr;
+    row-gap: 14px;
+  }
+
+  .location-heatmap-panel-caption strong {
+    display: initial;
+  }
+}
+
 .chart-card {
   min-width: 0;
   padding: 16px 12px 8px;

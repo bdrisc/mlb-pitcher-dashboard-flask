@@ -11,7 +11,7 @@ MLB Pitcher Dashboard is a production Flask and PostgreSQL statistical evaluatio
 comparing pitcher outcomes, plate discipline, contact quality, arsenals, shape, command, and
 trends from MLB Statcast data. It combines
 a reproducible data-ingestion pipeline, versioned JSON APIs, shared filter validation, a
-responsive Savant-style interface, and five interactive Plotly visualizations.
+responsive Savant-style interface, interactive Plotly charts, and pitch-location density heatmaps.
 
 **Portfolio role:** this project demonstrates statistics-first product design, relational data
 modeling, SQL aggregation, automated data refresh, and production Flask architecture. Its
@@ -528,6 +528,7 @@ loads pitcher data from the versioned JSON API. The page includes:
 - 10 headline metrics with denominator-aware formatting;
 - a pitch-level arsenal table and right/left platoon cards;
 - interactive Plotly charts with hover details, legend isolation, zoom, pan, and PNG export;
+- pitch-type location KDE heatmaps with RHH and LHH columns, fixed strike zones, and usage-based ordering;
 - inning-by-inning velocity, horizontal break, and induced vertical break with a metric selector, a chart for every pitch type, and change/average controls;
 - responsive layouts for desktop, tablet, and mobile screens.
 
@@ -536,13 +537,25 @@ the pitcher profile API and renders the returned SQL aggregates, keeping the API
 source of truth. It sends the same normalized filters to the chart-data API, so every metric,
 table, and chart represents the same sample.
 
-The original five visualizations are:
+The four remaining standard visualizations are:
 
 1. movement profile by pitch type;
 2. average velocity by game date;
 3. release-point consistency;
-4. pitch location with the sample's average strike zone;
-5. pitch usage within each count.
+4. pitch usage within each count.
+
+The original *Pitch Location* scatterplot is replaced by **Location Heatmaps by
+Pitch Type and Batter Hand**. Each pitch type (ordered by tracked pitch usage)
+has side-by-side RHH and LHH Gaussian KDE heatmaps, with the same catcher-view
+range (−1.4 to 1.4 ft horizontally, 0.6–4.4 ft vertically) and black strike-zone
+rectangle (±0.88 ft horizontally, 1.2–3.8 ft vertically). The reversed RdBu
+blue-to-red scale shows within-panel relative concentration (red = more dense,
+blue = less dense); panels are individually normalized, not comparable as
+absolute pitch frequencies. Densities are calculated from the full filtered
+pitch sample, with deterministic downsampling to a maximum of 2,500 tracked
+pitches per pitch-type/hand panel for large samples. Fewer than three valid
+pitches show an explicit no-data message and the same strike-zone outline.
+All existing filters apply, including pitch type, batter hand, count, and date.
 
 **Release SD** appears in *Arsenal Performance → Pitch Shape* for each pitch type.
 It combines horizontal and vertical release-point **sample standard deviations**:
@@ -579,7 +592,8 @@ filters, including a partial `pitcher` name search.
 - pitch-level arsenal usage and performance metrics; and
 - right- and left-handed batter splits.
 
-`GET /api/v1/pitchers/<pitcher_id>/charts` returns the original five datasets plus the inning-progression dataset. It selects only the
+`GET /api/v1/pitchers/<pitcher_id>/charts` returns the four standard chart datasets, inning-progression data, and
+pitch-by-hand location KDE grids. It selects only the
 database columns needed for the visualizations, applies the shared filter contract before data
 leaves PostgreSQL, and retains `null` rates when a pitch type has no valid opportunity denominator.
 

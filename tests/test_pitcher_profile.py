@@ -329,12 +329,27 @@ def test_chart_data_returns_all_filtered_datasets(profile_client):
         "velocity_trend",
         "inning_progression",
         "release_point",
-        "location",
+        "location_heatmaps",
         "usage_by_count",
     }
     assert payload["charts"]["movement"]["available_points"] == 4
     assert payload["charts"]["release_point"]["available_points"] == 4
-    assert payload["charts"]["location"]["available_points"] == 4
+    heatmaps = payload["charts"]["location_heatmaps"]
+    assert [p["pitch_type"] for p in heatmaps["pitch_types"]] == ["FF", "SL"]
+    assert [p["pitch_count"] for p in heatmaps["pitch_types"]] == [2, 2]
+    assert [(p["pitch_type"], p["batter_side"], p["pitch_count"]) for p in heatmaps["panels"]] == [
+        ("FF", "R", 2),
+        ("FF", "L", 0),
+        ("SL", "R", 0),
+        ("SL", "L", 2),
+    ]
+    assert all(panel["density"] is None for panel in heatmaps["panels"])
+    assert heatmaps["strike_zone"] == {
+        "left": -0.88,
+        "right": 0.88,
+        "bottom": 1.2,
+        "top": 3.8,
+    }
     assert len(payload["charts"]["velocity_trend"]["rows"]) == 2
     assert len(payload["charts"]["usage_by_count"]["rows"]) == 4
     assert payload["charts"]["inning_progression"]["rows"] == []
@@ -342,6 +357,57 @@ def test_chart_data_returns_all_filtered_datasets(profile_client):
     movement = payload["charts"]["movement"]["points"]
     assert next(point for point in movement if point["pitch_type"] == "FF")["horizontal_break"] > 0
     assert next(point for point in movement if point["pitch_type"] == "SL")["horizontal_break"] < 0
+
+
+def test_location_heatmaps_are_split_by_pitch_type_and_batter_side(app, profile_client):
+    with app.app_context():
+        for number, (side, height) in enumerate(((0.3, 2.1), (-0.2, 2.8), (0.1, 2.5)), 3):
+            db.session.add(
+                _pitch(
+                    pitch_id=f"1001_1_{number}",
+                    game_pk=1001,
+                    batter_id=200,
+                    at_bat_number=1,
+                    pitch_number=number,
+                    batter_side="R",
+                    pitch_type="FF",
+                    pitch_name="Four-Seam Fastball",
+                    plate_x=side,
+                    plate_z=height,
+                    balls=0,
+                    strikes=0,
+                    description="called_strike",
+                )
+            )
+        db.session.commit()
+
+    url = f"/api/v1/pitchers/{PITCHER_ID}/charts"
+    response = profile_client.get(url)
+    assert response.status_code == 200
+    assert "location" not in response.json["charts"]
+    heatmaps = response.json["charts"]["location_heatmaps"]
+    assert [p["pitch_type"] for p in heatmaps["pitch_types"]] == ["FF", "SL"]
+    assert [p["pitch_count"] for p in heatmaps["pitch_types"]] == [5, 2]
+    fastball_right = heatmaps["panels"][0]
+    assert fastball_right["pitch_type"] == "FF"
+    assert fastball_right["batter_side"] == "R"
+    assert fastball_right["pitch_count"] == 5
+    assert fastball_right["kde_sample_count"] == 5
+    assert len(fastball_right["density"]) == len(heatmaps["grid"]["y"])
+    assert len(fastball_right["density"][0]) == len(heatmaps["grid"]["x"])
+    assert (
+        max(value for row in fastball_right["density"] for value in row if value is not None)
+        == 1.0
+    )
+
+    right_only = profile_client.get(url + "?batter_side=R").json["charts"]["location_heatmaps"]
+    assert [p["pitch_type"] for p in right_only["pitch_types"]] == ["FF"]
+    assert [panel["pitch_count"] for panel in right_only["panels"]] == [5, 0]
+
+    left_only = profile_client.get(url + "?batter_side=L").json["charts"]["location_heatmaps"]
+    assert [p["pitch_type"] for p in left_only["pitch_types"]] == ["SL"]
+    assert [panel["pitch_count"] for panel in left_only["panels"]] == [0, 2]
+    assert all(panel["density"] is None for panel in left_only["panels"])
 
 
 def test_inning_progression_groups_by_inning_of_pitcher_appearance(app, profile_client):
