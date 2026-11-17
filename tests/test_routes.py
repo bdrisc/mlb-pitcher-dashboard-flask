@@ -75,8 +75,8 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert response.data.count(b'class="plotly-chart') == 4
     assert b"Location Heatmaps by Pitch Type and Batter Hand" in response.data
     assert b'id="location-heatmap-grid"' in response.data
-    assert b"RHH</span>" in response.data
-    assert b"LHH</span>" in response.data
+    assert b'location-heatmap-column-headings' not in response.data
+    assert b'id="location-heatmap-grid"' in response.data
     assert b"<h3>Pitch Location</h3>" not in response.data
     assert b'id="location-chart"' not in response.data
     assert b"Velocity and Movement Changes by Inning" in response.data
@@ -101,6 +101,12 @@ def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
 
     assert response.status_code == 200
     assert b".overview-rate-values" in response.data
+    assert b"grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));" in response.data
+    assert b".location-pitch-panels {" in response.data
+    assert b".plotly-chart.location-heatmap-plot {" in response.data
+    assert b"height: 210px;" in response.data
+    assert b"min-height: 210px;" in response.data
+    assert b".location-heatmap-column-headings" not in response.data
     assert b".plotly-chart.inning-chart {" in response.data
     assert b"height: 280px;" in response.data
     assert b"min-height: 280px;" in response.data
@@ -128,6 +134,8 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert charts_response.mimetype in {"application/javascript", "text/javascript"}
     assert b"window.Plotly.react" in charts_response.data
     assert b"renderLocationHeatmaps" in charts_response.data
+    assert b"height: 210" in charts_response.data
+    assert b'caption.append(batterSide, sample)' in charts_response.data
     assert b"location_heatmaps" in charts_response.data
     assert b"locationTraces(" not in charts_response.data
     assert b"inning_progression" in charts_response.data

@@ -1120,25 +1120,12 @@ summary,
   }
 }
 
-.location-heatmap-column-headings,
-.location-pitch-panels {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 16px;
-}
-
-.location-heatmap-column-headings {
-  padding: 0 12px 10px;
-  text-align: center;
-  color: var(--brand-dark);
-  font-size: 0.78rem;
-  font-weight: 850;
-  letter-spacing: 0.025em;
-}
-
 .location-heatmap-grid {
   display: grid;
+  /* Several pitch types fit on one row without shrinking their strike zones too far. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
   gap: 12px;
+  align-items: start;
 }
 
 .location-heatmap-grid.charts-unavailable {
@@ -1147,9 +1134,9 @@ summary,
 
 .location-pitch-row {
   min-width: 0;
-  padding: 12px 14px 6px;
+  padding: 10px 10px 4px;
   border: 1px solid #e0e4e8;
-  border-radius: 11px;
+  border-radius: 10px;
   background: linear-gradient(180deg, #fff, #fafbfc);
 }
 
@@ -1157,20 +1144,26 @@ summary,
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   margin-bottom: 4px;
 }
 
 .location-pitch-heading h3 {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.84rem;
 }
 
 .location-pitch-heading > span {
   color: var(--muted);
-  font-size: 0.67rem;
+  font-size: 0.63rem;
   font-weight: 750;
   white-space: nowrap;
+}
+
+.location-pitch-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .location-heatmap-panel {
@@ -1181,42 +1174,38 @@ summary,
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-top: 1px;
+  flex-wrap: wrap;
+  gap: 3px 7px;
   color: var(--muted);
-  font-size: 0.66rem;
+  font-size: 0.63rem;
 }
 
 .location-heatmap-panel-caption strong {
-  display: none;
   color: var(--brand-dark);
-  font-size: 0.73rem;
+  font-size: 0.7rem;
 }
 
 .plotly-chart.location-heatmap-plot {
-  height: 276px;
-  min-height: 276px;
+  height: 210px;
+  min-height: 210px;
 }
 
 .location-heatmap-empty {
+  grid-column: 1 / -1;
   margin: 0;
   padding: 20px;
   color: var(--muted);
   text-align: center;
 }
 
+/* Keep the batter-hand panels next to each other on narrow screens, too. */
 @media (max-width: 600px) {
-  .location-heatmap-column-headings {
-    display: none;
+  .location-pitch-row {
+    padding: 10px 8px 3px;
   }
 
   .location-pitch-panels {
-    grid-template-columns: 1fr;
-    row-gap: 14px;
-  }
-
-  .location-heatmap-panel-caption strong {
-    display: initial;
+    gap: 4px;
   }
 }
 

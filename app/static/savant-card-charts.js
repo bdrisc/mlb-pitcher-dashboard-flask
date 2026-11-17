@@ -319,8 +319,8 @@
             };
         const zone = chart.strike_zone;
         const layout = baseLayout({
-          height: 276,
-          margin: { l: 6, r: 6, t: 5, b: 5 },
+          height: 210,
+          margin: { l: 4, r: 4, t: 3, b: 3 },
           showlegend: false,
           xaxis: {
             range: [-1.4, 1.4],
