@@ -403,7 +403,10 @@ def test_transition_matrix_respects_true_adjacency_and_no_geometry_requirement(
     assert rows["FF"]["total"] == rows["SL"]["total"] == 1
 
 
-def test_transition_matrix_empty_and_dashboard_section(tunnel_client):
+def test_transition_matrix_empty_and_dashboard_section(app, tunnel_client):
+    with app.app_context():
+        db.session.get(Pitch, "tunnel_1").balls = 3
+        db.session.commit()
     matrix = tunnel_client.get(URL + "?balls=3").json["pitch_transition_matrix"]
     assert matrix["total_transitions"] == 0
     assert matrix["rows"] == []
