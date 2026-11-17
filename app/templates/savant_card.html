@@ -373,6 +373,44 @@
         </div>
       </section>
 
+      <section class="dashboard-section chart-section" aria-labelledby="inning-changes-heading">
+        <div class="section-heading">
+          <div>
+            <h2 id="inning-changes-heading">Velocity and Movement Changes by Inning</h2>
+          </div>
+        </div>
+        <div class="inning-controls">
+          <label class="field inning-control" for="inning-pitch-type">
+            <span>Pitch Type</span>
+            <select id="inning-pitch-type" aria-controls="inning-velocity-chart inning-hb-chart inning-ivb-chart" disabled>
+              <option value="">No pitch data</option>
+            </select>
+          </label>
+          <label class="field inning-control" for="inning-display-mode">
+            <span>Display</span>
+            <select id="inning-display-mode" aria-controls="inning-velocity-chart inning-hb-chart inning-ivb-chart">
+              <option value="change">Change from first recorded inning</option>
+              <option value="average">Average values</option>
+            </select>
+          </label>
+        </div>
+        <p class="inning-note">Inning 1 is the pitcher's first inning in each game, including relief appearances. Averages pool matching outings for the selected pitch type; change is measured from the earliest inning with tracked data for each metric.</p>
+        <div class="inning-chart-grid" id="inning-chart-grid">
+          <article class="chart-card">
+            <div class="chart-card-heading"><h3>Velocity</h3></div>
+            <div class="plotly-chart inning-chart" id="inning-velocity-chart" role="img" aria-label="Average pitch velocity by inning of appearance"></div>
+          </article>
+          <article class="chart-card">
+            <div class="chart-card-heading"><h3>Horizontal Break</h3></div>
+            <div class="plotly-chart inning-chart" id="inning-hb-chart" role="img" aria-label="Horizontal movement by inning, arm side positive"></div>
+          </article>
+          <article class="chart-card">
+            <div class="chart-card-heading"><h3>Induced Vertical Break</h3></div>
+            <div class="plotly-chart inning-chart" id="inning-ivb-chart" role="img" aria-label="Induced vertical movement by inning of appearance"></div>
+          </article>
+        </div>
+      </section>
+
       <section class="dashboard-section chart-section" aria-labelledby="charts-heading">
         <div class="section-heading">
           <div>
