@@ -533,7 +533,9 @@ def backfill_spin_axis_command(season, csv_paths, batch_size):
                 sources.append(candidate)
 
     try:
-        summary = backfill_spin_axis(sources, season=season, batch_size=batch_size, progress=click.echo)
+        summary = backfill_spin_axis(
+            sources, season=season, batch_size=batch_size, progress=click.echo
+        )
     except (ValueError, OSError) as error:
         raise click.ClickException(str(error)) from error
     click.echo(

@@ -762,7 +762,12 @@ def ingest_statcast_file(
                     if not column.primary_key and not column.name.startswith("savant_woba_")
                 ],
                 batch_size=batch_size,
-                preserve_existing_on_null={"launch_speed_angle", "barrel_checked", "estimated_slg", "spin_axis"}
+                preserve_existing_on_null={
+                    "launch_speed_angle",
+                    "barrel_checked",
+                    "estimated_slg",
+                    "spin_axis",
+                }
                 | set(ANGLE_FIELDS)
                 | set(HAAAA_FIELDS)
                 | set(VAA_ADJ_FIELDS),
