@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from decimal import ROUND_HALF_UP, Decimal
-from math import hypot, sqrt
+from math import atan2, cos, degrees, hypot, radians, sin, sqrt
 from typing import Any
 
 from sqlalchemy import and_, func, or_, select
@@ -672,6 +672,36 @@ def build_pitcher_profile(pitcher_id: int, filters: PitchFilters) -> dict[str, A
 
     stuff = profile_grades(pitcher_id, filters.season)
     arsenal = _arsenal_rows(conditions, total_pitches, filters.season, player.throws)
+
+    # Spin axis is circular: 359° and 1° average to 0°, not 180°.
+    # Use the same pitcher, season, count, hand, and date filters as the arsenal.
+    spin_axis_statement = (
+        select(Pitch.pitch_type, Pitch.spin_axis)
+        .join(Game, Game.game_pk == Pitch.game_pk)
+        .where(
+            *conditions,
+            Pitch.spin_axis.between(0, 360),
+            func.coalesce(Pitch.description, "").notin_(("automatic_ball", "automatic_strike")),
+        )
+    )
+    axis_vectors: dict[str, list[float]] = {}
+    for pitch_type, angle in db.session.execute(spin_axis_statement):
+        sine, cosine, count = axis_vectors.setdefault(pitch_type, [0.0, 0.0, 0.0])
+        direction = radians(float(angle))
+        axis_vectors[pitch_type] = [
+            sine + sin(direction),
+            cosine + cos(direction),
+            count + 1,
+        ]
+    for pitch in arsenal:
+        sine, cosine, count = axis_vectors.get(pitch["pitch_type"], (0.0, 0.0, 0.0))
+        pitch["spin_axis_pitch_count"] = int(count)
+        # Opposing directions have no meaningful single average axis.
+        pitch["avg_spin_axis"] = (
+            round(degrees(atan2(sine, cosine)) % 360, 1) % 360
+            if count and hypot(sine, cosine) / count > 1e-6
+            else None
+        )
     # FanGraphs' slider category can combine Statcast sliders and sweepers.
     has_sweeper = (
         db.session.scalar(

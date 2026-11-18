@@ -81,6 +81,7 @@ class Pitch(db.Model):
     velocity: Mapped[float | None]
     effective_velocity: Mapped[float | None]
     spin_rate: Mapped[float | None]
+    spin_axis: Mapped[float | None]
     horizontal_break_inches: Mapped[float | None]
     vertical_break_inches: Mapped[float | None]
     release_extension: Mapped[float | None]

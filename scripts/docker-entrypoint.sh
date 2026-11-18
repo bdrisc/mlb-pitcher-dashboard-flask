@@ -34,6 +34,13 @@ echo "Starting web server on port ${PORT:-10000}."
         fi
     fi
 
+    if [ "$maintenance_ok" = "1" ] && [ "${SYNC_SPIN_AXIS_ON_STARTUP:-1}" = "1" ]; then
+        echo "Backfilling missing official spin axes from available Statcast exports."
+        if ! flask --app wsgi statcast backfill-spin-axis --season 2026; then
+            echo "Spin-axis source unavailable; existing saved values retained." >&2
+        fi
+    fi
+
     if [ "$maintenance_ok" = "1" ] && [ "${SYNC_XSLG_ON_STARTUP:-1}" = "1" ]; then
         slg_source="${STATCAST_SEED_PATH:-data/production_statcast_2026.csv.gz}"
         if [ -f "$slg_source" ]; then

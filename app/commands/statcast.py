@@ -514,6 +514,38 @@ def reconcile_woba_outcomes_command(pitcher_id, season, apply):
     click.echo(summary)
 
 
+@statcast_cli.command("backfill-spin-axis")
+@click.option("--season", default=2026, show_default=True, type=int)
+@click.option("--csv-path", "csv_paths", multiple=True, type=click.Path(path_type=Path))
+@click.option("--batch-size", default=2_000, show_default=True, type=click.IntRange(1, 20_000))
+@with_appcontext
+def backfill_spin_axis_command(season, csv_paths, batch_size):
+    """Populate official spin axes on existing pitches from local Statcast exports."""
+    from app.services.spin_axis_refresh import backfill_spin_axis
+
+    sources = list(csv_paths)
+    if not sources:
+        for candidate in (
+            Path("data/cache/statcast") / str(season),
+            Path(f"data/production_statcast_{season}.csv.gz"),
+        ):
+            if candidate.exists():
+                sources.append(candidate)
+
+    try:
+        summary = backfill_spin_axis(sources, season=season, batch_size=batch_size, progress=click.echo)
+    except (ValueError, OSError) as error:
+        raise click.ClickException(str(error)) from error
+    click.echo(
+        f"Spin axis backfill: {summary['updated_pitches']:,} existing pitches updated "
+        f"from {summary['tracked_source_pitches']:,} tracked source pitches."
+    )
+    click.echo(
+        f"Sources: {summary['files']} with spin axis; "
+        f"{summary['files_without_spin_axis']} without column."
+    )
+
+
 @statcast_cli.command("backfill-xslg")
 @click.option("--season", type=click.IntRange(2015, 2100), default=2026, show_default=True)
 @click.option(

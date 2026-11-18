@@ -1218,6 +1218,46 @@ def test_pitch_shape_vs_avg_uses_verified_full_mlb_slot_reference(
     assert slider["ivb_vs_avg"] is None
 
 
+def test_spin_axis_circular_average_tracks_coverage_and_filters(profile_client, app):
+    with app.app_context():
+        for pitch_id, axis in {
+            "1001_1_1": 359.0,
+            "1001_1_2": 1.0,
+            "1002_2_1": 90.0,
+            "1002_3_1": 270.0,
+        }.items():
+            db.session.get(Pitch, pitch_id).spin_axis = axis
+        db.session.commit()
+
+    url = f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026"
+    arsenal = {pitch["pitch_type"]: pitch for pitch in profile_client.get(url).json["arsenal"]}
+    assert arsenal["FF"]["avg_spin_axis"] == 0.0
+    assert arsenal["FF"]["spin_axis_pitch_count"] == 2
+    # Two opposite directions do not have a meaningful circular average.
+    assert arsenal["SL"]["avg_spin_axis"] is None
+    assert arsenal["SL"]["spin_axis_pitch_count"] == 2
+
+    filtered = profile_client.get(url + "&pitch_type=FF&strikes=1").json["arsenal"][0]
+    assert filtered["avg_spin_axis"] == 1.0
+    assert filtered["spin_axis_pitch_count"] == 1
+
+    righties = profile_client.get(url + "&batter_side=R").json["arsenal"]
+    assert [pitch["pitch_type"] for pitch in righties] == ["FF"]
+
+    with app.app_context():
+        db.session.get(Pitch, "1001_1_1").description = "automatic_ball"
+        db.session.commit()
+    physical_only = profile_client.get(url + "&pitch_type=FF").json["arsenal"][0]
+    assert physical_only["avg_spin_axis"] == 1.0
+    assert physical_only["spin_axis_pitch_count"] == 1
+
+
+def test_spin_axis_missing_tracking_remains_unavailable(profile_client):
+    pitches = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile").json["arsenal"]
+    assert all(pitch["avg_spin_axis"] is None for pitch in pitches)
+    assert all(pitch["spin_axis_pitch_count"] == 0 for pitch in pitches)
+
+
 def test_arm_angle_shape_uses_valid_tracked_pitches_and_active_filters(profile_client, app):
     with app.app_context():
         angles = {

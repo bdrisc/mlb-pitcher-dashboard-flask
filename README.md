@@ -557,6 +557,28 @@ pitches per pitch-type/hand panel for large samples. Fewer than three valid
 pitches show an explicit no-data message and the same strike-zone outline.
 All existing filters apply, including pitch type, batter hand, count, and date.
 
+**Spin Axis** appears in *Arsenal Performance → Pitch Shape*, immediately after Spin
+Rate. It uses the official Baseball Savant `spin_axis` field (degrees 0–360,
+0° topspin, 180° backspin) and a **circular mean**, so 359° and 1° average
+to 0° rather than 180°. The result is grouped by pitch type, uses the same
+season/hand/count/date filters as the rest of the dashboard, and excludes
+automatic balls and strikes. A tooltip shows valid tracking coverage; when
+the unit vectors cancel and no meaningful mean exists, the display shows —.
+This is a descriptive spin direction, not spin efficiency or an inferred
+axis from movement.
+
+The pitch table needs an Alembic migration (`flask --app wsgi db upgrade`) to
+store `pitches.spin_axis`. Future Statcast imports save it directly. For
+**existing** pitches, run `flask --app wsgi statcast backfill-spin-axis --season 2026`;
+the command scans available `data/cache/statcast/2026` files and the bundled
+`data/production_statcast_2026.csv.gz`, updating *only missing spin axes* on
+matched existing pitch IDs. Use `--csv-path path/to/statcast.csv.gz` (repeatable)
+for other complete exports, especially local databases with more pitchers.
+On Render/Docker, background startup maintenance automatically performs the
+backfill after migrations and seed checks, if a source is present. Imports
+without the field preserve previously stored axes; absent tracking remains
+null rather than being estimated.
+
 **Release SD** appears in *Arsenal Performance → Pitch Shape* for each pitch type.
 It combines horizontal and vertical release-point **sample standard deviations**:
 `12 × sqrt(SD(release_pos_x)² + SD(release_pos_z)²)`, reported in inches.

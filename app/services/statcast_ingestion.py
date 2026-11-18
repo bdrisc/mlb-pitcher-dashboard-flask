@@ -51,6 +51,7 @@ OPTIONAL_COLUMNS = [
     "release_speed",
     "effective_speed",
     "release_spin_rate",
+    "spin_axis",
     "release_extension",
     "release_pos_x",
     "release_pos_y",
@@ -111,6 +112,7 @@ FLOAT_COLUMNS = [
     "release_speed",
     "effective_speed",
     "release_spin_rate",
+    "spin_axis",
     "release_extension",
     "release_pos_x",
     "release_pos_y",
@@ -396,6 +398,10 @@ def clean_statcast(raw: pd.DataFrame) -> pd.DataFrame:
             )
         data[column] = numeric
 
+    invalid_spin_axis = data["spin_axis"].notna() & ~data["spin_axis"].between(0, 360)
+    if invalid_spin_axis.any():
+        raise IngestionError("Statcast spin_axis must be between 0 and 360 degrees.")
+
     # Explicit context-neutral export fields take precedence over the default CSV alias.
     neutral_against = data["delev_delta_run_exp"].combine_first(
         -data["delev_delta_pitcher_run_exp"]
@@ -527,6 +533,7 @@ def _pitch_records(data: pd.DataFrame) -> list[dict[str, Any]]:
         "velocity": "release_speed",
         "effective_velocity": "effective_speed",
         "spin_rate": "release_spin_rate",
+        "spin_axis": "spin_axis",
         "release_extension": "release_extension",
         "release_pos_x": "release_pos_x",
         "release_pos_y": "release_pos_y",
@@ -755,7 +762,7 @@ def ingest_statcast_file(
                     if not column.primary_key and not column.name.startswith("savant_woba_")
                 ],
                 batch_size=batch_size,
-                preserve_existing_on_null={"launch_speed_angle", "barrel_checked", "estimated_slg"}
+                preserve_existing_on_null={"launch_speed_angle", "barrel_checked", "estimated_slg", "spin_axis"}
                 | set(ANGLE_FIELDS)
                 | set(HAAAA_FIELDS)
                 | set(VAA_ADJ_FIELDS),

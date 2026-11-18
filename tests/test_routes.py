@@ -67,6 +67,8 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     for metric in (b"gb_pct", b"fb_pct", b"ld_pct", b"pu_pct"):
         assert b'data-metric="' + metric + b'"' in response.data
     assert b"Batted-Ball Profile" in response.data
+    assert b">Spin Axis</th>" in response.data
+    assert response.data.index(b">Spin Axis</th>") < response.data.index(b">Arm Angle</th>")
     assert b">Arm Angle</th>" in response.data
     assert b">Release Height</th>" in response.data
     assert b">Release Side</th>" in response.data
@@ -132,6 +134,7 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b"/profile" in response.data
     assert b"URLSearchParams" in response.data
     assert b'formatMetric("release_point_sd_inches"' in response.data
+    assert b'formatMetric("avg_spin_axis"' in response.data
 
     charts_response = client.get("/static/savant-card-charts.js")
     assert charts_response.status_code == 200

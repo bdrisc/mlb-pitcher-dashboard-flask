@@ -353,6 +353,87 @@ def test_explicit_neutral_run_value_overrides_default_alias(neutral_field, neutr
     assert result["delta_run_exp"].eq(-0.123).all()
 
 
+def test_spin_axis_ingestion_and_missing_source_preserves_tracked_values(app, tmp_path):
+    source_rows = statcast_rows()
+    source_rows["spin_axis"] = [359.0, 360.0, 180.0]
+    source = write_statcast_csv(tmp_path, source_rows)
+    runner = app.test_cli_runner()
+
+    result = runner.invoke(args=["statcast", "ingest", str(source)])
+    assert result.exit_code == 0, result.output
+    with app.app_context():
+        assert db.session.get(Pitch, "824566_8_1").spin_axis == 359.0
+        assert db.session.get(Pitch, "824566_8_2").spin_axis == 360.0
+
+    # A legacy input without the field must not wipe previously imported angles.
+    source_rows.drop(columns=["spin_axis"]).to_csv(source, index=False)
+    again = runner.invoke(args=["statcast", "ingest", str(source)])
+    assert again.exit_code == 0, again.output
+    with app.app_context():
+        assert db.session.get(Pitch, "824566_8_1").spin_axis == 359.0
+
+
+def test_spin_axis_ingestion_rejects_invalid_angles():
+    from app.services.statcast_ingestion import IngestionError
+
+    source = statcast_rows()
+    source["spin_axis"] = [42.0, 361.0, 180.0]
+    with pytest.raises(IngestionError, match="spin_axis must be between 0 and 360"):
+        clean_statcast(source)
+
+
+def test_spin_axis_backfill_only_updates_missing_existing_pitch_ids(app, tmp_path):
+    source = write_statcast_csv(tmp_path)
+    runner = app.test_cli_runner()
+    assert runner.invoke(args=["statcast", "ingest", str(source)]).exit_code == 0
+
+    updated = statcast_rows()
+    updated["spin_axis"] = [1.0, 195.0, 285.0]
+    updated.to_csv(source, index=False)
+    command = ["statcast", "backfill-spin-axis", "--csv-path", str(source)]
+    report = runner.invoke(args=command)
+    assert report.exit_code == 0, report.output
+    assert "3 existing pitches updated" in report.output
+    with app.app_context():
+        assert db.session.get(Pitch, "824566_8_1").spin_axis == 1.0
+        assert db.session.get(Pitch, "824566_8_2").spin_axis == 195.0
+
+    rerun = runner.invoke(args=command)
+    assert rerun.exit_code == 0, rerun.output
+    assert "0 existing pitches updated" in rerun.output
+
+    # A pitch outside the selected database's cohort should never be inserted.
+    outside = updated.iloc[0].copy()
+    outside["game_pk"] = 999999
+    outside["pitcher"] = 111111
+    outside["at_bat_number"] = 10
+    updated = pd.concat([updated, outside.to_frame().T], ignore_index=True)
+    updated.to_csv(source, index=False)
+    rerun = runner.invoke(args=command)
+    assert rerun.exit_code == 0, rerun.output
+    with app.app_context():
+        assert db.session.get(Pitch, "999999_10_1") is None
+        assert db.session.scalar(select(func.count()).select_from(Pitch)) == 3
+
+    original = statcast_rows()
+    original.to_csv(source, index=False)
+    missing = runner.invoke(args=command)
+    assert missing.exit_code != 0
+    assert "No input file contains spin_axis" in missing.output
+
+
+def test_bundled_production_export_contains_official_spin_axis():
+    import csv
+    import gzip
+
+    source = PROJECT_ROOT / "data" / "production_statcast_2026.csv.gz"
+    if not source.exists():
+        pytest.skip("Production Statcast export not bundled.")
+    with gzip.open(source, "rt", newline="", encoding="utf-8-sig") as stream:
+        header = next(csv.reader(stream))
+    assert "spin_axis" in header
+
+
 def test_trajectory_ingestion_calculates_angles_and_missing_csv_preserves_them(app, tmp_path):
     frame = statcast_rows()
     values = {"vx0": 8.0, "vy0": -140.0, "vz0": -4.0, "ax": -10.0, "ay": 25.0, "az": -20.0}
