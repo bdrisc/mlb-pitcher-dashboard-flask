@@ -1465,6 +1465,19 @@ summary,
   overflow-wrap: anywhere;
 }
 
+/* Two explicit header lines; do not orphan the "cy" of Efficiency. */
+.arsenal-table.responsive-table th.spin-efficiency-heading {
+  width: 94px;
+  min-width: 94px;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+
+.spin-efficiency-heading .spin-efficiency-line {
+  display: block;
+  white-space: nowrap;
+}
+
 .responsive-table th:first-child {
   position: static;
   width: 17%;

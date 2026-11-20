@@ -68,10 +68,15 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
         assert b'data-metric="' + metric + b'"' in response.data
     assert b"Batted-Ball Profile" in response.data
     assert b">Spin Axis</th>" in response.data
-    assert b">Spin Efficiency</th>" in response.data
+    assert b'class="spin-efficiency-heading"' in response.data
+    assert (
+        b'<span class="spin-efficiency-line">Spin</span> '
+        b'<span class="spin-efficiency-line">Efficiency</span>'
+    ) in response.data
+    assert b'data-mobile-label="Spin Efficiency"' in response.data
     assert (
         response.data.index(b">Spin Axis</th>")
-        < response.data.index(b">Spin Efficiency</th>")
+        < response.data.index(b'class="spin-efficiency-heading"')
         < response.data.index(b">Arm Angle</th>")
     )
     assert b">Arm Angle</th>" in response.data
@@ -112,6 +117,9 @@ def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
     )
     assert b".location-pitch-panels {" in response.data
     assert b".plotly-chart.location-heatmap-plot {" in response.data
+    assert b".arsenal-table.responsive-table th.spin-efficiency-heading" in response.data
+    assert b".spin-efficiency-heading .spin-efficiency-line" in response.data
+    assert b"white-space: nowrap;" in response.data
     assert b".location-heatmap-panel {" in response.data
     assert b"max-width: 100%;" in response.data
     assert b"overflow: hidden;" in response.data
