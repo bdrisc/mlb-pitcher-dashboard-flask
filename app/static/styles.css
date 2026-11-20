@@ -1478,6 +1478,19 @@ summary,
   white-space: nowrap;
 }
 
+/* Two intact words in the Effective Velocity heading. */
+.arsenal-table.responsive-table th.effective-velocity-heading {
+  width: 92px;
+  min-width: 92px;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+
+.effective-velocity-heading .effective-velocity-line {
+  display: block;
+  white-space: nowrap;
+}
+
 .responsive-table th:first-child {
   position: static;
   width: 17%;

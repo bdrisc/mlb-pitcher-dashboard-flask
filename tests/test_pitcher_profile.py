@@ -214,6 +214,48 @@ def test_profile_returns_identity_sample_overall_arsenal_and_splits(profile_clie
     ]
 
 
+def test_effective_velocity_uses_official_tracked_data_and_active_filters(app, profile_client):
+    with app.app_context():
+        db.session.get(Pitch, "1001_1_1").effective_velocity = 97.6
+        db.session.get(Pitch, "1001_1_2").effective_velocity = 98.2
+        db.session.get(Pitch, "1002_2_1").effective_velocity = 85.5
+        db.session.get(Pitch, "1002_3_1").effective_velocity = None
+        db.session.commit()
+
+    endpoint = f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026"
+    by_type = {
+        pitch["pitch_type"]: pitch
+        for pitch in profile_client.get(endpoint).json["arsenal"]
+    }
+    assert by_type["FF"]["avg_effective_velocity"] == 97.9
+    assert by_type["FF"]["effective_velocity_pitch_count"] == 2
+    assert by_type["SL"]["avg_effective_velocity"] == 85.5
+    assert by_type["SL"]["effective_velocity_pitch_count"] == 1
+    assert by_type["SL"]["pitch_count"] == 2
+    assert by_type["FF"]["avg_velocity"] == 95.5
+
+    ff_one_strike = profile_client.get(endpoint + "&pitch_type=FF&strikes=1").json["arsenal"]
+    assert ff_one_strike[0]["avg_effective_velocity"] == 98.2
+    assert ff_one_strike[0]["effective_velocity_pitch_count"] == 1
+
+    lefty_batters = profile_client.get(endpoint + "&batter_side=L").json["arsenal"]
+    assert lefty_batters[0]["avg_effective_velocity"] == 85.5
+
+    # Automatic calls are not thrown pitches and must be omitted.
+    with app.app_context():
+        db.session.get(Pitch, "1001_1_1").description = "automatic_ball"
+        db.session.commit()
+    physical = profile_client.get(endpoint + "&pitch_type=FF").json["arsenal"][0]
+    assert physical["avg_effective_velocity"] == 98.2
+    assert physical["effective_velocity_pitch_count"] == 1
+
+
+def test_effective_velocity_missing_tracking_is_unavailable(profile_client):
+    rows = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile").json["arsenal"]
+    assert all(pitch["avg_effective_velocity"] is None for pitch in rows)
+    assert all(pitch["effective_velocity_pitch_count"] == 0 for pitch in rows)
+
+
 def test_spin_efficiency_uses_measured_full_season_pitch_type_reference(app, profile_client):
     with app.app_context():
         from datetime import datetime, timezone

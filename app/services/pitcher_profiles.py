@@ -209,6 +209,14 @@ def _metric_columns() -> list[Any]:
         func.count(Pitch.delta_run_expectancy).filter(physical_rv_pitch).label("run_value_pitches"),
         *expected_run_value_columns(),
         func.avg(Pitch.velocity).label("avg_velocity"),
+        # Official Statcast effective_speed: perceived mph adjusted for release
+        # extension only, not location or sequencing. Exclude automatic calls.
+        func.avg(Pitch.effective_velocity)
+        .filter(physical_pitch)
+        .label("avg_effective_velocity"),
+        func.count(Pitch.effective_velocity)
+        .filter(physical_pitch)
+        .label("effective_velocity_pitch_count"),
         func.avg(Pitch.vaa).label("vaa"),
         func.avg(Pitch.expected_vaa).label("expected_vaa"),
         func.avg(Pitch.vaa_adj).label("vaa_adj"),
@@ -420,6 +428,8 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
             row, "xrv_imported_weight_mismatch"
         ),
         "avg_velocity": _rounded(row["avg_velocity"]),
+        "avg_effective_velocity": _rounded(row["avg_effective_velocity"]),
+        "effective_velocity_pitch_count": _integer(row, "effective_velocity_pitch_count"),
         "vaa": _rounded(row["vaa"]),
         "expected_vaa": _rounded(row["expected_vaa"], 2),
         "vaa_adj": _rounded(row["vaa_adj"], 2),

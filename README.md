@@ -572,6 +572,17 @@ and Usage are always visible in that order. **FanGraphs Grades** appears above *
 the same selector. Switching views only changes visible table columns;
 all source calculations, filters, tooltips, and pitch ordering remain unchanged.
 
+**Effective Velocity (Statcast effective_speed)** appears in
+*Arsenal Performance → Release & Spin*, immediately after Velo. It is the
+arithmetic mean of the official pitch-level `effective_speed` (perceived mph
+normalized for release extension), not a location-, approach-angle-, or
+sequencing-based Effective Velocity model. It obeys all selected filters,
+excludes automatic balls and strikes, and reports valid tracking coverage on
+hover. Missing source tracking displays a dash. The ingestion pipeline and
+both PostgreSQL databases already store `effective_velocity`, so no new
+migration or backfill is necessary. The deliberate compact *Pitch Shape
+Overview* column order remains unchanged.
+
 **Spin Efficiency (Official Active Spin %)** appears in *Arsenal Performance →
 Pitch Shape*, immediately after Spin Axis. It is **directly measured** from
 Baseball Savant's 3D release-spin leaderboard (2020+), imported by pitcher,

@@ -81,6 +81,10 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
         < response.data.index(b'class="spin-efficiency-heading"')
         < response.data.index(b">Arm Angle</th>")
     )
+    assert b'class="effective-velocity-heading"' in response.data
+    assert b'data-mobile-label="Effective Velocity"' in response.data
+    assert b'<span class="effective-velocity-line">Effective</span>' in response.data
+    assert b'<span class="effective-velocity-line">Velocity</span>' in response.data
     assert b">Arm Angle</th>" in response.data
     assert b">Release Height</th>" in response.data
     assert b">Release Side</th>" in response.data
@@ -133,6 +137,7 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
         "shape-overview": {"Velo", "Spin", "Release Height", "Release Side", "HB", "IVB"},
         "shape-release": {
             "Velo",
+            "Effective Velocity",
             "Max",
             "Spin",
             "Spin Axis",
@@ -155,7 +160,7 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
     }
     shared_order = [re.sub(r"<[^>]+>", "", content).strip() for _, content in headings[:3]]
     assert shared_order == ["Pitch", "#", "Usage"]
-    assert len(membership) == 17
+    assert len(membership) == 18
     for view, expected_labels in expected.items():
         assert {label for label, views in membership.items() if view in views} == expected_labels
     assert [label for label, views in membership.items() if "shape-overview" in views] == [
@@ -167,7 +172,7 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
         "Release Side",
     ]
 
-    # All 17 shape columns exist exactly once; the selector only changes
+    # All 18 shape columns exist exactly once; the selector only changes
     # visibility. Shared Pitch / # / Usage, Results, and Grades stay intact.
     assert 'data-view="shape"' not in page
     assert len(re.findall(r'<th\b[^>]*data-view="results"', page)) == 11
@@ -186,6 +191,7 @@ def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
     assert b".plotly-chart.location-heatmap-plot {" in response.data
     assert b".arsenal-table.responsive-table th.spin-efficiency-heading" in response.data
     assert b".spin-efficiency-heading .spin-efficiency-line" in response.data
+    assert b".effective-velocity-heading .effective-velocity-line" in response.data
     assert b"white-space: nowrap;" in response.data
     assert b".location-heatmap-panel {" in response.data
     assert b"max-width: 100%;" in response.data
@@ -216,6 +222,10 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b"heading.dataset.view.split(/\\s+/).includes(view)" in response.data
     assert b'formatMetric("release_point_sd_inches"' in response.data
     assert b'formatMetric("avg_spin_axis"' in response.data
+    assert b'formatMetric("avg_effective_velocity"' in response.data
+    assert response.data.index(b'formatMetric("avg_velocity"') < response.data.index(
+        b'formatMetric("avg_effective_velocity"'
+    )
     assert b'formatMetric("spin_efficiency_pct"' in response.data
     assert response.data.index(b"tableCell(row, Number(pitch.pitch_count)") < response.data.index(
         b'tableCell(row, formatMetric("usage_pct"'
