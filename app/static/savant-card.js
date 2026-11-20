@@ -470,7 +470,9 @@ if (root) {
   function updateArsenalView() {
     const view = elements.arsenalView.value;
     tableHeadings(elements.arsenal).forEach((heading, index) => {
-      const hidden = Boolean(heading.dataset.view && heading.dataset.view !== view);
+      const hidden = Boolean(
+        heading.dataset.view && !heading.dataset.view.split(/\s+/).includes(view),
+      );
       heading.hidden = hidden;
       for (const row of elements.arsenal.rows) row.cells[index].hidden = hidden;
     });

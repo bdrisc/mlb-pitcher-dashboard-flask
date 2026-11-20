@@ -558,6 +558,19 @@ pitches show an explicit no-data message and the same strike-zone outline.
 All existing filters apply, including pitch type, batter hand, count, and date.
 
 
+### Arsenal Performance: focused Pitch Shape views
+
+The Arsenal Performance selector defaults to **Pitch Shape Overview**. Its six
+quick-comparison metrics are Velo, Spin, Spin Efficiency, HB, IVB, and VAAAdj.
+**Release & Spin** exposes Velo, Max, Spin, Spin Axis, Spin Efficiency, Arm
+Angle, Release Height, Release Side, and Release SD. **Movement & Approach**
+exposes HB, IVB, HB vs. AVG, IVB vs. AVG, VAA, VAAAdj, HAA, and HAAAA.
+
+All 17 original Pitch Shape metrics are retained, and Pitch, Usage, and pitch
+count are always visible. **Results** and **FanGraphs Grades** remain available
+in the same selector. Switching views only changes visible table columns;
+all source calculations, filters, tooltips, and pitch ordering remain unchanged.
+
 **Spin Efficiency (Official Active Spin %)** appears in *Arsenal Performance →
 Pitch Shape*, immediately after Spin Axis. It is **directly measured** from
 Baseball Savant's 3D release-spin leaderboard (2020+), imported by pitcher,

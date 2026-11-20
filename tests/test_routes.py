@@ -1,5 +1,7 @@
 """Application-factory, API, filtering, and plot route tests."""
 
+import re
+
 
 def test_factory_serves_the_jinja_homepage(client):
     response = client.get("/")
@@ -107,6 +109,61 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b"plotly-4.0.0.min.js" in response.data
 
 
+
+def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
+    response = client.get("/savant-card")
+    page = response.get_data(as_text=True)
+
+    assert '<option value="shape-overview" selected>Pitch Shape Overview</option>' in page
+    assert '<option value="shape-release">Release &amp; Spin</option>' in page
+    assert '<option value="shape-movement">Movement &amp; Approach</option>' in page
+    assert '<option value="results">Results</option>' in page
+    assert '<option value="grades">FanGraphs Grades</option>' in page
+
+    headings = re.findall(r"<th\\b([^>]*)>(.*?)</th>", page, flags=re.S)
+    membership = {}
+    for attributes, content in headings:
+        view = re.search(r'data-view="([^"]+)"', attributes)
+        if view is None or "shape-" not in view.group(1):
+            continue
+        label = " ".join(re.sub(r"<[^>]+>", " ", content).split())
+        membership[label] = set(view.group(1).split())
+
+    expected = {
+        "shape-overview": {"Velo", "Spin", "Spin Efficiency", "HB", "IVB", "VAAAdj"},
+        "shape-release": {
+            "Velo",
+            "Max",
+            "Spin",
+            "Spin Axis",
+            "Spin Efficiency",
+            "Arm Angle",
+            "Release Height",
+            "Release Side",
+            "Release SD",
+        },
+        "shape-movement": {
+            "HB",
+            "IVB",
+            "HB vs. AVG",
+            "IVB vs. AVG",
+            "VAA",
+            "VAAAdj",
+            "HAA",
+            "HAAAA",
+        },
+    }
+    assert len(membership) == 17
+    for view, expected_labels in expected.items():
+        assert {label for label, views in membership.items() if view in views} == expected_labels
+
+    # All 17 shape columns exist exactly once; the selector only changes
+    # visibility. Shared Pitch / Usage / #, Results, and Grades stay intact.
+    assert 'data-view="shape"' not in page
+    assert len(re.findall(r'<th\\b[^>]*data-view="results"', page)) == 11
+    assert len(re.findall(r'<th\\b[^>]*data-view="grades"', page)) == 3
+
+
 def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
     response = client.get("/static/styles.css")
 
@@ -146,6 +203,7 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert response.mimetype in {"application/javascript", "text/javascript"}
     assert b"/profile" in response.data
     assert b"URLSearchParams" in response.data
+    assert b"heading.dataset.view.split(/\\s+/).includes(view)" in response.data
     assert b'formatMetric("release_point_sd_inches"' in response.data
     assert b'formatMetric("avg_spin_axis"' in response.data
     assert b'formatMetric("spin_efficiency_pct"' in response.data

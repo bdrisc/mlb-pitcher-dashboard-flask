@@ -278,8 +278,10 @@
           <label class="field arsenal-view-selector" for="arsenal-view">
             <span>View</span>
             <select id="arsenal-view" aria-controls="arsenal-body">
+              <option value="shape-overview" selected>Pitch Shape Overview</option>
+              <option value="shape-release">Release &amp; Spin</option>
+              <option value="shape-movement">Movement &amp; Approach</option>
               <option value="results">Results</option>
-              <option value="shape">Pitch Shape</option>
               <option value="grades">FanGraphs Grades</option>
             </select>
           </label>
@@ -296,23 +298,23 @@
                 <th scope="col" role="columnheader" data-view="grades" hidden>Stuff+</th>
                 <th scope="col" role="columnheader" data-view="grades" hidden>Location+</th>
                 <th scope="col" role="columnheader" data-view="grades" hidden>Pitching+</th>
-                <th scope="col" role="columnheader" data-view="shape" hidden>Velo</th>
-                <th scope="col" role="columnheader" data-view="shape" hidden>Max</th>
-                <th scope="col" role="columnheader" data-view="shape" hidden>Spin</th>
-                <th scope="col" role="columnheader" data-view="shape" hidden title="Circular average of official Statcast spin_axis, 0–360°. 0° is topspin and 180° is backspin. An angular average treats 359° and 1° as adjacent; unavailable or directionally ambiguous samples show a dash.">Spin Axis</th>
-                <th scope="col" role="columnheader" class="spin-efficiency-heading" data-mobile-label="Spin Efficiency" data-view="shape" hidden title="Official Baseball Savant spin-based Active Spin %, directly measured at release. Full-season pitch-type reference; not recalculated for date, batter hand, or count filters. No movement-derived estimates."><span class="spin-efficiency-line">Spin</span> <span class="spin-efficiency-line">Efficiency</span></th>
-                <th scope="col" role="columnheader" data-view="shape" hidden title="Average Statcast release arm angle in degrees. 0° is horizontal (sidearm) and 90° is over the top; only tracked, physically thrown pitches are included.">Arm Angle</th>
-                <th scope="col" role="columnheader" data-view="shape" hidden title="Average vertical release position, in feet above ground, using tracked physically thrown pitches.">Release Height</th>
-                <th scope="col" role="columnheader" data-view="shape" hidden title="Average signed horizontal release position, in feet relative to home-plate center from the catcher's perspective. Positive is catcher's right; negative is catcher's left.">Release Side</th>
-                <th scope="col" role="columnheader" data-view="shape" hidden title="Two-dimensional sample standard deviation of horizontal and vertical release positions (inches), by pitch type. Lower means a tighter release cluster, not necessarily better command. Requires at least 2 pitches with both coordinates.">Release SD</th>
-                <th scope="col" role="columnheader" data-view="shape" hidden>HB</th>
-                <th scope="col" role="columnheader" data-view="shape" hidden title="Induced vertical break in inches">IVB</th>
-                <th scope="col" role="columnheader" data-view="shape" hidden title="Horizontal break versus the full-MLB average for this pitch type, throwing hand and arm angle (±5°). Positive means more arm-side movement.">HB vs. AVG</th>
-                <th scope="col" role="columnheader" data-view="shape" hidden title="Induced vertical break versus the full-MLB average for this pitch type, throwing hand and arm angle (±5°). Positive means more induced rise.">IVB vs. AVG</th>
-                <th scope="col" role="columnheader" data-view="shape" hidden title="Raw vertical approach angle at the front of home plate; negative means descending">VAA</th>
-                <th scope="col" role="columnheader" data-view="shape" hidden title="VAA minus expected VAA for this pitch type and front-plane height. Positive is flatter, negative is steeper; frozen 2025 MLB reference">VAAAdj</th>
-                <th scope="col" role="columnheader" data-view="shape" hidden title="Raw horizontal approach angle at the front of home plate; positive is toward the catcher’s right">HAA</th>
-                <th scope="col" role="columnheader" data-view="shape" hidden title="HAA above expected: observed minus expected HAA, adjusted for pitch type, throwing hand, release side and front-plane horizontal location against a frozen 2025 MLB baseline">HAAAA</th>
+                <th scope="col" role="columnheader" data-view="shape-overview shape-release" hidden>Velo</th>
+                <th scope="col" role="columnheader" data-view="shape-release" hidden>Max</th>
+                <th scope="col" role="columnheader" data-view="shape-overview shape-release" hidden>Spin</th>
+                <th scope="col" role="columnheader" data-view="shape-release" hidden title="Circular average of official Statcast spin_axis, 0–360°. 0° is topspin and 180° is backspin. An angular average treats 359° and 1° as adjacent; unavailable or directionally ambiguous samples show a dash.">Spin Axis</th>
+                <th scope="col" role="columnheader" class="spin-efficiency-heading" data-mobile-label="Spin Efficiency" data-view="shape-overview shape-release" hidden title="Official Baseball Savant spin-based Active Spin %, directly measured at release. Full-season pitch-type reference; not recalculated for date, batter hand, or count filters. No movement-derived estimates."><span class="spin-efficiency-line">Spin</span> <span class="spin-efficiency-line">Efficiency</span></th>
+                <th scope="col" role="columnheader" data-view="shape-release" hidden title="Average Statcast release arm angle in degrees. 0° is horizontal (sidearm) and 90° is over the top; only tracked, physically thrown pitches are included.">Arm Angle</th>
+                <th scope="col" role="columnheader" data-view="shape-release" hidden title="Average vertical release position, in feet above ground, using tracked physically thrown pitches.">Release Height</th>
+                <th scope="col" role="columnheader" data-view="shape-release" hidden title="Average signed horizontal release position, in feet relative to home-plate center from the catcher's perspective. Positive is catcher's right; negative is catcher's left.">Release Side</th>
+                <th scope="col" role="columnheader" data-view="shape-release" hidden title="Two-dimensional sample standard deviation of horizontal and vertical release positions (inches), by pitch type. Lower means a tighter release cluster, not necessarily better command. Requires at least 2 pitches with both coordinates.">Release SD</th>
+                <th scope="col" role="columnheader" data-view="shape-overview shape-movement" hidden>HB</th>
+                <th scope="col" role="columnheader" data-view="shape-overview shape-movement" hidden title="Induced vertical break in inches">IVB</th>
+                <th scope="col" role="columnheader" data-view="shape-movement" hidden title="Horizontal break versus the full-MLB average for this pitch type, throwing hand and arm angle (±5°). Positive means more arm-side movement.">HB vs. AVG</th>
+                <th scope="col" role="columnheader" data-view="shape-movement" hidden title="Induced vertical break versus the full-MLB average for this pitch type, throwing hand and arm angle (±5°). Positive means more induced rise.">IVB vs. AVG</th>
+                <th scope="col" role="columnheader" data-view="shape-movement" hidden title="Raw vertical approach angle at the front of home plate; negative means descending">VAA</th>
+                <th scope="col" role="columnheader" data-view="shape-overview shape-movement" hidden title="VAA minus expected VAA for this pitch type and front-plane height. Positive is flatter, negative is steeper; frozen 2025 MLB reference">VAAAdj</th>
+                <th scope="col" role="columnheader" data-view="shape-movement" hidden title="Raw horizontal approach angle at the front of home plate; positive is toward the catcher’s right">HAA</th>
+                <th scope="col" role="columnheader" data-view="shape-movement" hidden title="HAA above expected: observed minus expected HAA, adjusted for pitch type, throwing hand, release side and front-plane horizontal location against a frozen 2025 MLB baseline">HAAAA</th>
                 <th scope="col" role="columnheader" data-view="results">Whiff</th>
                 <th scope="col" role="columnheader" data-view="results" title="Whiffs divided by swings on pitches in the strike zone. Uses the same whiff and zone definitions as the overall report.">Z-Whiff%</th>
                 <th scope="col" role="columnheader" data-view="results" title="Whiffs divided by swings on pitches outside the strike zone. Uses the same whiff and zone definitions as the overall report.">O-Whiff%</th>
