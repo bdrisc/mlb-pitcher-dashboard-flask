@@ -119,7 +119,7 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
     assert '<option value="results">Results</option>' in page
     assert '<option value="grades">FanGraphs Grades</option>' in page
 
-    headings = re.findall(r"<th\\b([^>]*)>(.*?)</th>", page, flags=re.S)
+    headings = re.findall(r"<th\b([^>]*)>(.*?)</th>", page, flags=re.S)
     membership = {}
     for attributes, content in headings:
         view = re.search(r'data-view="([^"]+)"', attributes)
@@ -159,8 +159,8 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
     # All 17 shape columns exist exactly once; the selector only changes
     # visibility. Shared Pitch / Usage / #, Results, and Grades stay intact.
     assert 'data-view="shape"' not in page
-    assert len(re.findall(r'<th\\b[^>]*data-view="results"', page)) == 11
-    assert len(re.findall(r'<th\\b[^>]*data-view="grades"', page)) == 3
+    assert len(re.findall(r'<th\b[^>]*data-view="results"', page)) == 11
+    assert len(re.findall(r'<th\b[^>]*data-view="grades"', page)) == 3
 
 
 def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
