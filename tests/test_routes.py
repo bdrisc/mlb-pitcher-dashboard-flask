@@ -115,9 +115,10 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
 
     assert '<option value="shape-overview" selected>Pitch Shape Overview</option>' in page
     assert '<option value="shape-release">Release &amp; Spin</option>' in page
-    assert '<option value="shape-movement">Movement &amp; Approach</option>' in page
-    assert '<option value="results">Results</option>' in page
+    assert '<option value="shape-movement">Movement &amp; Angles</option>' in page
     assert '<option value="grades">FanGraphs Grades</option>' in page
+    assert '<option value="results">Results</option>' in page
+    assert page.index('<option value="grades">') < page.index('<option value="results">')
 
     headings = re.findall(r"<th\b([^>]*)>(.*?)</th>", page, flags=re.S)
     membership = {}
@@ -129,7 +130,7 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
         membership[label] = set(view.group(1).split())
 
     expected = {
-        "shape-overview": {"Velo", "Spin", "Spin Efficiency", "HB", "IVB", "VAAAdj"},
+        "shape-overview": {"Velo", "Spin", "Release Height", "Release Side", "HB", "IVB"},
         "shape-release": {
             "Velo",
             "Max",
@@ -155,6 +156,9 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
     assert len(membership) == 17
     for view, expected_labels in expected.items():
         assert {label for label, views in membership.items() if view in views} == expected_labels
+    assert [
+        label for label, views in membership.items() if "shape-overview" in views
+    ] == ["Velo", "Spin", "Release Height", "Release Side", "HB", "IVB"]
 
     # All 17 shape columns exist exactly once; the selector only changes
     # visibility. Shared Pitch / Usage / #, Results, and Grades stay intact.

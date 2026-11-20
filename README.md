@@ -561,14 +561,15 @@ All existing filters apply, including pitch type, batter hand, count, and date.
 ### Arsenal Performance: focused Pitch Shape views
 
 The Arsenal Performance selector defaults to **Pitch Shape Overview**. Its six
-quick-comparison metrics are Velo, Spin, Spin Efficiency, HB, IVB, and VAAAdj.
-**Release & Spin** exposes Velo, Max, Spin, Spin Axis, Spin Efficiency, Arm
-Angle, Release Height, Release Side, and Release SD. **Movement & Approach**
-exposes HB, IVB, HB vs. AVG, IVB vs. AVG, VAA, VAAAdj, HAA, and HAAAA.
+quick-comparison metrics are Velo, Spin, Release Height, Release Side, HB,
+and IVB, in that order. **Release & Spin** exposes Velo, Max, Spin, Spin Axis,
+Spin Efficiency, Arm Angle, Release Height, Release Side, and Release SD.
+**Movement & Angles** exposes HB, IVB, HB vs. AVG, IVB vs. AVG, VAA, VAAAdj,
+HAA, and HAAAA.
 
 All 17 original Pitch Shape metrics are retained, and Pitch, Usage, and pitch
-count are always visible. **Results** and **FanGraphs Grades** remain available
-in the same selector. Switching views only changes visible table columns;
+count are always visible. **FanGraphs Grades** appears above **Results** in
+the same selector. Switching views only changes visible table columns;
 all source calculations, filters, tooltips, and pitch ordering remain unchanged.
 
 **Spin Efficiency (Official Active Spin %)** appears in *Arsenal Performance →
