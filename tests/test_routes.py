@@ -156,9 +156,14 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
     assert len(membership) == 17
     for view, expected_labels in expected.items():
         assert {label for label, views in membership.items() if view in views} == expected_labels
-    assert [
-        label for label, views in membership.items() if "shape-overview" in views
-    ] == ["Velo", "Spin", "Release Height", "Release Side", "HB", "IVB"]
+    assert [label for label, views in membership.items() if "shape-overview" in views] == [
+        "Velo",
+        "Spin",
+        "Release Height",
+        "Release Side",
+        "HB",
+        "IVB",
+    ]
 
     # All 17 shape columns exist exactly once; the selector only changes
     # visibility. Shared Pitch / Usage / #, Results, and Grades stay intact.
