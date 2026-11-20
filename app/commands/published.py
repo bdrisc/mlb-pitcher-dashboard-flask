@@ -17,6 +17,7 @@ from app.services.published_pitching import (
     import_savant_xera,
 )
 from app.services.published_pitching_fetch import validate_handedness_split
+from app.services.savant_active_spin import import_savant_active_spin
 
 
 @click.group("published")
@@ -49,6 +50,39 @@ def import_savant(csv_path, season):
     except (ValueError, OSError) as exc:
         raise click.ClickException(str(exc)) from exc
     click.echo(result)
+
+
+
+@published_cli.command("import-active-spin")
+@click.argument("csv_path", type=click.Path(exists=True, path_type=Path))
+@click.option("--season", type=click.IntRange(2020, 2100), required=True)
+@with_appcontext
+def import_active_spin(csv_path, season):
+    """Import official spin-based Savant percentages from a downloaded CSV."""
+    try:
+        result = import_savant_active_spin(pd.read_csv(csv_path), season)
+    except (ValueError, OSError) as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(result)
+
+
+@published_cli.command("sync-active-spin")
+@click.option("--season", type=click.IntRange(2020, 2100), default=2026, show_default=True)
+@click.option("--timeout", type=click.IntRange(1, 600), default=120, show_default=True)
+@with_appcontext
+def sync_active_spin(season, timeout):
+    """Fetch measured active-spin values; never substitute observed movement."""
+    with TemporaryDirectory(prefix="savant-active-spin-") as directory:
+        try:
+            frame = _acquire(
+                "savant-active-spin", season, "ALL", Path(directory) / "active_spin.csv", timeout
+            )
+            click.echo(import_savant_active_spin(frame, season))
+        except (ValueError, OSError, subprocess.TimeoutExpired) as exc:
+            raise click.ClickException(
+                f"Official Savant active-spin source unavailable: {exc}. "
+                "Previously saved spin efficiency retained."
+            ) from exc
 
 
 def _acquire(provider, season, side, destination, timeout):
@@ -101,6 +135,14 @@ def sync_published(season, timeout):
             click.echo(import_savant_xera(savant, season))
         except (ValueError, OSError, subprocess.TimeoutExpired) as exc:
             errors.append(f"Baseball Savant: {exc}")
+        if season >= 2020:
+            try:
+                active = _acquire(
+                    "savant-active-spin", season, "ALL", home / "active_spin.csv", timeout
+                )
+                click.echo(import_savant_active_spin(active, season))
+            except (ValueError, OSError, subprocess.TimeoutExpired) as exc:
+                errors.append(f"Baseball Savant directly measured Active Spin: {exc}")
     for failure in errors:
         click.echo(f"Source unavailable; previous values retained. {failure}", err=True)
     if errors:

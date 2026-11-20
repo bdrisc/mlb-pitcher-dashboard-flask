@@ -557,6 +557,32 @@ pitches per pitch-type/hand panel for large samples. Fewer than three valid
 pitches show an explicit no-data message and the same strike-zone outline.
 All existing filters apply, including pitch type, batter hand, count, and date.
 
+
+**Spin Efficiency (Official Active Spin %)** appears in *Arsenal Performance →
+Pitch Shape*, immediately after Spin Axis. It is **directly measured** from
+Baseball Savant's 3D release-spin leaderboard (2020+), imported by pitcher,
+season, and exact pitch type; it is NOT a guessed calculation from the standard
+Statcast 2D spin axis and movement. The Savant public pitch-level CSV lacks
+the three-dimensional spin vector required for that calculation. This value is
+a **full-season reference**, even when the dashboard's date, batter hand, count,
+or venue filters narrow the other metrics. The tooltip identifies that scope,
+and missing/unpublished pitch types show a dash instead of an invented number.
+Higher or lower efficiency is not universally better (gyro-heavy sliders may
+intentionally have low active spin).
+
+Source: <https://baseballsavant.mlb.com/leaderboard/active-spin> (select
+**2026 - Spin-based**, NOT the legacy movement-inferred *Observed* option).
+Data are saved in `savant_active_spin`, separately from your pitch-level
+Statcast records, and refreshed by `flask --app wsgi published sync --season 2026`
+alongside FanGraphs and xERA. To fetch only measured Spin Efficiency locally,
+run `python -m flask --app wsgi db upgrade` and then
+`python -m flask --app wsgi published sync-active-spin --season 2026`.
+If the provider blocks automated requests, download the official spin-based
+CSV manually and run
+`python -m flask --app wsgi published import-active-spin path/to/file.csv --season 2026`.
+An unsuccessful refresh retains the previous verified values. Docker/Render
+background startup maintenance uses the normal `published sync` command.
+
 **Spin Axis** appears in *Arsenal Performance → Pitch Shape*, immediately after Spin
 Rate. It uses the official Baseball Savant `spin_axis` field (degrees 0–360,
 0° topspin, 180° backspin) and a **circular mean**, so 359° and 1° average

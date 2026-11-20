@@ -199,3 +199,15 @@ class PublishedPitchingMetric(db.Model):
     xera: Mapped[float | None]
     fangraphs_updated_at: Mapped[datetime | None] = mapped_column(db.DateTime(timezone=True))
     savant_updated_at: Mapped[datetime | None] = mapped_column(db.DateTime(timezone=True))
+
+
+class SavantActiveSpin(db.Model):
+    """Directly measured Savant spin-based Active Spin %, pitcher/season/pitch."""
+
+    __tablename__ = "savant_active_spin"
+
+    mlb_id: Mapped[int] = mapped_column(primary_key=True)
+    season: Mapped[int] = mapped_column(db.SmallInteger, primary_key=True)
+    pitch_type: Mapped[str] = mapped_column(db.String(4), primary_key=True)
+    active_spin_pct: Mapped[float] = mapped_column(nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(db.DateTime(timezone=True), nullable=False)

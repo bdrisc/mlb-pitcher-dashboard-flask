@@ -21,6 +21,7 @@ from app.services.pitch_separation import build_pitch_separation
 from app.services.pitch_sequencing import build_pitch_transition_matrix
 from app.services.pitch_tunneling import add_tunneling_to_separation, build_pitch_tunneling
 from app.services.published_pitching import published_references
+from app.services.savant_active_spin import published_active_spin
 from app.services.woba_refresh import NON_PA_EVENTS
 
 
@@ -672,6 +673,13 @@ def build_pitcher_profile(pitcher_id: int, filters: PitchFilters) -> dict[str, A
 
     stuff = profile_grades(pitcher_id, filters.season)
     arsenal = _arsenal_rows(conditions, total_pitches, filters.season, player.throws)
+    active_spin_by_pitch = published_active_spin(pitcher_id, filters.season)
+    for pitch in arsenal:
+        # Official full-season measured value: never an inferred per-pitch
+        # efficiency or a date/hand/count-filtered estimate.
+        pitch["spin_efficiency_pct"] = active_spin_by_pitch.get(pitch["pitch_type"])
+        pitch["spin_efficiency_scope"] = "full_season"
+        pitch["spin_efficiency_season"] = filters.season
 
     # Spin axis is circular: 359° and 1° average to 0°, not 180°.
     # Use the same pitcher, season, count, hand, and date filters as the arsenal.

@@ -17,6 +17,7 @@ import pandas as pd
 
 FANGRAPHS_ENDPOINT = "https://www.fangraphs.com/api/leaders/major-league/data"
 SAVANT_ENDPOINT = "https://baseballsavant.mlb.com/leaderboard/expected_statistics"
+SAVANT_ACTIVE_SPIN_ENDPOINT = "https://baseballsavant.mlb.com/leaderboard/active-spin"
 
 
 def _download(url, *, accept, timeout=45):
@@ -113,6 +114,45 @@ def fetch_savant(season):
     return normalize_savant_csv(csv_bytes, season)
 
 
+
+def normalize_savant_active_spin_csv(content, season):
+    """Reject HTML/observed-spin/wrong-schema responses before persistence."""
+    data = pd.read_csv(io.BytesIO(content))
+    required = {
+        "entity_id",
+        "active_spin_fourseam",
+        "active_spin_sinker",
+        "active_spin_cutter",
+        "active_spin_changeup",
+        "active_spin_splitter",
+        "active_spin_curve",
+        "active_spin_slider",
+        "active_spin_sweeper",
+        "active_spin_slurve",
+    }
+    if data.empty or not required.issubset(data.columns):
+        raise ValueError("Savant did not return the spin-based active-spin leaderboard CSV.")
+    if data["entity_id"].isna().any() or data["entity_id"].duplicated().any():
+        raise ValueError("Savant returned missing or duplicate active-spin pitcher IDs.")
+    if "year" in data.columns:
+        if not data["year"].astype(str).isin({str(season), f"{season}_spin-based"}).all():
+            raise ValueError("Savant active spin returned a mismatched season or method.")
+    return data
+
+
+def fetch_savant_active_spin(season):
+    """Download *directly measured* Savant active spin, not movement-inferred data."""
+    params = {
+        "year": f"{season}_spin-based",
+        "min": 1,
+        "hand": "",
+        "csv": "true",
+    }
+    contents = _download(
+        SAVANT_ACTIVE_SPIN_ENDPOINT + "?" + urlencode(params), accept="text/csv"
+    )
+    return normalize_savant_active_spin_csv(contents, season)
+
 def validate_handedness_split(split, overall):
     """Reject upstream endpoints silently ignoring a requested handedness filter."""
     if split.empty or overall.empty:
@@ -156,6 +196,8 @@ def main():
         frame = fetch_fangraphs(season, side)
     elif provider == "savant" and side == "ALL":
         frame = fetch_savant(season)
+    elif provider == "savant-active-spin" and side == "ALL":
+        frame = fetch_savant_active_spin(season)
     else:
         raise SystemExit("Unsupported provider/split combination.")
     frame.to_csv(output, index=False)

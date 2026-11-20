@@ -7,7 +7,7 @@ from datetime import date
 import pytest
 
 from app.extensions import db
-from app.models import Game, Pitch, Player
+from app.models import Game, Pitch, Player, SavantActiveSpin
 
 PITCHER_ID = 100
 
@@ -212,6 +212,54 @@ def test_profile_returns_identity_sample_overall_arsenal_and_splits(profile_clie
         "vs RHH",
         "vs LHH",
     ]
+
+
+def test_spin_efficiency_uses_measured_full_season_pitch_type_reference(app, profile_client):
+    with app.app_context():
+        from datetime import datetime, timezone
+
+        db.session.add_all(
+            [
+                SavantActiveSpin(
+                    mlb_id=PITCHER_ID,
+                    season=2026,
+                    pitch_type="FF",
+                    active_spin_pct=96.2,
+                    updated_at=datetime.now(timezone.utc),
+                ),
+                SavantActiveSpin(
+                    mlb_id=PITCHER_ID,
+                    season=2026,
+                    pitch_type="SL",
+                    active_spin_pct=24.5,
+                    updated_at=datetime.now(timezone.utc),
+                ),
+            ]
+        )
+        db.session.commit()
+
+    endpoint = f"/api/v1/pitchers/{PITCHER_ID}/profile"
+    # An explicit season is needed for a meaningful full-season reference.
+    no_season = profile_client.get(endpoint).json["arsenal"]
+    assert all(pitch["spin_efficiency_pct"] is None for pitch in no_season)
+
+    rows = profile_client.get(endpoint + "?season=2026").json["arsenal"]
+    by_type = {pitch["pitch_type"]: pitch for pitch in rows}
+    assert by_type["FF"]["spin_efficiency_pct"] == 96.2
+    assert by_type["SL"]["spin_efficiency_pct"] == 24.5
+    assert by_type["FF"]["spin_efficiency_scope"] == "full_season"
+    assert by_type["FF"]["spin_efficiency_season"] == 2026
+
+    # It remains a season-long reference when filtering individual pitches.
+    for query in (
+        "?season=2026&batter_side=R",
+        "?season=2026&strikes=1",
+        "?season=2026&date_from=2026-04-01&date_to=2026-04-01",
+    ):
+        narrowed = profile_client.get(endpoint + query).json["arsenal"]
+        assert next(p for p in narrowed if p["pitch_type"] == "FF")["spin_efficiency_pct"] == 96.2
+
+    assert profile_client.get(endpoint + "?season=2025").status_code == 404
 
 
 def test_release_position_averages_round_to_tenths(app, profile_client):
