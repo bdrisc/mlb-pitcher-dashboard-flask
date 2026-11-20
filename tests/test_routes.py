@@ -153,11 +153,10 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
             "HAAAA",
         },
     }
-    shared_headings = re.findall(r"<th\\b[^>]*>(.*?)</th>", page, flags=re.S)
-    assert [
-        re.sub(r"<[^>]+>", "", item).strip()
-        for item in shared_headings[:3]
-    ] == ["Pitch", "#", "Usage"]
+    shared_order = [
+        re.sub(r"<[^>]+>", "", content).strip() for _, content in headings[:3]
+    ]
+    assert shared_order == ["Pitch", "#", "Usage"]
     assert len(membership) == 17
     for view, expected_labels in expected.items():
         assert {label for label, views in membership.items() if view in views} == expected_labels
