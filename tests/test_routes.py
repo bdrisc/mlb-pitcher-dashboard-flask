@@ -153,9 +153,7 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
             "HAAAA",
         },
     }
-    shared_order = [
-        re.sub(r"<[^>]+>", "", content).strip() for _, content in headings[:3]
-    ]
+    shared_order = [re.sub(r"<[^>]+>", "", content).strip() for _, content in headings[:3]]
     assert shared_order == ["Pitch", "#", "Usage"]
     assert len(membership) == 17
     for view, expected_labels in expected.items():
@@ -219,13 +217,12 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b'formatMetric("release_point_sd_inches"' in response.data
     assert b'formatMetric("avg_spin_axis"' in response.data
     assert b'formatMetric("spin_efficiency_pct"' in response.data
-    assert response.data.index(b'tableCell(row, Number(pitch.pitch_count)') < response.data.index(
+    assert response.data.index(b"tableCell(row, Number(pitch.pitch_count)") < response.data.index(
         b'tableCell(row, formatMetric("usage_pct"'
     )
-    assert (
-        response.data.index(b'tableCell(row, formatMetric("horizontal_break"')
-        < response.data.index(b'tableCell(row, formatMetric("avg_release_height"')
-    )
+    assert response.data.index(
+        b'tableCell(row, formatMetric("horizontal_break"'
+    ) < response.data.index(b'tableCell(row, formatMetric("avg_release_height"')
     assert b"Full-season reference, NOT recalculated" in response.data
 
     charts_response = client.get("/static/savant-card-charts.js")
