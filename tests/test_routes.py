@@ -109,7 +109,6 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b"plotly-4.0.0.min.js" in response.data
 
 
-
 def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
     response = client.get("/savant-card")
     page = response.get_data(as_text=True)
