@@ -497,8 +497,8 @@ if (root) {
       pitchCell.append(label);
       row.append(pitchCell);
 
-      tableCell(row, formatMetric("usage_pct", pitch.usage_pct), "emphasized-cell");
       tableCell(row, Number(pitch.pitch_count).toLocaleString("en-US"));
+      tableCell(row, formatMetric("usage_pct", pitch.usage_pct), "emphasized-cell");
       tableCell(row, formatMetric("run_value_per_100", pitch.run_value_per_100)).title = runValueTitle(pitch);
       tableCell(row, formatMetric("expected_run_value_per_100", pitch.expected_run_value_per_100)).title = expectedRunValueTitle(pitch);
       tableCell(row, formatMetric("stuff_plus", pitch.stuff_plus));
@@ -510,11 +510,11 @@ if (root) {
       tableCell(row, formatMetric("avg_spin_axis", pitch.avg_spin_axis)).title = `Circular average of official Statcast spin axes (0–360°) for this pitch type. 0° = topspin; 180° = backspin. ${pitch.spin_axis_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} selected pitches have valid tracked spin axis. Automatic calls excluded. Undefined when directions cancel out. Responds to active filters.`;
       tableCell(row, formatMetric("spin_efficiency_pct", pitch.spin_efficiency_pct)).title = `Official directly measured, spin-based Baseball Savant Active Spin % for ${pitch.spin_efficiency_season || "the selected season"} and this pitch type. Full-season reference, NOT recalculated for date, batter handedness, count, venue, or other narrower filters. No movement-derived estimate; unavailable values appear as —. High or low efficiency is not automatically better.`;
       tableCell(row, formatMetric("avg_arm_angle", pitch.avg_arm_angle)).title = `Average release arm angle measured from horizontal (0°) to over the top (90°). ${pitch.arm_angle_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} selected pitches have valid arm-angle tracking. Responds to active filters.`;
+      tableCell(row, formatMetric("horizontal_break", pitch.horizontal_break));
+      tableCell(row, formatMetric("vertical_break", pitch.vertical_break));
       tableCell(row, formatMetric("avg_release_height", pitch.avg_release_height)).title = `Average Statcast release position above ground, in feet. ${pitch.release_height_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} selected pitches have tracked release height; automatic balls and strikes are excluded. Responds to active filters.`;
       tableCell(row, formatMetric("avg_release_side", pitch.avg_release_side)).title = `Average signed horizontal Statcast release position in feet from home-plate center, from the catcher's perspective. Positive = catcher's right, negative = catcher's left. ${pitch.release_side_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} selected pitches have tracked release side; automatic balls and strikes are excluded. Responds to active filters.`;
       tableCell(row, formatMetric("release_point_sd_inches", pitch.release_point_sd_inches)).title = `Release-point dispersion for this pitch type: sqrt(SD(side)² + SD(height)²) in inches, using sample SD on the same physically thrown pitches with both coordinates. Horizontal SD: ${formatMetric("release_side_sd_inches", pitch.release_side_sd_inches)}; vertical SD: ${formatMetric("release_height_sd_inches", pitch.release_height_sd_inches)}. Paired tracking: ${pitch.release_point_sd_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} selected pitches. Requires at least 2. Lower is more repeatable, but not a command grade; changes across games can increase season-wide SD.`;
-      tableCell(row, formatMetric("horizontal_break", pitch.horizontal_break));
-      tableCell(row, formatMetric("vertical_break", pitch.vertical_break));
       tableCell(row, signedMovement(pitch.hb_vs_avg)).title = movementVsAverageTitle(pitch, "hb");
       tableCell(row, signedMovement(pitch.ivb_vs_avg)).title = movementVsAverageTitle(pitch, "ivb");
       tableCell(row, formatMetric("vaa", pitch.vaa)).title = `Raw VAA at the front of home plate; negative means descending. ${pitch.vaa_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} pitches tracked.`;

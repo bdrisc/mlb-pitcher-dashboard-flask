@@ -153,20 +153,25 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
             "HAAAA",
         },
     }
+    shared_headings = re.findall(r"<th\\b[^>]*>(.*?)</th>", page, flags=re.S)
+    assert [
+        re.sub(r"<[^>]+>", "", item).strip()
+        for item in shared_headings[:3]
+    ] == ["Pitch", "#", "Usage"]
     assert len(membership) == 17
     for view, expected_labels in expected.items():
         assert {label for label, views in membership.items() if view in views} == expected_labels
     assert [label for label, views in membership.items() if "shape-overview" in views] == [
         "Velo",
         "Spin",
-        "Release Height",
-        "Release Side",
         "HB",
         "IVB",
+        "Release Height",
+        "Release Side",
     ]
 
     # All 17 shape columns exist exactly once; the selector only changes
-    # visibility. Shared Pitch / Usage / #, Results, and Grades stay intact.
+    # visibility. Shared Pitch / # / Usage, Results, and Grades stay intact.
     assert 'data-view="shape"' not in page
     assert len(re.findall(r'<th\b[^>]*data-view="results"', page)) == 11
     assert len(re.findall(r'<th\b[^>]*data-view="grades"', page)) == 3
@@ -215,6 +220,13 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b'formatMetric("release_point_sd_inches"' in response.data
     assert b'formatMetric("avg_spin_axis"' in response.data
     assert b'formatMetric("spin_efficiency_pct"' in response.data
+    assert response.data.index(b'tableCell(row, Number(pitch.pitch_count)') < response.data.index(
+        b'tableCell(row, formatMetric("usage_pct"'
+    )
+    assert (
+        response.data.index(b'tableCell(row, formatMetric("horizontal_break"')
+        < response.data.index(b'tableCell(row, formatMetric("avg_release_height"')
+    )
     assert b"Full-season reference, NOT recalculated" in response.data
 
     charts_response = client.get("/static/savant-card-charts.js")
