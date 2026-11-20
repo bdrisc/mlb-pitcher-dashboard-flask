@@ -35,7 +35,9 @@ def import_savant_active_spin(frame: pd.DataFrame, season: int) -> dict:
     """Validate all rows before committing official spin-based percentages."""
     required = {"entity_id", *SAVANT_SPIN_FIELDS}
     if frame.empty or not required.issubset(frame.columns):
-        raise ValueError("Not an official Savant active-spin CSV with pitcher IDs and pitch fields.")
+        raise ValueError(
+            "Not an official Savant active-spin CSV with pitcher IDs and pitch fields."
+        )
     if "year" in frame.columns:
         permitted = {str(season), f"{season}_spin-based"}
         if not frame["year"].astype(str).isin(permitted).all():

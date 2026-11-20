@@ -1,6 +1,6 @@
 """Official spin-based Active Spin %: independently published, not pitch-inferred."""
 
-from datetime import datetime, timezone
+from datetime import datetime
 from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
