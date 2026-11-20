@@ -211,9 +211,7 @@ def _metric_columns() -> list[Any]:
         func.avg(Pitch.velocity).label("avg_velocity"),
         # Official Statcast effective_speed: perceived mph adjusted for release
         # extension only, not location or sequencing. Exclude automatic calls.
-        func.avg(Pitch.effective_velocity)
-        .filter(physical_pitch)
-        .label("avg_effective_velocity"),
+        func.avg(Pitch.effective_velocity).filter(physical_pitch).label("avg_effective_velocity"),
         func.count(Pitch.effective_velocity)
         .filter(physical_pitch)
         .label("effective_velocity_pitch_count"),

@@ -223,10 +223,7 @@ def test_effective_velocity_uses_official_tracked_data_and_active_filters(app, p
         db.session.commit()
 
     endpoint = f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026"
-    by_type = {
-        pitch["pitch_type"]: pitch
-        for pitch in profile_client.get(endpoint).json["arsenal"]
-    }
+    by_type = {pitch["pitch_type"]: pitch for pitch in profile_client.get(endpoint).json["arsenal"]}
     assert by_type["FF"]["avg_effective_velocity"] == 97.9
     assert by_type["FF"]["effective_velocity_pitch_count"] == 2
     assert by_type["SL"]["avg_effective_velocity"] == 85.5
