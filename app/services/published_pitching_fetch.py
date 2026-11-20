@@ -114,7 +114,6 @@ def fetch_savant(season):
     return normalize_savant_csv(csv_bytes, season)
 
 
-
 def normalize_savant_active_spin_csv(content, season):
     """Reject HTML/observed-spin/wrong-schema responses before persistence."""
     data = pd.read_csv(io.BytesIO(content))
@@ -148,10 +147,9 @@ def fetch_savant_active_spin(season):
         "hand": "",
         "csv": "true",
     }
-    contents = _download(
-        SAVANT_ACTIVE_SPIN_ENDPOINT + "?" + urlencode(params), accept="text/csv"
-    )
+    contents = _download(SAVANT_ACTIVE_SPIN_ENDPOINT + "?" + urlencode(params), accept="text/csv")
     return normalize_savant_active_spin_csv(contents, season)
+
 
 def validate_handedness_split(split, overall):
     """Reject upstream endpoints silently ignoring a requested handedness filter."""

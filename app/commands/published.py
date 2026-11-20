@@ -52,7 +52,6 @@ def import_savant(csv_path, season):
     click.echo(result)
 
 
-
 @published_cli.command("import-active-spin")
 @click.argument("csv_path", type=click.Path(exists=True, path_type=Path))
 @click.option("--season", type=click.IntRange(2020, 2100), required=True)

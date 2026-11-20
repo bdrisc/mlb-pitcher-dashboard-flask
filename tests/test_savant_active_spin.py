@@ -56,9 +56,7 @@ def test_ambiguous_or_invalid_source_does_not_pass_validation():
     for bad in (
         b"<!DOCTYPE html><body>Forbidden</body>",
         active_frame().drop(columns=["active_spin_slider"]).to_csv(index=False).encode(),
-        pd.concat([active_frame(), active_frame()], ignore_index=True)
-        .to_csv(index=False)
-        .encode(),
+        pd.concat([active_frame(), active_frame()], ignore_index=True).to_csv(index=False).encode(),
         active_frame().assign(year=2025).to_csv(index=False).encode(),
     ):
         with pytest.raises((ValueError, pd.errors.ParserError)):
@@ -114,9 +112,7 @@ def test_import_and_sync_cli_use_same_source_without_estimating(app, tmp_path, m
     active_frame().to_csv(source, index=False)
     cli = app.test_cli_runner()
 
-    imported = cli.invoke(
-        args=["published", "import-active-spin", str(source), "--season", "2026"]
-    )
+    imported = cli.invoke(args=["published", "import-active-spin", str(source), "--season", "2026"])
     assert imported.exit_code == 0, imported.output
     assert "pitch_rows" in imported.output
 
