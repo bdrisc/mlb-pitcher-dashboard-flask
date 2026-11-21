@@ -762,7 +762,7 @@ if (root) {
       tableCell(row, Number(trip.plate_appearances).toLocaleString("en-US"));
       for (const key of [
         "strikeout_pct", "walk_pct", "k_minus_bb_pct", "whiff_pct",
-        "xwoba_against", "run_value_per_100", "avg_velocity",
+        "xwoba_against", "run_value_per_100",
       ]) {
         const cell = tableCell(row, formatMetric(key, trip[key]));
         if (key === "run_value_per_100") {
