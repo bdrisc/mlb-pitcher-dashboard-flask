@@ -561,11 +561,15 @@ All existing filters apply, including pitch type, batter hand, count, and date.
 ### Pitch Location Performance (league-relative)
 
 Under the pitch-location KDEs is a second, **contact-outcome** 3×3 strike-zone
-view. It defaults to **xwOBAcon**, and also offers **Hard-Hit%** and **Avg EV**,
+view, shown as a taller, portrait-format strike zone **from the pitcher's
+perspective** (left/right flipped relative to Statcast's catcher-view `plate_x`).
+It defaults to **xwOBAcon**, and also offers **Hard-Hit%** and **Avg EV**,
 with local pitch-type and batter-hand selectors in addition to the existing
 global filters. Each cell displays the pitcher's actual metric and qualifying
 batted-ball count, with hover details for the league value, difference, and
-the other available contact metrics.
+the other available contact metrics. The verbose reference and color-description
+paragraphs under the chart are intentionally omitted for a cleaner appearance;
+the compact color legend remains.
 
 - **Blue** means lower expected contact damage than the matched league
   average in that *same zone* (good for the pitcher); **red** means higher
@@ -579,8 +583,11 @@ the other available contact metrics.
   imposed on the league comparison. The selected pitcher is included in
   the league cohort. Local pitch and batter-hand selectors also narrow
   both samples before aggregating.
-- Horizontal thirds use ±0.88 feet in catcher's view (consistent with
-  the other location heatmaps); vertical thirds are normalized to each
+- Horizontal thirds use Statcast's ±0.88-foot catcher-view coordinates
+  (consistent with the other location heatmaps), but the three columns
+  are **reversed for the pitcher's view**. Pitcher and league data are
+  flipped together in the display; neither bin definitions nor their
+  reference values change. Vertical thirds are normalized to each
   hitter's individual Statcast `sz_bot`/`sz_top`, rather than fixed heights.
   **Only batted balls inside the strike zone** with valid tracked outcomes
   and boundaries contribute to these location cells. These are contact
