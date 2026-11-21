@@ -248,7 +248,10 @@ def _metric_columns() -> list[Any]:
         func.avg(Pitch.horizontal_break_inches).filter(joint_movement).label("movement_joint_hb"),
         func.avg(Pitch.vertical_break_inches).filter(joint_movement).label("movement_joint_ivb"),
         _count_where(joint_movement).label("movement_joint_pitches"),
-        func.avg(Pitch.release_extension).label("release_extension"),
+        func.avg(Pitch.release_extension).filter(physical_pitch).label("release_extension"),
+        func.count(Pitch.release_extension)
+        .filter(physical_pitch)
+        .label("release_extension_pitch_count"),
         func.avg(Pitch.exit_velocity).filter(tracked_batted_ball).label("avg_exit_velocity"),
         _count_where(
             actual_pa,
@@ -457,6 +460,7 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         "horizontal_break": _rounded(row["horizontal_break"]),
         "vertical_break": _rounded(row["vertical_break"]),
         "release_extension": _rounded(row["release_extension"]),
+        "release_extension_pitch_count": _integer(row, "release_extension_pitch_count"),
         "strike_pct": _rate(_integer(row, "strikes"), pitches),
         "swing_pct": _rate(swings, pitches),
         "whiff_pct": _rate(_integer(row, "whiffs"), swings),

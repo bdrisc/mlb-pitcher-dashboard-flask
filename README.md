@@ -560,14 +560,15 @@ All existing filters apply, including pitch type, batter hand, count, and date.
 
 ### Arsenal Performance: focused Pitch Shape views
 
-The Arsenal Performance selector defaults to **Pitch Shape Overview**. Its six
+The Arsenal Performance selector defaults to **Pitch Shape Overview**. Its seven
 quick-comparison metrics are Velo, Spin, HB, IVB, Release Height,
-and Release Side, in that order. **Release & Spin** exposes Velo, Perceived Velocity, Max, Spin, Spin Axis,
-Spin Efficiency, Arm Angle, Release Height, Release Side, and Release SD.
+Release Side, and Extension, in that order. **Release & Spin** exposes Velo,
+Perceived Velocity, Max, Spin, Spin Axis, Spin Efficiency, Arm Angle, Release
+Height, Release Side, Extension, and Release SD.
 **Movement & Angles** exposes HB, IVB, HB vs. AVG, IVB vs. AVG, VAA, VAAAdj,
 HAA, and HAAAA.
 
-All 17 original Pitch Shape metrics are retained, and Pitch, pitch count (#),
+All 19 Pitch Shape metrics are retained, and Pitch, pitch count (#),
 and Usage are always visible in that order. **FanGraphs Grades** appears above **Results** in
 the same selector. Switching views only changes visible table columns;
 all source calculations, filters, tooltips, and pitch ordering remain unchanged.
@@ -1504,3 +1505,16 @@ is shown as `0.00 ft`, not missing.
 
 Both dashboards share the implementation and existing Statcast columns;
 no database migration, re-ingestion, or league reference is required.
+
+### Release Extension in Pitch Shape
+
+**Extension** appears immediately after Release Side in both the default
+*Pitch Shape Overview* and *Release & Spin*. It is the mean of official Statcast
+`release_extension` for tracked physical pitches in the selected sample,
+expressed in feet to one decimal. This measures the release point’s distance
+in front of the pitching rubber toward home plate, not vertical or horizontal
+release position. The value responds to season, date, pitch type, batter hand,
+count and other active filters. Automatic balls and strikes are excluded.
+Its tooltip includes valid tracking coverage, and unavailable samples show a
+dash rather than a zero. Both local and public PostgreSQL databases already
+store this field; no migration or data refresh is needed.
