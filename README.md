@@ -558,6 +558,37 @@ pitches show an explicit no-data message and the same strike-zone outline.
 All existing filters apply, including pitch type, batter hand, count, and date.
 
 
+### Times Through the Order Splits
+
+Directly below **Platoon Splits**, the dashboard provides two tabs:
+
+- **Performance** (default): 1st, 2nd, 3rd and, if observed, 4th+ trips through
+  the lineup. Displays pitches, recorded PA, K%, BB%, K-BB%, Whiff%, xwOBA
+  against, context-neutral RV/100 (runs prevented), and average velocity.
+  These use the existing profile definitions, not separately sourced
+  leaderboard rates. Trips with fewer than 30 recorded PA are marked
+  *Small sample*; no values are invented for missing measurements.
+- **Pitch Mix**: proportional stacked bars by pitch type and lineup trip.
+  Usage is calculated among classified, physically thrown pitches within
+  that trip; pitch colors match the Arsenal table. The legend and hover
+  tooltips report pitch types and frequencies.
+
+Both views use the existing imported Statcast `n_thruorder_pitcher` column
+(stored as `Pitch.times_through_order`), group fourth and later trips as
+**4th+**, and leave null/zero TTO values unassigned instead of treating
+them as first-time trips. Coverage of recorded trips is displayed; groups
+with no selected data are omitted. All pitcher, season, team, date,
+handedness, venue, count, and pitch-type filters apply. Under pitch-type or
+count filters, PA results are **conditional on the selected pitches** and
+must not be interpreted as full plate-appearance rates. This is a
+descriptive split, not an isolated causal estimate of fatigue or the
+third-time-through penalty.
+
+The shared Flask profile response exposes `times_through_order_splits`
+with `performance`, `pitch_mix`, `assigned_pitch_count`, and
+`total_pitch_count`. Local and public dashboards use the same code; no
+migration or new ingestion source is required.
+
 ### Arsenal Performance: focused Pitch Shape views
 
 The Arsenal Performance selector defaults to **Pitch Shape Overview**. Its seven
