@@ -78,9 +78,7 @@ def _aggregate(
             func.sum(Pitch.estimated_woba).label("xwoba_sum"),
             func.count(Pitch.exit_velocity).label("ev_count"),
             func.sum(Pitch.exit_velocity).label("ev_sum"),
-            func.sum(
-                case((Pitch.exit_velocity >= 95, 1), else_=0)
-            ).label("hard_hit_count"),
+            func.sum(case((Pitch.exit_velocity >= 95, 1), else_=0)).label("hard_hit_count"),
         )
         .select_from(Pitch)
         .join(Game, Game.game_pk == Pitch.game_pk)
