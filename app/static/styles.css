@@ -1327,20 +1327,13 @@ summary,
   min-width: 150px;
 }
 
-.location-performance-reference {
-  margin: 0 0 18px;
-  color: var(--muted);
-  font-size: 0.74rem;
-  line-height: 1.5;
-}
-
 .location-performance-display {
   display: flex;
   justify-content: center;
 }
 
 .location-performance-plot {
-  width: min(100%, 440px);
+  width: min(100%, 380px);
 }
 
 .location-performance-axis-label {
@@ -1373,7 +1366,7 @@ summary,
   align-items: center;
   gap: 4px;
   min-width: 0;
-  aspect-ratio: 1.1;
+  aspect-ratio: 0.78;
   padding: 8px 3px;
   background: #f3f6f8;
   text-align: center;
@@ -1427,11 +1420,12 @@ summary,
   border-radius: 999px;
 }
 
-.location-performance-footnote {
-  max-width: 740px;
-  margin: 10px auto 0;
+.location-performance-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 36px 12px;
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: 0.76rem;
   line-height: 1.5;
   text-align: center;
 }
@@ -1443,7 +1437,7 @@ summary,
   }
 
   .location-performance-cell {
-    aspect-ratio: 1;
+    aspect-ratio: 0.78;
   }
 }
 
