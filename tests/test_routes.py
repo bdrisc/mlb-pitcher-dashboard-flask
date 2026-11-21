@@ -113,6 +113,17 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert response.data.count(b'class="plotly-chart') == 4
     assert b"Location by Pitch Type and Batter Handedness" in response.data
     assert b'id="location-heatmap-grid"' in response.data
+    assert b"Pitch Location Performance" in response.data
+    assert b'id="location-performance-grid"' in response.data
+    assert b'id="location-performance-metric"' in response.data
+    assert b'id="location-performance-pitch"' in response.data
+    assert b'id="location-performance-hand"' in response.data
+    assert response.data.index(b'id="location-heatmap-grid"') < response.data.index(
+        b'id="location-performance-grid"'
+    )
+    assert b'<option value="xwoba" selected>xwOBAcon</option>' in response.data
+    assert b'<option value="hard_hit">Hard-Hit%</option>' in response.data
+    assert b'<option value="avg_ev">Avg Exit Velocity</option>' in response.data
     assert b"location-heatmap-column-headings" not in response.data
     assert b"<h3>Pitch Location</h3>" not in response.data
     assert b'id="location-chart"' not in response.data
@@ -290,6 +301,10 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert charts_response.mimetype in {"application/javascript", "text/javascript"}
     assert b"window.Plotly.react" in charts_response.data
     assert b"renderLocationHeatmaps" in charts_response.data
+    assert b"renderLocationPerformance(charts.location_performance)" in charts_response.data
+    assert b"locationPerformanceGrid.replaceChildren()" in charts_response.data
+    assert b"function locationColor(delta, range)" in charts_response.data
+    assert b"locationAggregate(data.league_bins" not in charts_response.data
     assert b"autosize: false" in charts_response.data
     assert b"width: panelWidth" in charts_response.data
     assert b"new ResizeObserver(" in charts_response.data
