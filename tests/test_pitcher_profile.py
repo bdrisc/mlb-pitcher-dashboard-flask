@@ -258,9 +258,9 @@ def test_location_performance_uses_same_hand_and_filters_for_league_reference(ap
     assert league["hard_hit_count"] == 1
 
     # Leaving pitch/batter filters off adds other qualifying types and hands.
-    unfiltered = profile_client.get(
-        f"/api/v1/pitchers/{PITCHER_ID}/charts?season=2026"
-    ).json["charts"]["location_performance"]
+    unfiltered = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/charts?season=2026").json[
+        "charts"
+    ]["location_performance"]
     assert len(unfiltered["league_bins"]) > 1
     assert {"R", "L"} == set(row["batter_side"] for row in unfiltered["league_bins"])
 
