@@ -604,7 +604,10 @@ def _times_through_order_splits(
         (Pitch.times_through_order >= 4, 4),
         else_=Pitch.times_through_order,
     )
-    where = (*conditions, Pitch.times_through_order >= 1)
+    physical_pitch = func.coalesce(func.lower(Pitch.description), "").notin_(
+        ("automatic_ball", "automatic_strike")
+    )
+    where = (*conditions, Pitch.times_through_order >= 1, physical_pitch)
     performance_statement = (
         select(turn.label("turn"), *_metric_columns())
         .select_from(Pitch)
@@ -640,9 +643,6 @@ def _times_through_order_splits(
 
     # Pitch mix uses real, tracked pitch types and excludes automatic calls.
     # Its denominator is the sum of valid pitches within each TTO bucket.
-    physical_pitch = func.coalesce(func.lower(Pitch.description), "").notin_(
-        ("automatic_ball", "automatic_strike")
-    )
     mix_statement = (
         select(
             turn.label("turn"),
