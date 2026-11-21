@@ -81,10 +81,10 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
         < response.data.index(b'class="spin-efficiency-heading"')
         < response.data.index(b">Arm Angle</th>")
     )
-    assert b'class="effective-velocity-heading"' in response.data
-    assert b'data-mobile-label="Effective Velocity"' in response.data
-    assert b'<span class="effective-velocity-line">Effective</span>' in response.data
-    assert b'<span class="effective-velocity-line">Velocity</span>' in response.data
+    assert b'class="perceived-velocity-heading"' in response.data
+    assert b'data-mobile-label="Perceived Velocity"' in response.data
+    assert b'<span class="perceived-velocity-line">Perceived</span>' in response.data
+    assert b'<span class="perceived-velocity-line">Velocity</span>' in response.data
     assert b">Arm Angle</th>" in response.data
     assert b">Release Height</th>" in response.data
     assert b">Release Side</th>" in response.data
@@ -191,7 +191,7 @@ def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
     assert b".plotly-chart.location-heatmap-plot {" in response.data
     assert b".arsenal-table.responsive-table th.spin-efficiency-heading" in response.data
     assert b".spin-efficiency-heading .spin-efficiency-line" in response.data
-    assert b".effective-velocity-heading .effective-velocity-line" in response.data
+    assert b".perceived-velocity-heading .perceived-velocity-line" in response.data
     assert b"white-space: nowrap;" in response.data
     assert b".location-heatmap-panel {" in response.data
     assert b"max-width: 100%;" in response.data
