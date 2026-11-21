@@ -1313,6 +1313,140 @@ summary,
   opacity: 0.55;
 }
 
+/* League-relative batted-ball damage by the strike-zone thirds. */
+.location-performance-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.location-performance-controls .field {
+  flex: 1 1 185px;
+  max-width: 275px;
+  min-width: 150px;
+}
+
+.location-performance-reference {
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.location-performance-display {
+  display: flex;
+  justify-content: center;
+}
+
+.location-performance-plot {
+  width: min(100%, 440px);
+}
+
+.location-performance-axis-label {
+  display: block;
+  padding: 3px 0 7px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+.location-performance-axis-label:last-child {
+  padding: 7px 0 3px;
+}
+
+.location-performance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 2px solid #293945;
+  background: #fff;
+  border-radius: 5px;
+}
+
+.location-performance-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  aspect-ratio: 1.1;
+  padding: 8px 3px;
+  background: #f3f6f8;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+  transition: background-color 150ms ease;
+}
+
+.location-performance-cell strong {
+  font-size: clamp(0.88rem, 2vw, 1.3rem);
+  font-weight: 850;
+}
+
+.location-performance-cell > span {
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.location-performance-cell small {
+  font-size: 0.61rem;
+}
+
+.location-performance-unrated {
+  color: #536372;
+  background: #f0f2f4;
+}
+
+.location-performance-cell:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 1px;
+  z-index: 1;
+}
+
+.location-performance-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 13px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.location-performance-legend-gradient {
+  display: block;
+  width: clamp(90px, 34vw, 210px);
+  height: 11px;
+  background: linear-gradient(90deg, #1e65b5 0%, #f3f6f8 50%, #be2234 100%);
+  border: 1px solid #d6dce1;
+  border-radius: 999px;
+}
+
+.location-performance-footnote {
+  max-width: 740px;
+  margin: 10px auto 0;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@media (max-width: 580px) {
+  .location-performance-controls .field {
+    flex-basis: calc(50% - 12px);
+    max-width: none;
+  }
+
+  .location-performance-cell {
+    aspect-ratio: 1;
+  }
+}
+
 .location-pitch-row {
   min-width: 0;
   overflow: hidden;
