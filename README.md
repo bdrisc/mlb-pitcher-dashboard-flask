@@ -563,9 +563,12 @@ All existing filters apply, including pitch type, batter hand, count, and date.
 Under the pitch-location KDEs is a second, **contact-outcome** 3×3 strike-zone
 view, shown as a taller, portrait-format strike zone **from the pitcher's
 perspective** (left/right flipped relative to Statcast's catcher-view `plate_x`).
-It defaults to **xwOBAcon**, and also offers **Hard-Hit%** and **Avg EV**,
-with local pitch-type and batter-hand selectors in addition to the existing
-global filters. Each cell displays the pitcher's actual metric and qualifying
+The section title and filters are centered above the strike zone; the
+larger **Pitcher's View** caption appears below it, without redundant
+top/bottom labels. Thin, semi-transparent boundaries separate the nine
+location cells. It defaults to **xwOBAcon**, and also offers **Hard-Hit%**
+and **Avg EV**, with local pitch-type and batter-hand selectors in addition
+to the existing global filters. Each cell displays the pitcher's actual metric and qualifying
 batted-ball count, with hover details for the league value, difference, and
 the other available contact metrics. The verbose reference and color-description
 paragraphs under the chart are intentionally omitted for a cleaner appearance;
