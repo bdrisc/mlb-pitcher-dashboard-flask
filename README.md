@@ -562,7 +562,7 @@ All existing filters apply, including pitch type, batter hand, count, and date.
 
 The Arsenal Performance selector defaults to **Pitch Shape Overview**. Its six
 quick-comparison metrics are Velo, Spin, HB, IVB, Release Height,
-and Release Side, in that order. **Release & Spin** exposes Velo, Max, Spin, Spin Axis,
+and Release Side, in that order. **Release & Spin** exposes Velo, Perceived Velocity, Max, Spin, Spin Axis,
 Spin Efficiency, Arm Angle, Release Height, Release Side, and Release SD.
 **Movement & Angles** exposes HB, IVB, HB vs. AVG, IVB vs. AVG, VAA, VAAAdj,
 HAA, and HAAAA.
@@ -572,15 +572,17 @@ and Usage are always visible in that order. **FanGraphs Grades** appears above *
 the same selector. Switching views only changes visible table columns;
 all source calculations, filters, tooltips, and pitch ordering remain unchanged.
 
-**Effective Velocity (Statcast effective_speed)** appears in
+**Perceived Velocity (Statcast effective_speed)** appears in
 *Arsenal Performance → Release & Spin*, immediately after Velo. It is the
 arithmetic mean of the official pitch-level `effective_speed` (perceived mph
-normalized for release extension), not a location-, approach-angle-, or
-sequencing-based Effective Velocity model. It obeys all selected filters,
+normalized for release extension), not Perry Husband’s location-based
+Effective Velocity or a sequencing model. It obeys all selected filters,
 excludes automatic balls and strikes, and reports valid tracking coverage on
 hover. Missing source tracking displays a dash. The ingestion pipeline and
-both PostgreSQL databases already store `effective_velocity`, so no new
-migration or backfill is necessary. The deliberate compact *Pitch Shape
+both PostgreSQL databases already store `effective_velocity` (historical
+column and API key, retained for compatibility), so no new migration or
+backfill is necessary. Do not add the same Statcast measurement as a second
+column labeled Effective Velocity. The deliberate compact *Pitch Shape
 Overview* column order remains unchanged.
 
 **Spin Efficiency (Official Active Spin %)** appears in *Arsenal Performance →
