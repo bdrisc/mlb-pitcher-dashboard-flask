@@ -47,8 +47,10 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b'id="platoon-splits"' in response.data
     assert b"Times Through the Order Splits" in response.data
     assert b'id="tto-performance-body"' in response.data
+    assert b'title="Average pitch velocity in mph">Velo</th>' not in response.data
     assert b'id="tto-mix-head"' in response.data
     assert b'id="tto-mix-body"' in response.data
+    assert b'id="tto-data-note"' not in response.data
     assert b'class="tto-mix-table"' in response.data
     assert b'id="tto-mix-rows"' not in response.data
     assert b'id="tto-mix-legend"' not in response.data
@@ -260,6 +262,9 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b'formatMetric("avg_spin_axis"' in response.data
     assert b'formatMetric("avg_effective_velocity"' in response.data
     assert b"function renderTtoSplits(tto)" in response.data
+    assert b"ttoDataNote" not in response.data
+    assert b"selected pitches have a recorded lineup trip" not in response.data
+    assert b'"xwoba_against", "run_value_per_100",\n      ]' in response.data
     assert b"ttoMixHead: document.querySelector" in response.data
     assert b"ttoMixBody: document.querySelector" in response.data
     assert b"percentage.textContent = formatNumber(usage, 1) + \"%\";" in response.data
