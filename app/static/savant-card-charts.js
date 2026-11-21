@@ -526,6 +526,7 @@
 
         const cell = document.createElement("div");
         cell.className = "location-performance-cell";
+        cell.tabIndex = 0;
         const position = locationLabels[y][x];
         cell.setAttribute("role", "img");
         if (comparable) {
