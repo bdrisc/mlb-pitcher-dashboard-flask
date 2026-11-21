@@ -115,7 +115,8 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b'id="location-heatmap-grid"' in response.data
     assert b"Pitch Location Performance" in response.data
     assert b'id="location-performance-grid"' in response.data
-    assert b'class="location-performance-view-label">Pitcher\'s View</div>' in response.data
+    assert b'class="location-performance-view-label"' in response.data
+    assert b"Pitcher's View</div>" in response.data
     assert b"Top of Zone" not in response.data
     assert b"Bottom of Zone" not in response.data
     assert b"location-performance-axis-label" not in response.data
