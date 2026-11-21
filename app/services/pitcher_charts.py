@@ -12,6 +12,7 @@ from app.models import Game, Pitch, Player
 from app.services.database_queries import pitch_filter_conditions
 from app.services.filters import PitchFilters
 from app.services.location_heatmaps import build_location_heatmaps
+from app.services.location_performance import build_location_performance
 from app.services.pitch_data import PITCH_NAME_MAP
 from app.services.pitcher_profiles import NoMatchingPitchesError, PitcherNotFoundError
 
@@ -289,6 +290,7 @@ def build_pitcher_chart_data(pitcher_id: int, filters: PitchFilters) -> dict[str
             "inning_progression": _inning_progression(rows, player.throws, first_innings),
             "release_point": _release_payload(rows),
             "location_heatmaps": build_location_heatmaps(rows),
+            "location_performance": build_location_performance(pitcher_id, filters, player.throws),
             "usage_by_count": {"rows": _usage_by_count(rows)},
         },
     }
