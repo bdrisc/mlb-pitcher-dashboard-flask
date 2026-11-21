@@ -580,6 +580,7 @@ def test_chart_data_returns_all_filtered_datasets(profile_client):
         "inning_progression",
         "release_point",
         "location_heatmaps",
+        "location_performance",
         "usage_by_count",
     }
     assert payload["charts"]["movement"]["available_points"] == 4
