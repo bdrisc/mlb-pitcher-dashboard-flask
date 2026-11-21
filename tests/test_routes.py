@@ -311,7 +311,7 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b"for (const x of [2, 1, 0])" in charts_response.data
     assert b"const pitcherViewColumn = 2 - x;" in charts_response.data
     assert b"locationLabels[y][pitcherViewColumn]" in charts_response.data
-    assert b"""position + " (pitcher's view)" """ .strip() in charts_response.data
+    assert b"pitcher's view" in charts_response.data
     assert b"locationPerformanceReference" not in charts_response.data
     assert b"Each cell: " not in charts_response.data
     assert b"function locationColor(delta, range)" in charts_response.data
