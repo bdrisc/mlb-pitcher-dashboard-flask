@@ -115,7 +115,10 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b'id="location-heatmap-grid"' in response.data
     assert b"Pitch Location Performance" in response.data
     assert b'id="location-performance-grid"' in response.data
-    assert b"Pitcher's View" in response.data
+    assert b'class="location-performance-view-label">Pitcher\'s View</div>' in response.data
+    assert b"Top of Zone" not in response.data
+    assert b"Bottom of Zone" not in response.data
+    assert b"location-performance-axis-label" not in response.data
     assert b"Catcher's View" not in response.data
     assert b'id="location-performance-reference"' not in response.data
     assert b'class="location-performance-footnote"' not in response.data
@@ -243,6 +246,15 @@ def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
     assert b".location-performance-cell {" in response.data
     assert b"aspect-ratio: 0.78;" in response.data
     assert b"width: min(100%, 380px);" in response.data
+    assert b".location-performance-section > .section-heading {" in response.data
+    assert b".location-performance-controls {" in response.data
+    assert b"justify-content: center;" in response.data
+    assert b".location-performance-view-label {" in response.data
+    assert b"font-size: 0.96rem;" in response.data
+    assert b"border-right: 1px solid rgba(31, 46, 59, 0.3);" in response.data
+    assert b"border-bottom: 1px solid rgba(31, 46, 59, 0.3);" in response.data
+    assert b".location-performance-cell:nth-child(3n) {" in response.data
+    assert b".location-performance-cell:nth-last-child(-n + 3) {" in response.data
     assert b".location-performance-reference {" not in response.data
     assert b".location-performance-footnote {" not in response.data
     assert b"max-width: 100%;" in response.data
