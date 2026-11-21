@@ -581,8 +581,8 @@ Directly below **Platoon Splits**, the dashboard provides two tabs:
 Both views use the existing imported Statcast `n_thruorder_pitcher` column
 (stored as `Pitch.times_through_order`), group fourth and later trips as
 **4th+**, and leave null/zero TTO values unassigned instead of treating
-them as first-time trips. Coverage of recorded trips is displayed; groups
-with no selected data are omitted. All pitcher, season, team, date,
+them as first-time trips. Groups with no selected data are omitted.
+The dashboard omits the explanatory footnote below these tables. All pitcher, season, team, date,
 handedness, venue, count, and pitch-type filters apply. Under pitch-type or
 count filters, PA results are **conditional on the selected pitches** and
 must not be interpreted as full plate-appearance rates. This is a
