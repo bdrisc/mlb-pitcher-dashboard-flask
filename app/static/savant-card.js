@@ -53,7 +53,6 @@ if (root) {
     ttoMixHead: document.querySelector("#tto-mix-head"),
     ttoMixBody: document.querySelector("#tto-mix-body"),
     ttoMixEmpty: document.querySelector("#tto-mix-empty"),
-    ttoDataNote: document.querySelector("#tto-data-note"),
     databaseFreshness: document.querySelector("#database-freshness"),
   };
 
@@ -845,19 +844,6 @@ if (root) {
       }
     }
 
-    const assigned = Number(tto ? tto.assigned_pitch_count : 0);
-    const total = Number(tto ? tto.total_pitch_count : 0);
-    let note = assigned.toLocaleString("en-US") + " of "
-      + total.toLocaleString("en-US") + " selected pitches have a recorded lineup trip. "
-      + "Pitch Mix shows percentages of classified, physically thrown pitches within each trip, with pitch counts under each percentage. ";
-    if (performance.some((trip) => trip.small_sample)) {
-      note += "Small sample = fewer than 30 recorded PA. ";
-    }
-    if (elements.pitchType.value || elements.count.value) {
-      note += "Pitch-type or count filters produce conditional PA outcomes, not full-PA rates. ";
-    }
-    note += "Fourth or later trips are combined as 4th+ when present.";
-    elements.ttoDataNote.textContent = note;
     selectTtoView(state.ttoView);
   }
 
