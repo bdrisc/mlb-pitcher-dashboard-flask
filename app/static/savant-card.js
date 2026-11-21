@@ -468,8 +468,28 @@ if (root) {
     }
   }
 
+  // The same Extension metric has a different position in the two shape views.
+  // Move both the heading and matching body cells to keep them aligned.
+  function moveArsenalColumnBefore(label, beforeLabel) {
+    const headings = tableHeadings(elements.arsenal);
+    const fromIndex = headings.findIndex((heading) => heading.textContent.trim() === label);
+    const toIndex = headings.findIndex((heading) => heading.textContent.trim() === beforeLabel);
+    if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+
+    headings[fromIndex].parentNode.insertBefore(headings[fromIndex], headings[toIndex]);
+    for (const row of elements.arsenal.rows) {
+      const cells = Array.from(row.cells);
+      row.insertBefore(cells[fromIndex], cells[toIndex]);
+    }
+  }
+
   function updateArsenalView() {
     const view = elements.arsenalView.value;
+    if (view === "shape-release") {
+      moveArsenalColumnBefore("Extension", "Arm Angle");
+    } else if (view === "shape-overview") {
+      moveArsenalColumnBefore("Extension", "Release Height");
+    }
     tableHeadings(elements.arsenal).forEach((heading, index) => {
       const hidden = Boolean(
         heading.dataset.view && !heading.dataset.view.split(/\s+/).includes(view),
@@ -481,6 +501,8 @@ if (root) {
 
   function renderArsenal(arsenal) {
     elements.arsenal.replaceChildren();
+    // Rows are created in the default overview order before the active view is applied.
+    moveArsenalColumnBefore("Extension", "Release Height");
     arsenal.forEach((pitch) => {
       const row = document.createElement("tr");
       const pitchCell = document.createElement("th");
@@ -514,9 +536,9 @@ if (root) {
       tableCell(row, formatMetric("avg_arm_angle", pitch.avg_arm_angle)).title = `Average release arm angle measured from horizontal (0°) to over the top (90°). ${pitch.arm_angle_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} selected pitches have valid arm-angle tracking. Responds to active filters.`;
       tableCell(row, formatMetric("horizontal_break", pitch.horizontal_break));
       tableCell(row, formatMetric("vertical_break", pitch.vertical_break));
+      tableCell(row, formatMetric("release_extension", pitch.release_extension)).title = `Average Statcast release extension, in feet from the front of the pitching rubber toward home plate. ${pitch.release_extension_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} selected pitches have valid extension tracking; automatic balls and strikes excluded. Responds to active filters.`;
       tableCell(row, formatMetric("avg_release_height", pitch.avg_release_height)).title = `Average Statcast release position above ground, in feet. ${pitch.release_height_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} selected pitches have tracked release height; automatic balls and strikes are excluded. Responds to active filters.`;
       tableCell(row, formatMetric("avg_release_side", pitch.avg_release_side)).title = `Average signed horizontal Statcast release position in feet from home-plate center, from the catcher's perspective. Positive = catcher's right, negative = catcher's left. ${pitch.release_side_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} selected pitches have tracked release side; automatic balls and strikes are excluded. Responds to active filters.`;
-      tableCell(row, formatMetric("release_extension", pitch.release_extension)).title = `Average Statcast release extension, in feet from the front of the pitching rubber toward home plate. ${pitch.release_extension_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} selected pitches have valid extension tracking; automatic balls and strikes excluded. Responds to active filters.`;
       tableCell(row, formatMetric("release_point_sd_inches", pitch.release_point_sd_inches)).title = `Release-point dispersion for this pitch type: sqrt(SD(side)² + SD(height)²) in inches, using sample SD on the same physically thrown pitches with both coordinates. Horizontal SD: ${formatMetric("release_side_sd_inches", pitch.release_side_sd_inches)}; vertical SD: ${formatMetric("release_height_sd_inches", pitch.release_height_sd_inches)}. Paired tracking: ${pitch.release_point_sd_pitch_count.toLocaleString("en-US")} of ${pitch.pitch_count.toLocaleString("en-US")} selected pitches. Requires at least 2. Lower is more repeatable, but not a command grade; changes across games can increase season-wide SD.`;
       tableCell(row, signedMovement(pitch.hb_vs_avg)).title = movementVsAverageTitle(pitch, "hb");
       tableCell(row, signedMovement(pitch.ivb_vs_avg)).title = movementVsAverageTitle(pitch, "ivb");
