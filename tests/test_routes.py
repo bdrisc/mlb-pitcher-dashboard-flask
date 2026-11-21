@@ -88,8 +88,13 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b">Arm Angle</th>" in response.data
     assert b">Release Height</th>" in response.data
     assert b">Release Side</th>" in response.data
+    assert b">Extension</th>" in response.data
     assert b">Release SD</th>" in response.data
-    assert response.data.index(b">Release Side</th>") < response.data.index(b">Release SD</th>")
+    assert (
+        response.data.index(b">Release Side</th>")
+        < response.data.index(b">Extension</th>")
+        < response.data.index(b">Release SD</th>")
+    )
     assert response.data.count(b'class="plotly-chart') == 4
     assert b"Location by Pitch Type and Batter Handedness" in response.data
     assert b'id="location-heatmap-grid"' in response.data
@@ -134,10 +139,10 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
         membership[label] = set(view.group(1).split())
 
     expected = {
-        "shape-overview": {"Velo", "Spin", "Release Height", "Release Side", "HB", "IVB"},
+        "shape-overview": {"Velo", "Spin", "Release Height", "Release Side", "Extension", "HB", "IVB"},
         "shape-release": {
             "Velo",
-            "Effective Velocity",
+            "Perceived Velocity",
             "Max",
             "Spin",
             "Spin Axis",
@@ -145,6 +150,7 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
             "Arm Angle",
             "Release Height",
             "Release Side",
+            "Extension",
             "Release SD",
         },
         "shape-movement": {
@@ -160,7 +166,7 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
     }
     shared_order = [re.sub(r"<[^>]+>", "", content).strip() for _, content in headings[:3]]
     assert shared_order == ["Pitch", "#", "Usage"]
-    assert len(membership) == 18
+    assert len(membership) == 19
     for view, expected_labels in expected.items():
         assert {label for label, views in membership.items() if view in views} == expected_labels
     assert [label for label, views in membership.items() if "shape-overview" in views] == [
@@ -170,9 +176,10 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
         "IVB",
         "Release Height",
         "Release Side",
+        "Extension",
     ]
 
-    # All 18 shape columns exist exactly once; the selector only changes
+    # All 19 shape columns exist exactly once; the selector only changes
     # visibility. Shared Pitch / # / Usage, Results, and Grades stay intact.
     assert 'data-view="shape"' not in page
     assert len(re.findall(r'<th\b[^>]*data-view="results"', page)) == 11
@@ -221,6 +228,10 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b"URLSearchParams" in response.data
     assert b"heading.dataset.view.split(/\\s+/).includes(view)" in response.data
     assert b'formatMetric("release_point_sd_inches"' in response.data
+    assert b'formatMetric("release_extension"' in response.data
+    assert response.data.index(b'formatMetric("avg_release_side"') < response.data.index(
+        b'formatMetric("release_extension"'
+    ) < response.data.index(b'formatMetric("release_point_sd_inches"')
     assert b'formatMetric("avg_spin_axis"' in response.data
     assert b'formatMetric("avg_effective_velocity"' in response.data
     assert response.data.index(b'formatMetric("avg_velocity"') < response.data.index(
