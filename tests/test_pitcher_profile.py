@@ -214,6 +214,82 @@ def test_profile_returns_identity_sample_overall_arsenal_and_splits(profile_clie
     ]
 
 
+def test_tto_splits_reuse_metrics_and_respect_filters(app, profile_client):
+    url = f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026"
+    no_tracking = profile_client.get(url).json["times_through_order_splits"]
+    assert no_tracking == {
+        "performance": [],
+        "pitch_mix": [],
+        "assigned_pitch_count": 0,
+        "total_pitch_count": 4,
+    }
+
+    with app.app_context():
+        for pitch_id, trip in {
+            "1001_1_1": 1,
+            "1001_1_2": 2,
+            "1002_2_1": 2,
+            "1002_3_1": 5,
+        }.items():
+            db.session.get(Pitch, pitch_id).times_through_order = trip
+        db.session.commit()
+
+    splits = profile_client.get(url).json["times_through_order_splits"]
+    performance = splits["performance"]
+    assert [row["label"] for row in performance] == ["1st", "2nd", "4th+"]
+    assert [row["pitch_count"] for row in performance] == [1, 2, 1]
+    assert splits["assigned_pitch_count"] == 4
+    assert splits["total_pitch_count"] == 4
+    assert performance[1]["plate_appearances"] == 2
+    assert performance[1]["strikeout_pct"] == 50.0
+    assert performance[1]["walk_pct"] == 0.0
+    assert performance[1]["k_minus_bb_pct"] == 50.0
+    assert performance[1]["whiff_pct"] == 50.0
+    assert performance[1]["xwoba_against"] == 0.62
+    assert performance[1]["avg_velocity"] == 91.0
+    assert performance[1]["small_sample"] is True
+    assert performance[2]["plate_appearances"] == 0
+
+    mix = splits["pitch_mix"]
+    assert [row["label"] for row in mix] == ["1st", "2nd", "4th+"]
+    assert mix[1]["pitch_count"] == 2
+    assert [row["pitch_type"] for row in mix[1]["pitches"]] == ["FF", "SL"]
+    assert [row["usage_pct"] for row in mix[1]["pitches"]] == [50.0, 50.0]
+
+    only_fastballs = profile_client.get(url + "&pitch_type=FF").json[
+        "times_through_order_splits"
+    ]
+    assert [row["turn"] for row in only_fastballs["performance"]] == [1, 2]
+    assert all(row["pitches"][0]["pitch_type"] == "FF" for row in only_fastballs["pitch_mix"])
+
+    vs_left = profile_client.get(url + "&batter_side=L").json[
+        "times_through_order_splits"
+    ]
+    assert [row["turn"] for row in vs_left["performance"]] == [2, 4]
+
+    one_strike = profile_client.get(url + "&strikes=1").json[
+        "times_through_order_splits"
+    ]
+    assert [row["turn"] for row in one_strike["performance"]] == [2]
+    assert one_strike["performance"][0]["pitch_count"] == 1
+
+    with app.app_context():
+        db.session.get(Pitch, "1001_1_1").description = "automatic_ball"
+        db.session.commit()
+    no_auto = profile_client.get(url).json["times_through_order_splits"]
+    assert [row["turn"] for row in no_auto["performance"]] == [2, 4]
+    assert [row["turn"] for row in no_auto["pitch_mix"]] == [2, 4]
+    assert no_auto["assigned_pitch_count"] == 3
+
+    with app.app_context():
+        db.session.get(Pitch, "1001_1_1").description = "called_strike"
+        db.session.get(Pitch, "1001_1_1").times_through_order = 0
+        db.session.commit()
+    unknown = profile_client.get(url).json["times_through_order_splits"]
+    assert [row["turn"] for row in unknown["performance"]] == [2, 4]
+    assert unknown["assigned_pitch_count"] == 3
+
+
 def test_effective_velocity_uses_official_tracked_data_and_active_filters(app, profile_client):
     with app.app_context():
         db.session.get(Pitch, "1001_1_1").effective_velocity = 97.6
