@@ -25,6 +25,12 @@
   const inningDisplayMode = document.querySelector("#inning-display-mode");
   const inningGrid = document.querySelector("#inning-chart-grid");
   const locationHeatmapGrid = document.querySelector("#location-heatmap-grid");
+  const locationPerformanceMetric = document.querySelector("#location-performance-metric");
+  const locationPerformancePitch = document.querySelector("#location-performance-pitch");
+  const locationPerformanceHand = document.querySelector("#location-performance-hand");
+  const locationPerformanceGrid = document.querySelector("#location-performance-grid");
+  const locationPerformanceReference = document.querySelector("#location-performance-reference");
+  let locationPerformanceData = null;
   let heatmapResizeObserver = null;
   let inningData = { pitch_types: [], rows: [] };
   const status = document.querySelector("#chart-status");
@@ -391,6 +397,210 @@
     }
   }
 
+  // Compare contact in each strike-zone third with the same-handed league
+  // cohort in that exact third. All metrics are recomputed from sufficient
+  // statistics, never by averaging pre-rounded percentages or per-group means.
+  const locationMetrics = {
+    xwoba: { sum: "xwoba_sum", count: "xwoba_count", factor: 1, range: 0.15 },
+    hard_hit: { sum: "hard_hit_count", count: "ev_count", factor: 100, range: 20 },
+    avg_ev: { sum: "ev_sum", count: "ev_count", factor: 1, range: 6 },
+  };
+
+  const locationLabels = [
+    ["Low / Left", "Low / Middle", "Low / Right"],
+    ["Middle / Left", "Middle / Middle", "Middle / Right"],
+    ["High / Left", "High / Middle", "High / Right"],
+  ];
+
+  function locationNumber(value, metric) {
+    if (value === null) return "—";
+    if (metric === "xwoba") return value.toFixed(3).replace(/^0/, "");
+    if (metric === "hard_hit") return value.toFixed(1) + "%";
+    return value.toFixed(1) + " mph";
+  }
+
+  function locationDifference(delta, metric) {
+    if (delta === null) return "—";
+    const sign = delta > 0 ? "+" : "";
+    if (metric === "xwoba") return sign + delta.toFixed(3);
+    if (metric === "hard_hit") return sign + delta.toFixed(1) + " percentage points";
+    return sign + delta.toFixed(1) + " mph";
+  }
+
+  function locationAggregate(rows, pitchType, batterSide) {
+    const bins = new Map();
+    for (const row of rows) {
+      if (pitchType && row.pitch_type !== pitchType) continue;
+      if (batterSide && row.batter_side !== batterSide) continue;
+      const key = row.x + ":" + row.y;
+      if (!bins.has(key)) {
+        bins.set(key, {
+          batted_balls: 0, xwoba_count: 0, xwoba_sum: 0,
+          ev_count: 0, ev_sum: 0, hard_hit_count: 0,
+        });
+      }
+      const bin = bins.get(key);
+      for (const field of [
+        "batted_balls", "xwoba_count", "xwoba_sum",
+        "ev_count", "ev_sum", "hard_hit_count",
+      ]) {
+        bin[field] += Number(row[field] || 0);
+      }
+    }
+    return bins;
+  }
+
+  function locationStat(bin, metric) {
+    const definition = locationMetrics[metric];
+    const count = bin ? bin[definition.count] : 0;
+    const value = count ? (bin[definition.sum] / count) * definition.factor : null;
+    return { value, count };
+  }
+
+  function locationColor(delta, range) {
+    // Blue = less contact damage than league in this cell; red = more.
+    const ratio = Math.min(1, Math.abs(delta) / range);
+    const from = [243, 246, 248];
+    const target = delta < 0 ? [30, 101, 181] : [190, 34, 52];
+    const rgb = from.map((channel, index) => (
+      Math.round(channel + (target[index] - channel) * ratio)
+    ));
+    return {
+      background: "rgb(" + rgb.join(",") + ")",
+      foreground: ratio > 0.70 ? "#ffffff" : "#22313d",
+    };
+  }
+
+  function locationSelectOptions(element, allLabel, items, selectedValue) {
+    element.replaceChildren();
+    const all = document.createElement("option");
+    all.value = "";
+    all.textContent = allLabel;
+    element.append(all);
+    for (const item of items) {
+      const option = document.createElement("option");
+      option.value = item.value;
+      option.textContent = item.label;
+      element.append(option);
+    }
+    element.value = items.some((item) => item.value === selectedValue) ? selectedValue : "";
+  }
+
+  function renderLocationPerformanceGrid() {
+    const data = locationPerformanceData;
+    locationPerformanceGrid.replaceChildren();
+    locationPerformanceGrid.classList.remove("charts-unavailable");
+    if (!data?.pitcher_bins?.length) {
+      locationPerformanceReference.textContent =
+        "No tracked batted balls inside the strike zone for the selected sample.";
+      return;
+    }
+
+    const metric = locationPerformanceMetric.value;
+    const pitcherBins = locationAggregate(
+      data.pitcher_bins, locationPerformancePitch.value, locationPerformanceHand.value,
+    );
+    const leagueBins = locationAggregate(
+      data.league_bins || [], locationPerformancePitch.value, locationPerformanceHand.value,
+    );
+    const label = { xwoba: "xwOBAcon", hard_hit: "Hard-Hit%", avg_ev: "Avg EV" }[metric];
+    const minPitcher = data.min_pitcher_contacts || 10;
+    const minLeague = data.min_league_contacts || 30;
+    const handLabel = data.pitcher_throws === "R" ? "RHP" :
+      data.pitcher_throws === "L" ? "LHP" : "unknown pitcher hand";
+    locationPerformanceReference.textContent =
+      "Each cell: " + label + " allowed, compared with loaded league " + handLabel +
+      " in that same strike-zone location. Colored at n ≥ " + minPitcher +
+      " contact plays and league n ≥ " + minLeague + "." +
+      (data.league_ignores_team_filter ? " League reference does not restrict to the selected team." : "");
+
+    // Render upper third first. The columns run catcher's left to right.
+    for (const y of [2, 1, 0]) {
+      for (const x of [0, 1, 2]) {
+        const key = x + ":" + y;
+        const player = locationStat(pitcherBins.get(key), metric);
+        const league = locationStat(leagueBins.get(key), metric);
+        const comparable = player.count >= minPitcher && league.count >= minLeague &&
+          player.value !== null && league.value !== null;
+        const delta = comparable ? player.value - league.value : null;
+
+        const cell = document.createElement("div");
+        cell.className = "location-performance-cell";
+        const position = locationLabels[y][x];
+        cell.setAttribute("role", "img");
+        if (comparable) {
+          const palette = locationColor(delta, locationMetrics[metric].range);
+          cell.style.backgroundColor = palette.background;
+          cell.style.color = palette.foreground;
+          cell.classList.add("location-performance-colored");
+        } else {
+          cell.classList.add("location-performance-unrated");
+        }
+
+        const value = document.createElement("strong");
+        value.textContent = locationNumber(player.value, metric);
+        const count = document.createElement("span");
+        count.textContent = "n=" + player.count.toLocaleString("en-US");
+        cell.append(value, count);
+        if (!comparable) {
+          const flag = document.createElement("small");
+          flag.textContent = player.count ? "Limited sample" : "No contact";
+          cell.append(flag);
+        }
+
+        const details = [
+          position + " (catcher's view)",
+          "Pitcher " + label + ": " + locationNumber(player.value, metric) +
+            " (n=" + player.count + ")",
+          "Same-hand league " + label + ": " + locationNumber(league.value, metric) +
+            " (n=" + league.count + ")",
+          comparable ? "Difference: " + locationDifference(delta, metric) :
+            "No color: insufficient tracked contact or matched reference",
+        ];
+        // Include every available outcome metric with its own denominator.
+        for (const other of Object.keys(locationMetrics)) {
+          if (other === metric) continue;
+          const stat = locationStat(pitcherBins.get(key), other);
+          const otherLabel = { xwoba: "xwOBAcon", hard_hit: "Hard-Hit%", avg_ev: "Avg EV" }[other];
+          details.push(otherLabel + ": " + locationNumber(stat.value, other) +
+            " (n=" + stat.count + ")");
+        }
+        cell.title = details.join("\n");
+        cell.setAttribute("aria-label", details.join(". "));
+        locationPerformanceGrid.append(cell);
+      }
+    }
+  }
+
+  function renderLocationPerformance(chart) {
+    locationPerformanceData = chart || null;
+    const oldPitch = locationPerformancePitch.value;
+    const oldHand = locationPerformanceHand.value;
+    locationSelectOptions(
+      locationPerformancePitch, "All Selected Pitches",
+      (chart?.pitch_types || []).map((pitch) => ({
+        value: pitch.pitch_type,
+        label: pitch.pitch_name + " (" + pitch.pitch_type + ")",
+      })),
+      oldPitch,
+    );
+    locationSelectOptions(
+      locationPerformanceHand, "All Selected Batters",
+      (chart?.batter_sides || []).map((side) => ({
+        value: side,
+        label: side === "R" ? "RHH" : "LHH",
+      })),
+      oldHand,
+    );
+    renderLocationPerformanceGrid();
+  }
+
+  for (const control of [
+    locationPerformanceMetric, locationPerformancePitch, locationPerformanceHand,
+  ]) {
+    control.addEventListener("change", renderLocationPerformanceGrid);
+  }
+
   const inningMeasures = {
     velocity: { key: "avg_velocity", count: "velocity_count", unit: "mph", title: "Velocity" },
     hb: { key: "avg_hb", count: "hb_count", unit: "in.", title: "Horizontal Break" },
@@ -568,6 +778,7 @@
         "No release-point data are available for this sample.",
       ),
       renderLocationHeatmaps(charts.location_heatmaps),
+      renderLocationPerformance(charts.location_performance),
       draw(
         containers.countUsage,
         countUsageTraces(charts.usage_by_count),
@@ -602,6 +813,7 @@
     chartGrid.classList.add("charts-unavailable");
     inningGrid.classList.add("charts-unavailable");
     locationHeatmapGrid.classList.add("charts-unavailable");
+    locationPerformanceGrid.classList.add("charts-unavailable");
   }
 
   window.SavantCharts = { render, setLoading, showError };
