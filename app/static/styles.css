@@ -1314,11 +1314,18 @@ summary,
 }
 
 /* League-relative batted-ball damage by the strike-zone thirds. */
+.location-performance-section > .section-heading {
+  justify-content: center;
+  text-align: center;
+}
+
 .location-performance-controls {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 12px;
-  margin-bottom: 12px;
+  max-width: 850px;
+  margin: 0 auto 16px;
 }
 
 .location-performance-controls .field {
@@ -1336,24 +1343,20 @@ summary,
   width: min(100%, 380px);
 }
 
-.location-performance-axis-label {
-  display: block;
-  padding: 3px 0 7px;
-  color: var(--muted);
-  font-size: 0.68rem;
-  font-weight: 750;
+.location-performance-view-label {
+  margin-top: 12px;
+  color: var(--ink);
+  font-size: 0.96rem;
+  font-weight: 800;
   text-align: center;
-}
-
-.location-performance-axis-label:last-child {
-  padding: 7px 0 3px;
 }
 
 .location-performance-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
-  padding: 4px;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
   border: 2px solid #293945;
   background: #fff;
   border-radius: 5px;
@@ -1368,11 +1371,22 @@ summary,
   min-width: 0;
   aspect-ratio: 0.78;
   padding: 8px 3px;
+  border-right: 1px solid rgba(31, 46, 59, 0.3);
+  border-bottom: 1px solid rgba(31, 46, 59, 0.3);
   background: #f3f6f8;
   text-align: center;
   font-variant-numeric: tabular-nums;
   cursor: help;
   transition: background-color 150ms ease;
+}
+
+/* One translucent line per internal edge, rather than doubled borders. */
+.location-performance-cell:nth-child(3n) {
+  border-right: 0;
+}
+
+.location-performance-cell:nth-last-child(-n + 3) {
+  border-bottom: 0;
 }
 
 .location-performance-cell strong {
