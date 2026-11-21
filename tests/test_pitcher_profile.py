@@ -1456,7 +1456,7 @@ def test_release_height_and_side_are_filter_aware_and_use_separate_coverage(prof
     assert eligible["release_side_pitch_count"] == 0
 
 
-def test_release_extension_is_filter_aware_and_excludes_automatic_calls(profile_client, app):
+def test_release_extension_filters_and_automatic_calls(profile_client, app):
     with app.app_context():
         db.session.get(Pitch, "1001_1_1").release_extension = 6.4
         db.session.get(Pitch, "1001_1_2").release_extension = 6.6
