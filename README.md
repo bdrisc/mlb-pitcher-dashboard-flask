@@ -568,10 +568,15 @@ Directly below **Platoon Splits**, the dashboard provides two tabs:
   These use the existing profile definitions, not separately sourced
   leaderboard rates. Trips with fewer than 30 recorded PA are marked
   *Small sample*; no values are invented for missing measurements.
-- **Pitch Mix**: proportional stacked bars by pitch type and lineup trip.
-  Usage is calculated among classified, physically thrown pitches within
-  that trip; pitch colors match the Arsenal table. The legend and hover
-  tooltips report pitch types and frequencies.
+- **Pitch Mix**: compact, scrollable table with pitch types as rows and lineup
+  trips as columns. Each cell displays the **usage percentage** to one decimal
+  and the **pitch count** beneath it (for example, `47.5%` / `95 pitches`).
+  Each column header shows the number of eligible pitches in that trip;
+  each column is a separate 100%-usage denominator, using only classified,
+  physically thrown pitches. Pitch colors match Arsenal Performance. Pitch
+  types are ordered by total usage in the filtered sample. A pitch type
+  absent from a trip with other valid pitches shows `0.0%` / `0 pitches`,
+  while trips without any tracked pitches are omitted.
 
 Both views use the existing imported Statcast `n_thruorder_pitcher` column
 (stored as `Pitch.times_through_order`), group fourth and later trips as

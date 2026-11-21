@@ -47,7 +47,11 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b'id="platoon-splits"' in response.data
     assert b"Times Through the Order Splits" in response.data
     assert b'id="tto-performance-body"' in response.data
-    assert b'id="tto-mix-rows"' in response.data
+    assert b'id="tto-mix-head"' in response.data
+    assert b'id="tto-mix-body"' in response.data
+    assert b'class="tto-mix-table"' in response.data
+    assert b'id="tto-mix-rows"' not in response.data
+    assert b'id="tto-mix-legend"' not in response.data
     assert b'data-tto-view="performance"' in response.data
     assert b'data-tto-view="mix"' in response.data
     assert response.data.index(b'id="platoon-splits"') < response.data.index(
@@ -256,6 +260,11 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b'formatMetric("avg_spin_axis"' in response.data
     assert b'formatMetric("avg_effective_velocity"' in response.data
     assert b"function renderTtoSplits(tto)" in response.data
+    assert b"ttoMixHead: document.querySelector" in response.data
+    assert b"ttoMixBody: document.querySelector" in response.data
+    assert b"percentage.textContent = formatNumber(usage, 1) + \"%\";" in response.data
+    assert b"count.textContent = pitchCount.toLocaleString" in response.data
+    assert b"elements.ttoMixRows" not in response.data
     assert b"function selectTtoView(view)" in response.data
     assert b"renderTtoSplits(profile.times_through_order_splits)" in response.data
     assert b"ArrowRight" in response.data

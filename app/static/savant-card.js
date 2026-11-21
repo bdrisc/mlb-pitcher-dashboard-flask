@@ -49,8 +49,9 @@ if (root) {
     ttoMixPanel: document.querySelector("#tto-mix-panel"),
     ttoPerformanceBody: document.querySelector("#tto-performance-body"),
     ttoPerformanceEmpty: document.querySelector("#tto-performance-empty"),
-    ttoMixRows: document.querySelector("#tto-mix-rows"),
-    ttoMixLegend: document.querySelector("#tto-mix-legend"),
+    ttoMixTableScroll: document.querySelector("#tto-mix-table-scroll"),
+    ttoMixHead: document.querySelector("#tto-mix-head"),
+    ttoMixBody: document.querySelector("#tto-mix-body"),
     ttoMixEmpty: document.querySelector("#tto-mix-empty"),
     ttoDataNote: document.querySelector("#tto-data-note"),
     databaseFreshness: document.querySelector("#database-freshness"),
@@ -775,65 +776,80 @@ if (root) {
       elements.ttoPerformanceBody.append(row);
     }
 
-    elements.ttoMixRows.replaceChildren();
-    elements.ttoMixLegend.replaceChildren();
+    elements.ttoMixHead.replaceChildren();
+    elements.ttoMixBody.replaceChildren();
+    elements.ttoMixTableScroll.hidden = pitchMix.length === 0;
     elements.ttoMixEmpty.hidden = pitchMix.length > 0;
-    const totals = new Map();
-    for (const trip of pitchMix) {
-      const row = document.createElement("div");
-      row.className = "tto-mix-row";
-      const info = document.createElement("div");
-      info.className = "tto-mix-row-info";
-      const label = document.createElement("strong");
-      label.textContent = trip.label;
-      const count = document.createElement("span");
-      count.textContent = Number(trip.pitch_count).toLocaleString("en-US") + " pitches";
-      info.append(label, count);
 
-      const bar = document.createElement("div");
-      bar.className = "tto-mix-bar";
-      bar.setAttribute("role", "img");
-      const description = trip.pitches.map((pitch) => (
-        pitch.pitch_name + " " + formatNumber(pitch.usage_pct) + "%"
-      )).join(", ");
-      bar.setAttribute("aria-label", trip.label + " trip pitch mix: " + description);
-      for (const pitch of trip.pitches) {
-        const segment = document.createElement("span");
-        segment.className = "tto-mix-segment";
-        segment.style.flexGrow = String(pitch.pitch_count);
-        segment.style.backgroundColor = pitchColors[pitch.pitch_type] || "#64748b";
-        segment.title = pitch.pitch_name + " (" + pitch.pitch_type + "): "
-          + formatNumber(pitch.usage_pct) + "%, "
-          + Number(pitch.pitch_count).toLocaleString("en-US") + " pitches";
-        segment.setAttribute("aria-hidden", "true");
-        bar.append(segment);
-        const prior = totals.get(pitch.pitch_type);
-        totals.set(pitch.pitch_type, {
-          name: pitch.pitch_name,
-          count: (prior ? prior.count : 0) + pitch.pitch_count,
-        });
+    if (pitchMix.length) {
+      // Each lineup trip is a column with its own usage denominator.
+      const pitchHeader = document.createElement("th");
+      pitchHeader.scope = "col";
+      pitchHeader.textContent = "Pitch Type";
+      elements.ttoMixHead.append(pitchHeader);
+      for (const trip of pitchMix) {
+        const heading = document.createElement("th");
+        heading.scope = "col";
+        const name = document.createElement("span");
+        name.textContent = trip.label;
+        const count = document.createElement("small");
+        count.textContent = Number(trip.pitch_count).toLocaleString("en-US") + " pitches";
+        heading.append(name, count);
+        elements.ttoMixHead.append(heading);
       }
-      row.append(info, bar);
-      elements.ttoMixRows.append(row);
-    }
 
-    for (const [pitchType, value] of [...totals].sort((a, b) => b[1].count - a[1].count)) {
-      const item = document.createElement("span");
-      item.className = "tto-legend-item";
-      const dot = document.createElement("span");
-      dot.className = "tto-legend-dot";
-      dot.style.backgroundColor = pitchColors[pitchType] || "#64748b";
-      const name = document.createElement("span");
-      name.textContent = value.name + " (" + pitchType + ")";
-      item.append(dot, name);
-      elements.ttoMixLegend.append(item);
+      // Rows are pitch types, ordered by total selected usage across all trips.
+      const pitchTypes = new Map();
+      for (const trip of pitchMix) {
+        for (const pitch of trip.pitches) {
+          const prior = pitchTypes.get(pitch.pitch_type);
+          pitchTypes.set(pitch.pitch_type, {
+            name: pitch.pitch_name,
+            count: (prior ? prior.count : 0) + Number(pitch.pitch_count),
+          });
+        }
+      }
+      const order = [...pitchTypes].sort(
+        (a, b) => b[1].count - a[1].count || a[0].localeCompare(b[0]),
+      );
+      for (const [pitchType, details] of order) {
+        const row = document.createElement("tr");
+        const heading = document.createElement("th");
+        heading.scope = "row";
+        const label = document.createElement("span");
+        label.className = "tto-mix-pitch-label";
+        const dot = document.createElement("span");
+        dot.className = "pitch-dot";
+        dot.style.backgroundColor = pitchColors[pitchType] || "#64748b";
+        const name = document.createElement("span");
+        name.textContent = details.name;
+        const code = document.createElement("small");
+        code.textContent = pitchType;
+        label.append(dot, name, code);
+        heading.append(label);
+        row.append(heading);
+
+        for (const trip of pitchMix) {
+          const pitch = trip.pitches.find((p) => p.pitch_type === pitchType);
+          const pitchCount = pitch ? Number(pitch.pitch_count) : 0;
+          const usage = pitch ? Number(pitch.usage_pct) : 0;
+          const cell = document.createElement("td");
+          const percentage = document.createElement("strong");
+          percentage.textContent = formatNumber(usage, 1) + "%";
+          const count = document.createElement("small");
+          count.textContent = pitchCount.toLocaleString("en-US") + " pitches";
+          cell.append(percentage, count);
+          row.append(cell);
+        }
+        elements.ttoMixBody.append(row);
+      }
     }
 
     const assigned = Number(tto ? tto.assigned_pitch_count : 0);
     const total = Number(tto ? tto.total_pitch_count : 0);
     let note = assigned.toLocaleString("en-US") + " of "
       + total.toLocaleString("en-US") + " selected pitches have a recorded lineup trip. "
-      + "Pitch Mix uses classified, physically thrown pitches. ";
+      + "Pitch Mix shows percentages of classified, physically thrown pitches within each trip, with pitch counts under each percentage. ";
     if (performance.some((trip) => trip.small_sample)) {
       note += "Small sample = fewer than 30 recorded PA. ";
     }
