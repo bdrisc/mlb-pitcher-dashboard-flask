@@ -592,9 +592,7 @@ def _platoon_rows(conditions: list[Any]) -> list[dict[str, Any]]:
     return sorted(rows, key=lambda row: (row["batter_side"] != "R", row["batter_side"]))
 
 
-def _times_through_order_splits(
-    conditions: list[Any], total_pitches: int
-) -> dict[str, Any]:
+def _times_through_order_splits(conditions: list[Any], total_pitches: int) -> dict[str, Any]:
     """Filtered performance and pitch-mix splits by Statcast lineup trip.
 
     Statcast n_thruorder_pitcher is already ingested on every pitch. Group
@@ -668,8 +666,7 @@ def _times_through_order_splits(
         by_turn.setdefault(number, []).append(
             {
                 "pitch_type": pitch_type,
-                "pitch_name": row["pitch_name"]
-                or PITCH_NAME_MAP.get(pitch_type, pitch_type),
+                "pitch_name": row["pitch_name"] or PITCH_NAME_MAP.get(pitch_type, pitch_type),
                 "pitch_count": _integer(row, "pitch_count"),
             }
         )
@@ -682,8 +679,7 @@ def _times_through_order_splits(
                 "label": labels[number],
                 "pitch_count": total,
                 "pitches": [
-                    {**pitch, "usage_pct": _rate(pitch["pitch_count"], total)}
-                    for pitch in pitches
+                    {**pitch, "usage_pct": _rate(pitch["pitch_count"], total)} for pitch in pitches
                 ],
             }
         )
