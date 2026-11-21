@@ -177,6 +177,99 @@ def _pitch(**overrides) -> Pitch:
     return Pitch(**values)
 
 
+def test_location_performance_uses_same_hand_and_filters_for_league_reference(app, profile_client):
+    """Only same-hand, same-pitch, same-batter contacts in the same zone are compared."""
+    with app.app_context():
+        db.session.add_all(
+            [
+                Player(mlb_id=300, player_name="League Righty", throws="R"),
+                Player(mlb_id=301, player_name="League Lefty", throws="L"),
+            ]
+        )
+        balls = [
+            # Selected pitcher: middle-middle zone, below the hard-hit threshold.
+            ("contact_subject", 100, "FF", "R", 0.0, 2.5, 1.5, 3.5, 88, 0.250),
+            # Same-hand league counterpart: different raw zone height,
+            # but the same middle-middle normalized cell.
+            ("contact_rhp", 300, "FF", "R", 0.0, 3.0, 2.0, 4.0, 105, 0.650),
+            # A LHP must never contaminate a RHP reference.
+            ("contact_lhp", 301, "FF", "R", 0.0, 2.5, 1.5, 3.5, 115, 0.900),
+            # Other pitch type and batter hand are excluded by filters.
+            ("contact_slider", 300, "SL", "R", 0.0, 2.5, 1.5, 3.5, 110, 0.900),
+            ("contact_lhh", 300, "FF", "L", 0.0, 2.5, 1.5, 3.5, 110, 0.900),
+            # Out-of-zone contact cannot be assigned to a 3x3 strike zone.
+            ("contact_outside", 300, "FF", "R", 1.4, 2.5, 1.5, 3.5, 110, 0.900),
+        ]
+        for index, (id_, pitcher, kind, side, x, z, bottom, top, ev, xwoba) in enumerate(
+            balls, start=20
+        ):
+            db.session.add(
+                _pitch(
+                    pitch_id=id_,
+                    game_pk=1001,
+                    pitcher_id=pitcher,
+                    batter_id=200 if side == "R" else 201,
+                    at_bat_number=index,
+                    pitch_number=1,
+                    inning_half="Top",
+                    batter_side=side,
+                    pitch_type=kind,
+                    pitch_name="Four-Seam Fastball" if kind == "FF" else "Slider",
+                    balls=0,
+                    strikes=0,
+                    plate_x=x,
+                    plate_z=z,
+                    strike_zone_bottom=bottom,
+                    strike_zone_top=top,
+                    description="hit_into_play",
+                    batted_ball_type="fly_ball",
+                    exit_velocity=ev,
+                    estimated_woba=xwoba,
+                )
+            )
+        db.session.commit()
+
+    url = f"/api/v1/pitchers/{PITCHER_ID}/charts?season=2026&pitch_type=FF&batter_side=R"
+    response = profile_client.get(url)
+    assert response.status_code == 200
+    result = response.json["charts"]["location_performance"]
+    assert result["pitcher_throws"] == "R"
+    assert result["min_pitcher_contacts"] == 10
+    assert result["min_league_contacts"] == 30
+    assert [pitch["pitch_type"] for pitch in result["pitch_types"]] == ["FF"]
+
+    assert len(result["pitcher_bins"]) == 1
+    subject = result["pitcher_bins"][0]
+    assert (subject["x"], subject["y"]) == (1, 1)
+    assert subject["batted_balls"] == 1
+    assert subject["xwoba_count"] == 1
+    assert subject["xwoba_sum"] == 0.25
+    assert subject["ev_count"] == 1
+    assert subject["ev_sum"] == 88
+    assert subject["hard_hit_count"] == 0
+
+    assert len(result["league_bins"]) == 1
+    league = result["league_bins"][0]
+    assert (league["x"], league["y"]) == (1, 1)
+    assert league["xwoba_count"] == 2  # selected RHP + other RHP; never the LHP
+    assert round(league["xwoba_sum"], 2) == 0.9
+    assert league["ev_count"] == 2
+    assert league["ev_sum"] == 193
+    assert league["hard_hit_count"] == 1
+
+    # Leaving pitch/batter filters off adds other qualifying types and hands.
+    unfiltered = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/charts?season=2026").json[
+        "charts"
+    ]["location_performance"]
+    assert len(unfiltered["league_bins"]) > 1
+    assert {"R", "L"} == set(row["batter_side"] for row in unfiltered["league_bins"])
+
+    # The league remains all teams even if the subject's team is filtered.
+    team = profile_client.get(url + "&team=BOS").json["charts"]["location_performance"]
+    assert team["league_ignores_team_filter"] is True
+    assert team["league_bins"] == result["league_bins"]
+
+
 def test_profile_returns_identity_sample_overall_arsenal_and_splits(profile_client):
     response = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile")
 
@@ -487,6 +580,7 @@ def test_chart_data_returns_all_filtered_datasets(profile_client):
         "inning_progression",
         "release_point",
         "location_heatmaps",
+        "location_performance",
         "usage_by_count",
     }
     assert payload["charts"]["movement"]["available_points"] == 4
