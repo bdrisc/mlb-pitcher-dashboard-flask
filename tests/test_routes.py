@@ -246,9 +246,11 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b"heading.dataset.view.split(/\\s+/).includes(view)" in response.data
     assert b'formatMetric("release_point_sd_inches"' in response.data
     assert b'formatMetric("release_extension"' in response.data
-    assert response.data.index(b'formatMetric("release_extension"') < response.data.index(
-        b'formatMetric("avg_release_height"'
-    ) < response.data.index(b'formatMetric("avg_release_side"')
+    assert (
+        response.data.index(b'formatMetric("release_extension"')
+        < response.data.index(b'formatMetric("avg_release_height"')
+        < response.data.index(b'formatMetric("avg_release_side"')
+    )
     assert b'moveArsenalColumnBefore("Extension", "Arm Angle")' in response.data
     assert b'moveArsenalColumnBefore("Extension", "Release Height")' in response.data
     assert b'formatMetric("avg_spin_axis"' in response.data
