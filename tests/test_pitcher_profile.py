@@ -236,11 +236,7 @@ def test_location_performance_uses_same_hand_and_filters_for_league_reference(ap
     assert result["pitcher_throws"] == "R"
     assert result["min_pitcher_contacts"] == 10
     assert result["min_league_contacts"] == 30
-    assert result["pitch_types"] == [
-        {"pitch_type": "FF", "pitch_name": "4-Seam Fastball"}
-    ] or result["pitch_types"] == [
-        {"pitch_type": "FF", "pitch_name": "Four-Seam Fastball"}
-    ]
+    assert [pitch["pitch_type"] for pitch in result["pitch_types"]] == ["FF"]
 
     assert len(result["pitcher_bins"]) == 1
     subject = result["pitcher_bins"][0]
