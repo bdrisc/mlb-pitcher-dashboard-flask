@@ -492,6 +492,54 @@
         <div id="location-heatmap-grid" class="location-heatmap-grid" aria-live="polite"></div>
       </section>
 
+      <section class="dashboard-section location-performance-section" aria-labelledby="location-performance-heading">
+        <div class="section-heading">
+          <div>
+            <h2 id="location-performance-heading">Pitch Location Performance</h2>
+          </div>
+        </div>
+        <div class="location-performance-controls">
+          <label class="field" for="location-performance-metric">
+            <span>Metric</span>
+            <select id="location-performance-metric">
+              <option value="xwoba" selected>xwOBAcon</option>
+              <option value="hard_hit">Hard-Hit%</option>
+              <option value="avg_ev">Avg Exit Velocity</option>
+            </select>
+          </label>
+          <label class="field" for="location-performance-pitch">
+            <span>Pitch Type</span>
+            <select id="location-performance-pitch">
+              <option value="">All Selected Pitches</option>
+            </select>
+          </label>
+          <label class="field" for="location-performance-hand">
+            <span>Batter Hand</span>
+            <select id="location-performance-hand">
+              <option value="">All Selected Batters</option>
+            </select>
+          </label>
+        </div>
+        <p id="location-performance-reference" class="location-performance-reference" aria-live="polite"></p>
+        <div class="location-performance-display">
+          <div class="location-performance-plot" aria-label="Catcher-view strike-zone contact performance">
+            <span class="location-performance-axis-label">Top of Zone</span>
+            <div id="location-performance-grid" class="location-performance-grid"></div>
+            <span class="location-performance-axis-label">Bottom of Zone · Catcher's View</span>
+          </div>
+        </div>
+        <div class="location-performance-legend" aria-hidden="true">
+          <span>Less Damage</span>
+          <span class="location-performance-legend-gradient"></span>
+          <span>More Damage</span>
+        </div>
+        <p class="location-performance-footnote">
+          Blue = better than the loaded league average for the same zone and pitcher throwing hand;
+          red = worse. The reference also matches season, pitch type, batter hand, dates, count,
+          and venue filters. Cells with limited tracked contact are not colored.
+        </p>
+      </section>
+
       <section class="dashboard-section" aria-labelledby="splits-heading">
         <div class="section-heading">
           <div>
