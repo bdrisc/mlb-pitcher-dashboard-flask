@@ -148,7 +148,15 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
         membership[label] = set(view.group(1).split())
 
     expected = {
-        "shape-overview": {"Velo", "Spin", "Release Height", "Release Side", "Extension", "HB", "IVB"},
+        "shape-overview": {
+            "Velo",
+            "Spin",
+            "Release Height",
+            "Release Side",
+            "Extension",
+            "HB",
+            "IVB",
+        },
         "shape-release": {
             "Velo",
             "Perceived Velocity",
