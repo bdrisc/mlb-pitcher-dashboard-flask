@@ -115,6 +115,11 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b'id="location-heatmap-grid"' in response.data
     assert b"Pitch Location Performance" in response.data
     assert b'id="location-performance-grid"' in response.data
+    assert b"Pitcher's View" in response.data
+    assert b"Catcher's View" not in response.data
+    assert b'id="location-performance-reference"' not in response.data
+    assert b'class="location-performance-footnote"' not in response.data
+    assert b"Blue = better than the loaded league average" not in response.data
     assert b'id="location-performance-metric"' in response.data
     assert b'id="location-performance-pitch"' in response.data
     assert b'id="location-performance-hand"' in response.data
@@ -235,6 +240,11 @@ def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
     assert b".perceived-velocity-heading .perceived-velocity-line" in response.data
     assert b"white-space: nowrap;" in response.data
     assert b".location-heatmap-panel {" in response.data
+    assert b".location-performance-cell {" in response.data
+    assert b"aspect-ratio: 0.78;" in response.data
+    assert b"width: min(100%, 380px);" in response.data
+    assert b".location-performance-reference {" not in response.data
+    assert b".location-performance-footnote {" not in response.data
     assert b"max-width: 100%;" in response.data
     assert b"overflow: hidden;" in response.data
     assert b"height: 210px;" in response.data
@@ -303,6 +313,12 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b"renderLocationHeatmaps" in charts_response.data
     assert b"renderLocationPerformance(charts.location_performance)" in charts_response.data
     assert b"locationPerformanceGrid.replaceChildren()" in charts_response.data
+    assert b"for (const x of [2, 1, 0])" in charts_response.data
+    assert b"const pitcherViewColumn = 2 - x;" in charts_response.data
+    assert b"locationLabels[y][pitcherViewColumn]" in charts_response.data
+    assert b"pitcher's view" in charts_response.data
+    assert b"locationPerformanceReference" not in charts_response.data
+    assert b"Each cell: " not in charts_response.data
     assert b"function locationColor(delta, range)" in charts_response.data
     assert b"locationAggregate(data.league_bins" not in charts_response.data
     assert b"autosize: false" in charts_response.data

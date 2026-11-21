@@ -29,7 +29,6 @@
   const locationPerformancePitch = document.querySelector("#location-performance-pitch");
   const locationPerformanceHand = document.querySelector("#location-performance-hand");
   const locationPerformanceGrid = document.querySelector("#location-performance-grid");
-  const locationPerformanceReference = document.querySelector("#location-performance-reference");
   let locationPerformanceData = null;
   let heatmapResizeObserver = null;
   let inningData = { pitch_types: [], rows: [] };
@@ -491,8 +490,10 @@
     locationPerformanceGrid.replaceChildren();
     locationPerformanceGrid.classList.remove("charts-unavailable");
     if (!data?.pitcher_bins?.length) {
-      locationPerformanceReference.textContent =
-        "No tracked batted balls inside the strike zone for the selected sample.";
+      const empty = document.createElement("p");
+      empty.className = "location-performance-empty";
+      empty.textContent = "No tracked batted balls inside the strike zone for the selected sample.";
+      locationPerformanceGrid.append(empty);
       return;
     }
 
@@ -506,17 +507,12 @@
     const label = { xwoba: "xwOBAcon", hard_hit: "Hard-Hit%", avg_ev: "Avg EV" }[metric];
     const minPitcher = data.min_pitcher_contacts || 10;
     const minLeague = data.min_league_contacts || 30;
-    const handLabel = data.pitcher_throws === "R" ? "RHP" :
-      data.pitcher_throws === "L" ? "LHP" : "unknown pitcher hand";
-    locationPerformanceReference.textContent =
-      "Each cell: " + label + " allowed, compared with loaded league " + handLabel +
-      " in that same strike-zone location. Colored at n ≥ " + minPitcher +
-      " contact plays and league n ≥ " + minLeague + "." +
-      (data.league_ignores_team_filter ? " League reference does not restrict to the selected team." : "");
-
-    // Render upper third first. The columns run catcher's left to right.
+    // The SQL bins follow Statcast's catcher's-view plate_x direction.
+    // Reverse the column order for the pitcher-facing display while preserving
+    // the exact same pitcher and league comparison for each physical location.
     for (const y of [2, 1, 0]) {
-      for (const x of [0, 1, 2]) {
+      for (const x of [2, 1, 0]) {
+        const pitcherViewColumn = 2 - x;
         const key = x + ":" + y;
         const player = locationStat(pitcherBins.get(key), metric);
         const league = locationStat(leagueBins.get(key), metric);
@@ -527,7 +523,7 @@
         const cell = document.createElement("div");
         cell.className = "location-performance-cell";
         cell.tabIndex = 0;
-        const position = locationLabels[y][x];
+        const position = locationLabels[y][pitcherViewColumn];
         cell.setAttribute("role", "img");
         if (comparable) {
           const palette = locationColor(delta, locationMetrics[metric].range);
@@ -550,7 +546,7 @@
         }
 
         const details = [
-          position + " (catcher's view)",
+          position + " (pitcher's view)",
           "Pitcher " + label + ": " + locationNumber(player.value, metric) +
             " (n=" + player.count + ")",
           "Same-hand league " + label + ": " + locationNumber(league.value, metric) +
