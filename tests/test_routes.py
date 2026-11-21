@@ -45,6 +45,15 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b'id="database-freshness"' in response.data
     assert b'id="arsenal-body"' in response.data
     assert b'id="platoon-splits"' in response.data
+    assert b"Times Through the Order Splits" in response.data
+    assert b'id="tto-performance-body"' in response.data
+    assert b'id="tto-mix-rows"' in response.data
+    assert b'data-tto-view="performance"' in response.data
+    assert b'data-tto-view="mix"' in response.data
+    assert response.data.index(b'id="platoon-splits"') < response.data.index(
+        b'id="tto-performance-body"'
+    )
+    assert b"3rd vs. 1st" not in response.data
     assert b'class="overview-values overview-rate-values"' in response.data
     assert b'class="overview-values overview-outcome-values"' in response.data
     assert b'class="overview-values overview-rv-values"' in response.data
@@ -236,6 +245,10 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b'moveArsenalColumnBefore("Extension", "Release Height")' in response.data
     assert b'formatMetric("avg_spin_axis"' in response.data
     assert b'formatMetric("avg_effective_velocity"' in response.data
+    assert b"function renderTtoSplits(tto)" in response.data
+    assert b"function selectTtoView(view)" in response.data
+    assert b"renderTtoSplits(profile.times_through_order_splits)" in response.data
+    assert b"ArrowRight" in response.data
     assert response.data.index(b'formatMetric("avg_velocity"') < response.data.index(
         b'formatMetric("avg_effective_velocity"'
     )
