@@ -256,20 +256,14 @@ def test_tto_splits_reuse_metrics_and_respect_filters(app, profile_client):
     assert [row["pitch_type"] for row in mix[1]["pitches"]] == ["FF", "SL"]
     assert [row["usage_pct"] for row in mix[1]["pitches"]] == [50.0, 50.0]
 
-    only_fastballs = profile_client.get(url + "&pitch_type=FF").json[
-        "times_through_order_splits"
-    ]
+    only_fastballs = profile_client.get(url + "&pitch_type=FF").json["times_through_order_splits"]
     assert [row["turn"] for row in only_fastballs["performance"]] == [1, 2]
     assert all(row["pitches"][0]["pitch_type"] == "FF" for row in only_fastballs["pitch_mix"])
 
-    vs_left = profile_client.get(url + "&batter_side=L").json[
-        "times_through_order_splits"
-    ]
+    vs_left = profile_client.get(url + "&batter_side=L").json["times_through_order_splits"]
     assert [row["turn"] for row in vs_left["performance"]] == [2, 4]
 
-    one_strike = profile_client.get(url + "&strikes=1").json[
-        "times_through_order_splits"
-    ]
+    one_strike = profile_client.get(url + "&strikes=1").json["times_through_order_splits"]
     assert [row["turn"] for row in one_strike["performance"]] == [2]
     assert one_strike["performance"][0]["pitch_count"] == 1
 
