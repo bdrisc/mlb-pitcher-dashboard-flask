@@ -1456,6 +1456,44 @@ def test_release_height_and_side_are_filter_aware_and_use_separate_coverage(prof
     assert eligible["release_side_pitch_count"] == 0
 
 
+def test_release_extension_is_filter_aware_and_excludes_automatic_calls(profile_client, app):
+    with app.app_context():
+        db.session.get(Pitch, "1001_1_1").release_extension = 6.4
+        db.session.get(Pitch, "1001_1_2").release_extension = 6.6
+        db.session.get(Pitch, "1002_2_1").release_extension = 5.8
+        db.session.get(Pitch, "1002_3_1").release_extension = None
+        db.session.commit()
+
+    url = f"/api/v1/pitchers/{PITCHER_ID}/profile?season=2026"
+    arsenal = {p["pitch_type"]: p for p in profile_client.get(url).json["arsenal"]}
+    assert arsenal["FF"]["release_extension"] == 6.5
+    assert arsenal["FF"]["release_extension_pitch_count"] == 2
+    assert arsenal["SL"]["release_extension"] == 5.8
+    assert arsenal["SL"]["release_extension_pitch_count"] == 1
+
+    one_strike = profile_client.get(url + "&pitch_type=FF&strikes=1").json["arsenal"][0]
+    assert one_strike["release_extension"] == 6.6
+    assert one_strike["release_extension_pitch_count"] == 1
+
+    lefty = profile_client.get(url + "&batter_side=L").json["arsenal"][0]
+    assert lefty["release_extension"] == 5.8
+    assert lefty["release_extension_pitch_count"] == 1
+
+    with app.app_context():
+        db.session.get(Pitch, "1001_1_1").description = "automatic_ball"
+        db.session.commit()
+    physical = profile_client.get(url + "&pitch_type=FF").json["arsenal"][0]
+    assert physical["release_extension"] == 6.6
+    assert physical["release_extension_pitch_count"] == 1
+
+    with app.app_context():
+        db.session.get(Pitch, "1001_1_2").release_extension = None
+        db.session.commit()
+    missing = profile_client.get(url + "&pitch_type=FF").json["arsenal"][0]
+    assert missing["release_extension"] is None
+    assert missing["release_extension_pitch_count"] == 0
+
+
 def test_release_point_sd_uses_paired_coordinates_by_pitch_type_and_filters(profile_client, app):
     with app.app_context():
         for pitch_id, (side, height) in {
