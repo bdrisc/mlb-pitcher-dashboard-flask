@@ -532,10 +532,10 @@ loads pitcher data from the versioned JSON API. The page includes:
 - inning-by-inning velocity, horizontal break, and induced vertical break with a metric selector, a chart for every pitch type, and change/average controls;
 - responsive layouts for desktop, tablet, and mobile screens.
 
-The page does not calculate baseball metrics in the browser. It sends the active filter set to
-the pitcher profile API and renders the returned SQL aggregates, keeping the API as the single
-source of truth. It sends the same normalized filters to the chart-data API, so every metric,
-table, and chart represents the same sample.
+Headline pitcher metrics are calculated in SQL. The page sends the active filter set to the
+pitcher profile and chart-data APIs. Pitch Location Performance combines database-supplied
+numerators and denominators in the browser for its own pitch/hand selectors, so these rates
+remain properly weighted and no averages of averages are used.
 
 The four remaining standard visualizations are:
 
@@ -557,6 +557,43 @@ pitches per pitch-type/hand panel for large samples. Fewer than three valid
 pitches show an explicit no-data message and the same strike-zone outline.
 All existing filters apply, including pitch type, batter hand, count, and date.
 
+
+### Pitch Location Performance (league-relative)
+
+Under the pitch-location KDEs is a second, **contact-outcome** 3×3 strike-zone
+view. It defaults to **xwOBAcon**, and also offers **Hard-Hit%** and **Avg EV**,
+with local pitch-type and batter-hand selectors in addition to the existing
+global filters. Each cell displays the pitcher's actual metric and qualifying
+batted-ball count, with hover details for the league value, difference, and
+the other available contact metrics.
+
+- **Blue** means lower expected contact damage than the matched league
+  average in that *same zone* (good for the pitcher); **red** means higher
+  contact damage (bad). Neutral gray is the league average or not enough
+  data. Fixed, symmetric comparison scales keep different filters visually
+  comparable: ±.150 xwOBAcon, ±20 percentage points Hard-Hit%, or ±6 mph EV.
+- The league cohort is **every pitcher of the same throwing hand in the
+  locally loaded database**, not a third-party published leaderboard. It
+  matches the active season, date range, pitch-type, batter-side, count and
+  home/away filters; the selected pitcher's **team is deliberately not**
+  imposed on the league comparison. The selected pitcher is included in
+  the league cohort. Local pitch and batter-hand selectors also narrow
+  both samples before aggregating.
+- Horizontal thirds use ±0.88 feet in catcher's view (consistent with
+  the other location heatmaps); vertical thirds are normalized to each
+  hitter's individual Statcast `sz_bot`/`sz_top`, rather than fixed heights.
+  **Only batted balls inside the strike zone** with valid tracked outcomes
+  and boundaries contribute to these location cells. These are contact
+  outcomes *conditional on the ball being put in play*, not overall pitch
+  effectiveness or contact probability.
+- Colors are withheld until there are at least **10 pitcher contacts**
+  and **30 league contacts** measured for the selected metric in the
+  location. Even below those thresholds, observed values and sample
+  counts are displayed without a misleading color. If a metric or
+  comparable league cohort is missing, the cell remains neutral.
+- SQL returns `pitcher_bins` and `league_bins` grouped by pitch type,
+  batter side, and location, including raw sums and their corresponding
+  denominators. No new schema migration or full league re-import is required.
 
 ### Times Through the Order Splits
 
