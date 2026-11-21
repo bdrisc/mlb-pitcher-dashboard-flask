@@ -6,7 +6,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from math import atan2, cos, degrees, hypot, radians, sin, sqrt
 from typing import Any
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.engine import RowMapping
 
 from app.extensions import db
@@ -592,6 +592,109 @@ def _platoon_rows(conditions: list[Any]) -> list[dict[str, Any]]:
     return sorted(rows, key=lambda row: (row["batter_side"] != "R", row["batter_side"]))
 
 
+def _times_through_order_splits(
+    conditions: list[Any], total_pitches: int
+) -> dict[str, Any]:
+    """Filtered performance and pitch-mix splits by Statcast lineup trip.
+
+    Statcast n_thruorder_pitcher is already ingested on every pitch. Group
+    fourth and later trips together, without treating missing/zero as first.
+    """
+    turn = case(
+        (Pitch.times_through_order >= 4, 4),
+        else_=Pitch.times_through_order,
+    )
+    where = (*conditions, Pitch.times_through_order >= 1)
+    performance_statement = (
+        select(turn.label("turn"), *_metric_columns())
+        .select_from(Pitch)
+        .join(Game, Game.game_pk == Pitch.game_pk)
+        .where(*where)
+        .group_by(turn)
+        .order_by(turn)
+    )
+    labels = {1: "1st", 2: "2nd", 3: "3rd", 4: "4th+"}
+    performance = []
+    for row in db.session.execute(performance_statement).mappings():
+        number = int(row["turn"])
+        metrics = _performance_metrics(row)
+        appearances = _integer(row, "plate_appearances")
+        performance.append(
+            {
+                "turn": number,
+                "label": labels[number],
+                "pitch_count": _integer(row, "pitch_count"),
+                "plate_appearances": appearances,
+                "small_sample": appearances < 30,
+                "strikeout_pct": metrics["strikeout_pct"],
+                "walk_pct": metrics["walk_pct"],
+                "k_minus_bb_pct": metrics["k_minus_bb_pct"],
+                "whiff_pct": metrics["whiff_pct"],
+                "xwoba_against": metrics["xwoba_against"],
+                "run_value_per_100": metrics["run_value_per_100"],
+                "avg_velocity": metrics["avg_velocity"],
+                "run_value_pitch_count": metrics["run_value_pitch_count"],
+                "run_value_denominator": metrics["run_value_denominator"],
+            }
+        )
+
+    # Pitch mix uses real, tracked pitch types and excludes automatic calls.
+    # Its denominator is the sum of valid pitches within each TTO bucket.
+    physical_pitch = func.coalesce(func.lower(Pitch.description), "").notin_(
+        ("automatic_ball", "automatic_strike")
+    )
+    mix_statement = (
+        select(
+            turn.label("turn"),
+            Pitch.pitch_type,
+            func.max(Pitch.pitch_name).label("pitch_name"),
+            func.count(Pitch.pitch_id).label("pitch_count"),
+        )
+        .select_from(Pitch)
+        .join(Game, Game.game_pk == Pitch.game_pk)
+        .where(
+            *where,
+            physical_pitch,
+            Pitch.pitch_type.is_not(None),
+            Pitch.pitch_type.notin_(("", "UN")),
+        )
+        .group_by(turn, Pitch.pitch_type)
+        .order_by(turn, func.count(Pitch.pitch_id).desc(), Pitch.pitch_type)
+    )
+    by_turn: dict[int, list[dict[str, Any]]] = {}
+    for row in db.session.execute(mix_statement).mappings():
+        number = int(row["turn"])
+        pitch_type = row["pitch_type"]
+        by_turn.setdefault(number, []).append(
+            {
+                "pitch_type": pitch_type,
+                "pitch_name": row["pitch_name"]
+                or PITCH_NAME_MAP.get(pitch_type, pitch_type),
+                "pitch_count": _integer(row, "pitch_count"),
+            }
+        )
+    pitch_mix = []
+    for number, pitches in sorted(by_turn.items()):
+        total = sum(pitch["pitch_count"] for pitch in pitches)
+        pitch_mix.append(
+            {
+                "turn": number,
+                "label": labels[number],
+                "pitch_count": total,
+                "pitches": [
+                    {**pitch, "usage_pct": _rate(pitch["pitch_count"], total)}
+                    for pitch in pitches
+                ],
+            }
+        )
+    return {
+        "performance": performance,
+        "pitch_mix": pitch_mix,
+        "assigned_pitch_count": sum(row["pitch_count"] for row in performance),
+        "total_pitch_count": total_pitches,
+    }
+
+
 def list_pitchers(filters: PitchFilters) -> list[dict[str, Any]]:
     """Return database pitchers and stable MLB IDs for UI selection."""
     conditions = pitch_filter_conditions(filters)
@@ -780,4 +883,5 @@ def build_pitcher_profile(pitcher_id: int, filters: PitchFilters) -> dict[str, A
         "pitch_tunneling": tunneling,
         "pitch_transition_matrix": build_pitch_transition_matrix(tunneling),
         "platoon_splits": split_rows,
+        "times_through_order_splits": _times_through_order_splits(conditions, total_pitches),
     }
