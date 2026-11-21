@@ -240,6 +240,11 @@ def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
     assert b".perceived-velocity-heading .perceived-velocity-line" in response.data
     assert b"white-space: nowrap;" in response.data
     assert b".location-heatmap-panel {" in response.data
+    assert b".location-performance-cell {" in response.data
+    assert b"aspect-ratio: 0.78;" in response.data
+    assert b"width: min(100%, 380px);" in response.data
+    assert b".location-performance-reference {" not in response.data
+    assert b".location-performance-footnote {" not in response.data
     assert b"max-width: 100%;" in response.data
     assert b"overflow: hidden;" in response.data
     assert b"height: 210px;" in response.data
