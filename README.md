@@ -561,16 +561,17 @@ All existing filters apply, including pitch type, batter hand, count, and date.
 ### Arsenal Performance: focused Pitch Shape views
 
 The Arsenal Performance selector defaults to **Pitch Shape Overview**. Its seven
-quick-comparison metrics are Velo, Spin, HB, IVB, Release Height,
-Release Side, and Extension, in that order. **Release & Spin** exposes Velo,
-Perceived Velocity, Max, Spin, Spin Axis, Spin Efficiency, Arm Angle, Release
-Height, Release Side, Extension, and Release SD.
+quick-comparison metrics are Velo, Spin, HB, IVB, Extension, Release Height,
+and Release Side, in that order. **Release & Spin** exposes Velo,
+Perceived Velocity, Max, Spin, Spin Axis, Spin Efficiency, Extension, Arm Angle,
+Release Height, Release Side, and Release SD.
 **Movement & Angles** exposes HB, IVB, HB vs. AVG, IVB vs. AVG, VAA, VAAAdj,
 HAA, and HAAAA.
 
 All 19 Pitch Shape metrics are retained, and Pitch, pitch count (#),
 and Usage are always visible in that order. **FanGraphs Grades** appears above **Results** in
-the same selector. Switching views only changes visible table columns;
+the same selector. Switching views adjusts the visible columns and places Extension
+before Release Height in Pitch Shape Overview or before Arm Angle in Release & Spin;
 all source calculations, filters, tooltips, and pitch ordering remain unchanged.
 
 **Perceived Velocity (Statcast effective_speed)** appears in
@@ -1508,8 +1509,8 @@ no database migration, re-ingestion, or league reference is required.
 
 ### Release Extension in Pitch Shape
 
-**Extension** appears immediately after Release Side in both the default
-*Pitch Shape Overview* and *Release & Spin*. It is the mean of official Statcast
+**Extension** appears immediately before Release Height in the default
+*Pitch Shape Overview*, and immediately before Arm Angle in *Release & Spin*. It is the mean of official Statcast
 `release_extension` for tracked physical pitches in the selected sample,
 expressed in feet to one decimal. This measures the release point’s distance
 in front of the pitching rubber toward home plate, not vertical or horizontal
