@@ -91,9 +91,9 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b">Extension</th>" in response.data
     assert b">Release SD</th>" in response.data
     assert (
-        response.data.index(b">Release Side</th>")
-        < response.data.index(b">Extension</th>")
-        < response.data.index(b">Release SD</th>")
+        response.data.index(b">Extension</th>")
+        < response.data.index(b">Release Height</th>")
+        < response.data.index(b">Release Side</th>")
     )
     assert response.data.count(b'class="plotly-chart') == 4
     assert b"Location by Pitch Type and Batter Handedness" in response.data
@@ -174,13 +174,13 @@ def test_arsenal_shape_views_show_all_metrics_without_crowding(client):
         "Spin",
         "HB",
         "IVB",
+        "Extension",
         "Release Height",
         "Release Side",
-        "Extension",
     ]
 
-    # All 19 shape columns exist exactly once; the selector only changes
-    # visibility. Shared Pitch / # / Usage, Results, and Grades stay intact.
+    # All 19 shape columns exist exactly once; the selector reorders Extension
+    # by view. Shared Pitch / # / Usage, Results, and Grades stay intact.
     assert 'data-view="shape"' not in page
     assert len(re.findall(r'<th\b[^>]*data-view="results"', page)) == 11
     assert len(re.findall(r'<th\b[^>]*data-view="grades"', page)) == 3
@@ -229,9 +229,11 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b"heading.dataset.view.split(/\\s+/).includes(view)" in response.data
     assert b'formatMetric("release_point_sd_inches"' in response.data
     assert b'formatMetric("release_extension"' in response.data
-    assert response.data.index(b'formatMetric("avg_release_side"') < response.data.index(
-        b'formatMetric("release_extension"'
-    ) < response.data.index(b'formatMetric("release_point_sd_inches"')
+    assert response.data.index(b'formatMetric("release_extension"') < response.data.index(
+        b'formatMetric("avg_release_height"'
+    ) < response.data.index(b'formatMetric("avg_release_side"')
+    assert b'moveArsenalColumnBefore("Extension", "Arm Angle")' in response.data
+    assert b'moveArsenalColumnBefore("Extension", "Release Height")' in response.data
     assert b'formatMetric("avg_spin_axis"' in response.data
     assert b'formatMetric("avg_effective_velocity"' in response.data
     assert response.data.index(b'formatMetric("avg_velocity"') < response.data.index(
