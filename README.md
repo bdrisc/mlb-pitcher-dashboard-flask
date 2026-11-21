@@ -564,7 +564,7 @@ Directly below **Platoon Splits**, the dashboard provides two tabs:
 
 - **Performance** (default): 1st, 2nd, 3rd and, if observed, 4th+ trips through
   the lineup. Displays pitches, recorded PA, K%, BB%, K-BB%, Whiff%, xwOBA
-  against, context-neutral RV/100 (runs prevented), and average velocity.
+  against, and context-neutral RV/100 (runs prevented).
   These use the existing profile definitions, not separately sourced
   leaderboard rates. Trips with fewer than 30 recorded PA are marked
   *Small sample*; no values are invented for missing measurements.
