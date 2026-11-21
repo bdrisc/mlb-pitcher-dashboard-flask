@@ -501,6 +501,54 @@
         <div class="split-grid" id="platoon-splits"></div>
       </section>
 
+      <section class="dashboard-section tto-section" aria-labelledby="tto-heading">
+        <div class="section-heading tto-heading">
+          <div>
+            <h2 id="tto-heading">Times Through the Order Splits</h2>
+          </div>
+          <div class="tto-view-switcher" role="tablist" aria-label="Times through the order views">
+            <button type="button" role="tab" class="tto-tab is-active"
+              id="tto-performance-tab" data-tto-view="performance" aria-selected="true"
+              aria-controls="tto-performance-panel">Performance</button>
+            <button type="button" role="tab" class="tto-tab"
+              id="tto-mix-tab" data-tto-view="mix" aria-selected="false"
+              aria-controls="tto-mix-panel">Pitch Mix</button>
+          </div>
+        </div>
+
+        <div id="tto-performance-panel" role="tabpanel" aria-labelledby="tto-performance-tab">
+          <div class="tto-table-scroll" tabindex="0" role="region" aria-label="Times through the order performance table">
+            <table class="tto-performance-table">
+              <thead>
+                <tr>
+                  <th scope="col">Trip</th>
+                  <th scope="col">Pitches</th>
+                  <th scope="col">PA</th>
+                  <th scope="col">K%</th>
+                  <th scope="col">BB%</th>
+                  <th scope="col">K-BB%</th>
+                  <th scope="col">Whiff%</th>
+                  <th scope="col" title="Expected weighted on-base average against (Statcast terminal-PA estimates)">xwOBA</th>
+                  <th scope="col" title="Context-neutral runs prevented per 100 pitches; higher is better">RV/100</th>
+                  <th scope="col" title="Average pitch velocity in mph">Velo</th>
+                </tr>
+              </thead>
+              <tbody id="tto-performance-body"></tbody>
+            </table>
+          </div>
+          <p id="tto-performance-empty" class="tto-empty" hidden>No tracked times-through-order performance in this sample.</p>
+        </div>
+
+        <div id="tto-mix-panel" role="tabpanel" aria-labelledby="tto-mix-tab" hidden>
+          <div id="tto-mix-rows" class="tto-mix-rows"></div>
+          <div id="tto-mix-legend" class="tto-mix-legend"></div>
+          <p id="tto-mix-empty" class="tto-empty" hidden>No tracked pitch types with times-through-order data in this sample.</p>
+        </div>
+        <p id="tto-data-note" class="tto-data-note">
+          Times through the order follow Statcast's lineup-trip field. All sample filters apply.
+        </p>
+      </section>
+
     </div>
   </main>
 {% endblock %}

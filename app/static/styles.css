@@ -1004,6 +1004,179 @@ summary,
   font-weight: 850;
 }
 
+/* Times-through-the-order performance and pitch-mix views. */
+.tto-heading {
+  gap: 16px;
+}
+
+.tto-view-switcher {
+  display: inline-flex;
+  gap: 3px;
+  padding: 4px;
+  background: #eef2f5;
+  border: 1px solid #dae2e8;
+  border-radius: 9px;
+}
+
+.tto-tab {
+  padding: 8px 14px;
+  color: #556475;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tto-tab.is-active {
+  color: #fff;
+  background: var(--brand);
+  box-shadow: 0 2px 5px rgba(15, 45, 60, 0.12);
+}
+
+.tto-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+.tto-performance-table {
+  width: 100%;
+  min-width: 850px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.tto-performance-table th,
+.tto-performance-table td {
+  padding: 12px 11px;
+  border-bottom: 1px solid #e5e9ed;
+  text-align: right;
+  white-space: nowrap;
+  font-size: 0.76rem;
+}
+
+.tto-performance-table th:first-child {
+  text-align: left;
+}
+
+.tto-performance-table thead th {
+  color: #5b6977;
+  background: #f3f6f8;
+  font-size: 0.67rem;
+  font-weight: 850;
+}
+
+.tto-performance-table tbody th {
+  font-weight: 850;
+}
+
+.tto-performance-table tbody tr:last-child th,
+.tto-performance-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tto-performance-table tbody tr:hover {
+  background: #f0f8f9;
+}
+
+.tto-small-sample {
+  display: block;
+  margin-top: 3px;
+  color: #8b6870;
+  font-size: 0.61rem;
+  font-weight: 600;
+}
+
+.tto-mix-rows {
+  display: grid;
+  gap: 14px;
+}
+
+.tto-mix-row {
+  display: grid;
+  grid-template-columns: minmax(118px, 150px) minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+}
+
+.tto-mix-row-info {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tto-mix-row-info strong {
+  font-size: 0.87rem;
+}
+
+.tto-mix-row-info span {
+  color: var(--muted);
+  font-size: 0.66rem;
+  white-space: nowrap;
+}
+
+.tto-mix-bar {
+  display: flex;
+  width: 100%;
+  height: 30px;
+  overflow: hidden;
+  background: #edf0f2;
+  border-radius: 5px;
+}
+
+.tto-mix-segment {
+  flex-basis: 0;
+  min-width: 0;
+  height: 100%;
+  border-right: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.tto-mix-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px 16px;
+  margin-top: 19px;
+}
+
+.tto-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #54616e;
+  font-size: 0.71rem;
+}
+
+.tto-legend-dot {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 50%;
+}
+
+.tto-data-note,
+.tto-empty {
+  margin: 13px 0 0;
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.tto-empty {
+  padding: 18px 8px;
+  text-align: center;
+}
+
+@media (max-width: 580px) {
+  .tto-mix-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+}
+
 .definition-panel {
   padding: 0;
   overflow: hidden;

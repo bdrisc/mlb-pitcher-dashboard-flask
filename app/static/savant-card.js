@@ -44,6 +44,15 @@ if (root) {
     transitionTable: document.querySelector("#transition-table"),
     transitionEmpty: document.querySelector("#transition-empty"),
     splits: document.querySelector("#platoon-splits"),
+    ttoTabs: document.querySelectorAll("[data-tto-view]"),
+    ttoPerformancePanel: document.querySelector("#tto-performance-panel"),
+    ttoMixPanel: document.querySelector("#tto-mix-panel"),
+    ttoPerformanceBody: document.querySelector("#tto-performance-body"),
+    ttoPerformanceEmpty: document.querySelector("#tto-performance-empty"),
+    ttoMixRows: document.querySelector("#tto-mix-rows"),
+    ttoMixLegend: document.querySelector("#tto-mix-legend"),
+    ttoMixEmpty: document.querySelector("#tto-mix-empty"),
+    ttoDataNote: document.querySelector("#tto-data-note"),
     databaseFreshness: document.querySelector("#database-freshness"),
   };
 
@@ -52,6 +61,7 @@ if (root) {
     requestController: null,
     separation: null,
     separationPitcherId: null,
+    ttoView: "performance",
   };
 
   const pitchColors = {
@@ -717,6 +727,124 @@ if (root) {
     });
   }
 
+  function selectTtoView(view) {
+    state.ttoView = view === "mix" ? "mix" : "performance";
+    elements.ttoPerformancePanel.hidden = state.ttoView !== "performance";
+    elements.ttoMixPanel.hidden = state.ttoView !== "mix";
+    elements.ttoTabs.forEach((tab) => {
+      const selected = tab.dataset.ttoView === state.ttoView;
+      tab.setAttribute("aria-selected", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      tab.classList.toggle("is-active", selected);
+    });
+  }
+
+  function renderTtoSplits(tto) {
+    const performance = tto && Array.isArray(tto.performance) ? tto.performance : [];
+    const pitchMix = tto && Array.isArray(tto.pitch_mix) ? tto.pitch_mix : [];
+    elements.ttoPerformanceBody.replaceChildren();
+    elements.ttoPerformanceEmpty.hidden = performance.length > 0;
+    for (const trip of performance) {
+      const row = document.createElement("tr");
+      const heading = document.createElement("th");
+      heading.scope = "row";
+      heading.textContent = trip.label;
+      if (trip.small_sample) {
+        const note = document.createElement("small");
+        note.className = "tto-small-sample";
+        note.textContent = "Small sample";
+        note.title = "Fewer than 30 recorded plate appearances";
+        heading.append(note);
+      }
+      row.append(heading);
+      tableCell(row, Number(trip.pitch_count).toLocaleString("en-US"));
+      tableCell(row, Number(trip.plate_appearances).toLocaleString("en-US"));
+      for (const key of [
+        "strikeout_pct", "walk_pct", "k_minus_bb_pct", "whiff_pct",
+        "xwoba_against", "run_value_per_100", "avg_velocity",
+      ]) {
+        const cell = tableCell(row, formatMetric(key, trip[key]));
+        if (key === "run_value_per_100") {
+          cell.title = "Runs prevented per 100 physical pitches: "
+            + Number(trip.run_value_pitch_count).toLocaleString("en-US")
+            + " tracked outcomes / "
+            + Number(trip.run_value_denominator).toLocaleString("en-US")
+            + " eligible pitches.";
+        }
+      }
+      elements.ttoPerformanceBody.append(row);
+    }
+
+    elements.ttoMixRows.replaceChildren();
+    elements.ttoMixLegend.replaceChildren();
+    elements.ttoMixEmpty.hidden = pitchMix.length > 0;
+    const totals = new Map();
+    for (const trip of pitchMix) {
+      const row = document.createElement("div");
+      row.className = "tto-mix-row";
+      const info = document.createElement("div");
+      info.className = "tto-mix-row-info";
+      const label = document.createElement("strong");
+      label.textContent = trip.label;
+      const count = document.createElement("span");
+      count.textContent = Number(trip.pitch_count).toLocaleString("en-US") + " pitches";
+      info.append(label, count);
+
+      const bar = document.createElement("div");
+      bar.className = "tto-mix-bar";
+      bar.setAttribute("role", "img");
+      const description = trip.pitches.map((pitch) => (
+        pitch.pitch_name + " " + formatNumber(pitch.usage_pct) + "%"
+      )).join(", ");
+      bar.setAttribute("aria-label", trip.label + " trip pitch mix: " + description);
+      for (const pitch of trip.pitches) {
+        const segment = document.createElement("span");
+        segment.className = "tto-mix-segment";
+        segment.style.flexGrow = String(pitch.pitch_count);
+        segment.style.backgroundColor = pitchColors[pitch.pitch_type] || "#64748b";
+        segment.title = pitch.pitch_name + " (" + pitch.pitch_type + "): "
+          + formatNumber(pitch.usage_pct) + "%, "
+          + Number(pitch.pitch_count).toLocaleString("en-US") + " pitches";
+        segment.setAttribute("aria-hidden", "true");
+        bar.append(segment);
+        const prior = totals.get(pitch.pitch_type);
+        totals.set(pitch.pitch_type, {
+          name: pitch.pitch_name,
+          count: (prior ? prior.count : 0) + pitch.pitch_count,
+        });
+      }
+      row.append(info, bar);
+      elements.ttoMixRows.append(row);
+    }
+
+    for (const [pitchType, value] of [...totals].sort((a, b) => b[1].count - a[1].count)) {
+      const item = document.createElement("span");
+      item.className = "tto-legend-item";
+      const dot = document.createElement("span");
+      dot.className = "tto-legend-dot";
+      dot.style.backgroundColor = pitchColors[pitchType] || "#64748b";
+      const name = document.createElement("span");
+      name.textContent = value.name + " (" + pitchType + ")";
+      item.append(dot, name);
+      elements.ttoMixLegend.append(item);
+    }
+
+    const assigned = Number(tto ? tto.assigned_pitch_count : 0);
+    const total = Number(tto ? tto.total_pitch_count : 0);
+    let note = assigned.toLocaleString("en-US") + " of "
+      + total.toLocaleString("en-US") + " selected pitches have a recorded lineup trip. "
+      + "Pitch Mix uses classified, physically thrown pitches. ";
+    if (performance.some((trip) => trip.small_sample)) {
+      note += "Small sample = fewer than 30 recorded PA. ";
+    }
+    if (elements.pitchType.value || elements.count.value) {
+      note += "Pitch-type or count filters produce conditional PA outcomes, not full-PA rates. ";
+    }
+    note += "Fourth or later trips are combined as 4th+ when present.";
+    elements.ttoDataNote.textContent = note;
+    selectTtoView(state.ttoView);
+  }
+
   function renderProfile(profile) {
     const { pitcher, sample, overall } = profile;
     elements.monogram.textContent = initials(pitcher.name);
@@ -734,6 +862,7 @@ if (root) {
     renderSeparation(profile.pitch_separation, pitcher.mlb_id);
     renderTransitions(profile.pitch_transition_matrix);
     renderSplits(profile.platoon_splits);
+    renderTtoSplits(profile.times_through_order_splits);
     setVisible(elements.content, true);
   }
 
@@ -816,6 +945,21 @@ if (root) {
     }
   }
 
+  elements.ttoTabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => selectTtoView(tab.dataset.ttoView));
+    tab.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      let target = index;
+      if (event.key === "ArrowRight") target = (index + 1) % elements.ttoTabs.length;
+      if (event.key === "ArrowLeft") target = (index - 1 + elements.ttoTabs.length) % elements.ttoTabs.length;
+      if (event.key === "Home") target = 0;
+      if (event.key === "End") target = elements.ttoTabs.length - 1;
+      const next = elements.ttoTabs[target];
+      selectTtoView(next.dataset.ttoView);
+      next.focus();
+    });
+  });
   elements.arsenalView.addEventListener("change", updateArsenalView);
   elements.separationReference.addEventListener("change", renderSeparationRows);
 
