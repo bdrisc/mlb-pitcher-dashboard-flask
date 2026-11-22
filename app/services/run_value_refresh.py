@@ -35,7 +35,7 @@ def _download(path, params):
 
 
 def validate_source(frame, aggregate):
-    required = {"game_pk", "at_bat_number", "pitch_number", "delta_run_exp", "pitch_type"}
+    required = {"game_pk", "at_bat_number", "pitch_number", "delta_run_exp", "description"}
     if not required.issubset(frame.columns):
         raise RunValueRefreshError("Savant did not return the required pitch CSV columns.")
     if len(frame) >= 30000:
@@ -44,14 +44,18 @@ def validate_source(frame, aggregate):
     if len(aggregate) != 1 or "delev_pitcher_run_exp" not in aggregate[0]:
         raise RunValueRefreshError("Savant did not return its explicit context-neutral total.")
     official = aggregate[0]
-    # Savant's aggregate includes CSV pitch rows with a missing pitch classification.
-    # The local importer may omit these, so count all source rows for source parity;
-    # local pitch identities are separately checked before any write.
-    count = len(frame)
+    # Savant's aggregate counts physical pitches, including those without a pitch_type,
+    # but excludes automatic balls (pitch-clock/intentional-walk events). Match the
+    # official denominator without discarding unclassified real pitches.
+    automatic_balls = int(
+        frame["description"].astype("string").str.lower().eq("automatic_ball").sum()
+    )
+    count = len(frame) - automatic_balls
     total = -float(values.sum())
     if count != int(official["pitches"]):
         raise RunValueRefreshError(
-            f"Pitch counts differ from the Savant neutral aggregate: CSV rows={count}, "
+            f"Pitch counts differ from the Savant neutral aggregate: physical={count}, "
+            f"CSV rows={len(frame)}, automatic balls={automatic_balls}, "
             f"aggregate={int(official['pitches'])}."
         )
     if abs(total - float(official["delev_pitcher_run_exp"])) > 0.005:
@@ -85,7 +89,7 @@ def fetch_verified_values(job):
     frame = pd.read_csv(
         io.BytesIO(csv),
         usecols=lambda c: (
-            c in {"game_pk", "at_bat_number", "pitch_number", "delta_run_exp", "pitch_type"}
+            c in {"game_pk", "at_bat_number", "pitch_number", "delta_run_exp", "description"}
         ),
     )
     official = json.loads(
