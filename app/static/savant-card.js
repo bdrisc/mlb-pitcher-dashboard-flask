@@ -46,6 +46,8 @@ if (root) {
     pairPrevious: document.querySelector("#pitch-pair-previous"),
     pairBody: document.querySelector("#pitch-pair-body"),
     pairTable: document.querySelector("#pitch-pair-table"),
+    pairActions: document.querySelector("#pitch-pair-actions"),
+    pairToggle: document.querySelector("#pitch-pair-toggle"),
     pairEmpty: document.querySelector("#pitch-pair-empty"),
     pairSortButtons: document.querySelectorAll("[data-pair-sort]"),
     splits: document.querySelector("#platoon-splits"),
@@ -70,6 +72,7 @@ if (root) {
     pairEffectiveness: null,
     pairPitcherId: null,
     pairSort: { key: "pair_count", direction: "desc" },
+    pairExpanded: false,
   };
 
   const pitchColors = {
@@ -703,6 +706,7 @@ if (root) {
     const previous = state.pairPitcherId === pitcherId ? elements.pairPrevious.value : "";
     state.pairEffectiveness = data;
     state.pairPitcherId = pitcherId;
+    state.pairExpanded = false;
     if (!previous) state.pairSort = { key: "pair_count", direction: "desc" };
 
     elements.pairPrevious.replaceChildren();
@@ -728,6 +732,10 @@ if (root) {
     elements.pairBody.replaceChildren();
     setVisible(elements.pairEmpty, pairs.length === 0);
     setVisible(elements.pairTable, pairs.length > 0);
+    setVisible(elements.pairActions, pairs.length > MAX_PITCH_PAIR_ROWS);
+    elements.pairToggle.setAttribute("aria-expanded", String(state.pairExpanded));
+    elements.pairToggle.textContent = state.pairExpanded
+      ? "Show Top 5" : `Show All ${pairs.length} Pairs`;
     document.querySelectorAll("[data-pair-sort-col]").forEach((heading) => {
       heading.setAttribute(
         "aria-sort",
@@ -754,10 +762,10 @@ if (root) {
         a.pitch_b.localeCompare(b.pitch_b);
     });
 
-    // Filter and sort the full sample first, then render at most five rows.
-    // A selected previous pitch gets its own top five, rather than a subset
-    // of the unfiltered table's top five.
-    sorted.slice(0, MAX_PITCH_PAIR_ROWS).forEach((pair) => {
+    // The previous-pitch filter and column sort always apply to all pairs.
+    // Expand/collapse changes only how many of those ordered rows are shown.
+    const visiblePairs = state.pairExpanded ? sorted : sorted.slice(0, MAX_PITCH_PAIR_ROWS);
+    visiblePairs.forEach((pair) => {
       const row = document.createElement("tr");
       const heading = document.createElement("th");
       heading.scope = "row";
@@ -1100,6 +1108,10 @@ if (root) {
   elements.arsenalView.addEventListener("change", updateArsenalView);
   elements.separationReference.addEventListener("change", renderSeparationRows);
   elements.pairPrevious.addEventListener("change", renderPitchPairRows);
+  elements.pairToggle.addEventListener("click", () => {
+    state.pairExpanded = !state.pairExpanded;
+    renderPitchPairRows();
+  });
   elements.pairSortButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const key = button.dataset.pairSort;

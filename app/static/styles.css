@@ -1148,6 +1148,28 @@ summary,
   color: var(--muted);
 }
 
+.pitch-pair-actions {
+  margin-top: 10px;
+  text-align: right;
+}
+
+.pitch-pair-toggle {
+  padding: 7px 11px;
+  border: 1px solid #b5d4d9;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--brand);
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pitch-pair-toggle:hover,
+.pitch-pair-toggle:focus-visible {
+  border-color: var(--brand);
+  background: #f0f8f9;
+}
+
 @media (max-width: 640px) {
   .pitch-pair-heading {
     align-items: flex-start;
