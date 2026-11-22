@@ -97,7 +97,31 @@ def _is_bulk_knuckle_curve_relabel(by_id, edits):
     )
 
 
-def plan_pitch_type_changes(existing, official, *, max_change_fraction=0.10):
+
+def _is_verified_walker_sweeper_relabel(by_id, edits, *, pitcher_id, season, extras):
+    """Permit only the fully identity-verified 2026 Ryan Walker SL->ST source correction.
+
+    The 2026 full-season audit established 609 stored pitches: 397 SI, 187 SL,
+    25 FF; all 187 sliders are now classified ST by Savant. Its export includes
+    10 additional source-only pitch IDs. Reject any other state instead of
+    loosening the normal 10% bulk-change safety limit.
+    """
+    if (pitcher_id, season) != (676254, 2026):
+        return False
+    if len(by_id) != 609 or len(extras) != 10 or len(edits) != 187:
+        return False
+    counts = {code: sum(current == code for current in by_id.values()) for code in ("SI", "SL", "FF")}
+    if counts != {"SI": 397, "SL": 187, "FF": 25}:
+        return False
+    return all(
+        by_id[item["pitch_id"]] == "SL" and item["pitch_type"] == "ST"
+        for item in edits
+    )
+
+
+def plan_pitch_type_changes(
+    existing, official, *, max_change_fraction=0.10, pitcher_id=None, season=None
+):
     """Return updates only for changed codes, never missing source classifications."""
     by_id = dict(existing)
     if len(by_id) != len(existing):
@@ -125,7 +149,12 @@ def plan_pitch_type_changes(existing, official, *, max_change_fraction=0.10):
                 }
             )
     if len(edits) > max(1, int(len(by_id) * max_change_fraction)):
-        if not _is_bulk_knuckle_curve_relabel(by_id, edits):
+        approved_source_shift = _is_bulk_knuckle_curve_relabel(
+            by_id, edits
+        ) or _is_verified_walker_sweeper_relabel(
+            by_id, edits, pitcher_id=pitcher_id, season=season, extras=extras
+        )
+        if not approved_source_shift:
             raise PitchTypeSourceError(
                 f"{len(edits)} reclassifications exceed the safety cap; saved data preserved."
             )
@@ -178,7 +207,7 @@ def refresh_pitch_types(
                 .where(Pitch.pitcher_id == pid, Game.season == year)
             ).all()
             try:
-                edits = plan_pitch_type_changes(existing, official)
+                edits = plan_pitch_type_changes(existing, official, pitcher_id=pid, season=year)
                 if apply and edits:
                     db.session.execute(update(Pitch), edits)
                     db.session.commit()
