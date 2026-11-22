@@ -43,6 +43,8 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b'id="profile-filters"' in response.data
     assert b'id="pitcher-select"' in response.data
     assert b'id="pitcher-search"' in response.data
+    assert b'list="pitcher-suggestions"' in response.data
+    assert b'id="pitcher-suggestions"' in response.data
     assert b'placeholder="Search by name' in response.data
     assert b'aria-label="Choose pitcher"' in response.data
     assert b'id="team-filter"' in response.data
@@ -344,6 +346,8 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     )
     assert b"function renderPitchPairRows()" in response.data
     assert b"pitcherSearch: document.querySelector" in response.data
+    assert b"pitcherSuggestions: document.querySelector" in response.data
+    assert b'elements.pitcherSearch.addEventListener("change"' in response.data
     assert b"function matchingPitchers()" in response.data
     assert b"function populateTeams()" in response.data
     assert b"function populatePitchers(" in response.data
