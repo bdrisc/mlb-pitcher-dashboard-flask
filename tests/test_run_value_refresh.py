@@ -24,6 +24,7 @@ def source_frame():
                 "pitch_number": 1,
                 "delta_run_exp": -0.1,
                 "pitch_type": "FF",
+                "description": "called_strike",
             },
             {
                 "game_pk": 1,
@@ -31,6 +32,7 @@ def source_frame():
                 "pitch_number": 2,
                 "delta_run_exp": 0.3,
                 "pitch_type": "FF",
+                "description": "foul",
             },
             {
                 "game_pk": 1,
@@ -38,6 +40,7 @@ def source_frame():
                 "pitch_number": 1,
                 "delta_run_exp": None,
                 "pitch_type": None,
+                "description": "ball",
             },
         ]
     )
@@ -80,9 +83,29 @@ def test_savant_csv_and_neutral_total_both_use_regular_season_only(monkeypatch):
         assert params["hfSea"] == "2025|"
 
 
-def test_count_mismatch_reports_both_counts_for_safe_diagnosis():
-    with pytest.raises(RunValueRefreshError, match=r"CSV rows=3, aggregate=2"):
+def test_count_mismatch_reports_all_counts_for_safe_diagnosis():
+    with pytest.raises(
+        RunValueRefreshError,
+        match=r"physical=3, CSV rows=3, automatic balls=0, aggregate=2",
+    ):
         validate_source(source_frame(), [{"pitches": 2, "delev_pitcher_run_exp": -0.2}])
+
+
+def test_automatic_balls_excluded_but_real_unclassified_pitches_count():
+    frame = source_frame()
+    frame.loc[len(frame)] = {
+        "game_pk": 1,
+        "at_bat_number": 2,
+        "pitch_number": 2,
+        "delta_run_exp": None,
+        "pitch_type": None,
+        "description": "automatic_ball",
+    }
+    validated = validate_source(frame, [{"pitches": 3, "delev_pitcher_run_exp": -0.2}])
+    assert len(validated) == 4  # Source IDs remain available for local identity matching.
+    assert validated["1_2_2"] is None
+    with pytest.raises(RunValueRefreshError, match=r"automatic balls=1"):
+        validate_source(frame, [{"pitches": 4, "delev_pitcher_run_exp": -0.2}])
 
 
 def populate(app):
