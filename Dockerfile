@@ -19,6 +19,11 @@ COPY --chown=app:app . .
 RUN python -c "from pathlib import Path; p = Path('scripts/docker-entrypoint.sh'); p.write_bytes(p.read_bytes().replace(b'\r\n', b'\n'))" \
     && chmod +x scripts/docker-entrypoint.sh
 
+# Named Docker volume inherits this directory's app-user permissions when
+# first created; otherwise Statcast cache writes would fail as non-root.
+RUN mkdir -p /app/data/cache/statcast \
+    && chown -R app:app /app/data/cache/statcast
+
 USER app
 
 EXPOSE 10000
