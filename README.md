@@ -636,10 +636,13 @@ separate sequences, and same-pitch repeats (FF → FF) are supported.
   pitcher. It is calculated on second pitches only, with all second pitches
   in the denominator. If run-value tracking is incomplete, RV/100 is withheld;
   tooltips disclose observed vs. eligible coverage.
-- The table displays **at most five pairs**: by default the five most
-  frequently observed sequences. Changing the **Previous Pitch** selector
-  or column sort first filters/sorts the entire matching sample, then shows
-  the first five results. All pair data remain available in the API.
+- The table displays **five pairs by default** (the most frequently
+  observed sequences). The **Show All** button beneath the table expands
+  to every matching combination; **Show Top 5** collapses it again. The
+  toggle is hidden when five or fewer pairs match. Changing the **Previous
+  Pitch** selector or clicking any column header filters/sorts the full
+  matching sample in either view; expansion is reset to five when the
+  profile is reloaded. All pair data remain available in the API.
   Pairs with fewer than **30** observed transitions are labeled *Small
   sample*. Missing measurements display a dash; no invented rates.
   These are *observed* associations, not estimates of causal sequencing skill.
