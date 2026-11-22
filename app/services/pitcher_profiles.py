@@ -17,6 +17,7 @@ from app.services.fangraphs_stuff import profile_grades
 from app.services.filters import PitchFilters
 from app.services.movement_reference import movement_vs_average
 from app.services.pitch_data import PITCH_NAME_MAP
+from app.services.pitch_pair_effectiveness import build_pitch_pair_effectiveness
 from app.services.pitch_separation import build_pitch_separation
 from app.services.pitch_sequencing import build_pitch_transition_matrix
 from app.services.pitch_tunneling import add_tunneling_to_separation, build_pitch_tunneling
@@ -878,6 +879,7 @@ def build_pitcher_profile(pitcher_id: int, filters: PitchFilters) -> dict[str, A
         "pitch_separation": separation,
         "pitch_tunneling": tunneling,
         "pitch_transition_matrix": build_pitch_transition_matrix(tunneling),
+        "pitch_pair_effectiveness": build_pitch_pair_effectiveness(pitcher_id, filters),
         "platoon_splits": split_rows,
         "times_through_order_splits": _times_through_order_splits(conditions, total_pitches),
     }
