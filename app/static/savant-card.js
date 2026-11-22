@@ -717,6 +717,8 @@ if (root) {
     renderPitchPairRows();
   }
 
+  const MAX_PITCH_PAIR_ROWS = 5;
+
   function renderPitchPairRows() {
     const data = state.pairEffectiveness || { pairs: [] };
     const selected = elements.pairPrevious.value;
@@ -752,7 +754,10 @@ if (root) {
         a.pitch_b.localeCompare(b.pitch_b);
     });
 
-    sorted.forEach((pair) => {
+    // Filter and sort the full sample first, then render at most five rows.
+    // A selected previous pitch gets its own top five, rather than a subset
+    // of the unfiltered table's top five.
+    sorted.slice(0, MAX_PITCH_PAIR_ROWS).forEach((pair) => {
       const row = document.createElement("tr");
       const heading = document.createElement("th");
       heading.scope = "row";
@@ -785,7 +790,11 @@ if (root) {
         `${pair.xwoba_scored_batted_balls} of ${pair.xwoba_batted_balls} batted balls tracked. ` +
         "Includes only the second pitch of each pair; excludes walks, strikeouts and other " +
         "non-contact outcomes. " +
-        (pair.xwoba_on_contact == null ? "No tracked contact in this pair." : "Lower is better.");
+        (pair.xwoba_on_contact == null
+          ? (pair.xwoba_batted_balls
+            ? "Batted balls occurred, but none have a usable Statcast expected-wOBA measurement."
+            : "The second pitch of this pair produced no batted balls.")
+          : "Lower is better.");
       if (pair.xwoba_batted_balls) {
         const count = document.createElement("small");
         count.className = "pitch-pair-count-note";
