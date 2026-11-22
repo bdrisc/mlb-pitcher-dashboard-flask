@@ -793,7 +793,7 @@ if (root) {
         (pair.xwoba_on_contact == null
           ? (pair.xwoba_batted_balls
             ? "Batted balls occurred, but none have a usable Statcast expected-wOBA measurement."
-            : "The second pitch of this pair produced no batted balls.")
+            : "No eligible classified batted balls were recorded on the second pitch of this pair.")
           : "Lower is better.");
       if (pair.xwoba_batted_balls) {
         const count = document.createElement("small");
