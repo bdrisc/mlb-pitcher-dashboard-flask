@@ -484,6 +484,13 @@ summary,
   grid-column: span 2;
 }
 
+.pitcher-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 8px;
+  min-width: 0;
+}
+
 .field > span {
   color: #4f5b67;
   font-size: 0.69rem;
@@ -1818,6 +1825,10 @@ summary,
 }
 
 @media (max-width: 580px) {
+  .pitcher-picker {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .overview-featured {
     grid-template-columns: minmax(0, 1fr);
   }

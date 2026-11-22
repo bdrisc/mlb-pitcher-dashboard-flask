@@ -31,12 +31,18 @@
 
       <form id="profile-filters">
         <div class="filter-grid">
-          <label class="field field-wide" for="pitcher-select">
+          <div class="field field-wide">
             <span>Pitcher</span>
-            <select id="pitcher-select" name="pitcher_id" required disabled>
-              <option value="">Loading Pitchers…</option>
-            </select>
-          </label>
+            <div class="pitcher-picker">
+              <input id="pitcher-search" type="search" autocomplete="off"
+                     list="pitcher-suggestions" placeholder="Search by name…"
+                     aria-label="Search pitcher names" disabled>
+              <datalist id="pitcher-suggestions"></datalist>
+              <select id="pitcher-select" name="pitcher_id" aria-label="Choose pitcher" required disabled>
+                <option value="">Loading Pitchers…</option>
+              </select>
+            </div>
+          </div>
 
           <label class="field" for="season-filter">
             <span>Season</span>
@@ -180,7 +186,7 @@
           <dt>{{ label }}</dt>
           <dd>
             <strong data-metric="{{ key }}">—</strong>
-            {% if context %}<small>{{ context }}</small>{% endif %}
+
           </dd>
         {% endmacro %}
         {% macro metric(key, label, context='') %}
@@ -210,7 +216,7 @@
           <section class="overview-group" aria-labelledby="run-prevention-heading">
             <div class="overview-group-heading">
               <h3 id="run-prevention-heading">Run Prevention</h3>
-              <small>Published · Season Reference</small>
+
             </div>
             <dl class="overview-values">
               {{ metric('fip', 'FIP', 'FanGraphs') }}
@@ -259,7 +265,7 @@
           <section class="overview-group" aria-labelledby="fangraphs-grades-heading">
             <div class="overview-group-heading">
               <h3 id="fangraphs-grades-heading">FanGraphs Grades</h3>
-              <small>Full Season</small>
+
             </div>
             <dl class="overview-values overview-grades">
               {{ metric('stuff_plus', 'Stuff+') }}
@@ -461,7 +467,7 @@
           <div>
             <h2 id="charts-heading">Shape, Command, and Usage</h2>
           </div>
-          <p>Hover, zoom, pan, isolate pitch types, or download any chart.</p>
+
         </div>
 
         <div class="chart-status" id="chart-status" aria-live="polite" hidden></div>
@@ -470,7 +476,7 @@
             <div class="chart-card-heading">
               <div>
                 <h3>Movement Profile</h3>
-                <p>Horizontal break and induced vertical break by pitch type.</p>
+    
               </div>
               <span>Shape</span>
             </div>
@@ -486,7 +492,7 @@
             <div class="chart-card-heading">
               <div>
                 <h3>Velocity Trend</h3>
-                <p>Average velocity by game date, separated by pitch type.</p>
+    
               </div>
               <span>Trend</span>
             </div>
@@ -502,7 +508,7 @@
             <div class="chart-card-heading">
               <div>
                 <h3>Release-Point Consistency</h3>
-                <p>Horizontal and vertical release location for every tracked pitch.</p>
+    
               </div>
               <span>Delivery</span>
             </div>
@@ -518,7 +524,7 @@
             <div class="chart-card-heading">
               <div>
                 <h3>Usage by Count</h3>
-                <p>Pitch mix within each count; every displayed column totals 100%.</p>
+    
               </div>
               <span>Approach</span>
             </div>

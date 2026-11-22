@@ -227,6 +227,74 @@ flask --app wsgi statcast fetch-season 2026 --download-only
 flask --app wsgi statcast fetch-season 2026 --force-download
 ```
 
+## Add the full 2025 season to your LOCAL dashboard (preserve 2026)
+
+The dashboard already supports multiple years in one PostgreSQL database. The
+`fetch-season` importer uses date-stamped, resumable five-day Statcast chunks
+and idempotent pitch-ID upserts: **importing 2025 does not replace 2026**. The
+directory now exposes only seasons actually present for each pitcher, with
+team-specific seasons in the selector.
+
+**Local-only safety check:** open your *local* `.env` and confirm
+`DATABASE_URL` connects to your own PostgreSQL server/database (for example
+`postgresql+psycopg://...@localhost:5432/mlb_pitch_intelligence`), **not**
+Render's production database. Do not paste credentials into GitHub or chat.
+Use your existing local Python venv and run commands from the repository root:
+
+```powershell
+git pull origin main
+python -m pip install -r requirements-data.txt
+python -m flask --app wsgi db upgrade
+python -m flask --app wsgi statcast fetch-season 2025
+```
+
+This requests the completed **2025 regular season**, March 15–November 15
+download bounds with `game_type=R` retained, and stores cached files under
+`data/cache/statcast/2025/`. It may download hundreds of date chunks and
+a large number of pitches. **If interrupted, rerun the exact same command**
+to reuse completed cached chunks and upsert existing pitch IDs. Never delete
+the 2026 data or switch `STATCAST_SEED_PATH` to a 2025-only file.
+
+Optional, source-backed refreshes for better coverage of 2025 statistics
+can be done **locally after the base acquisition**; some may require
+a working network connection and/or complete corresponding source files:
+
+```powershell
+python -m flask --app wsgi statcast backfill-woba --season 2025
+python -m flask --app wsgi statcast refresh-run-values --season 2025
+python -m flask --app wsgi statcast backfill-barrels --season 2025
+python -m flask --app wsgi statcast backfill-spin-axis --season 2025
+python -m flask --app wsgi statcast backfill-xslg --season 2025
+python -m flask --app wsgi statcast backfill-approach-angles --season 2025
+```
+
+The existing VAAAdj/HAAAA reference models use frozen 2025 MLB reference
+data; if those reference inputs are configured locally, you can also run
+`backfill-vaa-adj --season 2025` and `backfill-haaaa --season 2025`.
+FanGraphs grades, FIP/xFIP/SIERA and published Savant xERA/active-spin
+references use separate **source imports**: the 2025 pitch acquisition
+does not fabricate those published metrics. Check their data-availability
+notes before relying on comparisons.
+
+Validate both years against the **local** database (e.g., in a local
+PostgreSQL SQL client; no password or connection string needs sharing):
+
+```sql
+SELECT g.season, COUNT(*) AS pitches, COUNT(DISTINCT p.pitcher_id) AS pitchers
+FROM pitches AS p
+JOIN games AS g ON g.game_pk = p.game_pk
+WHERE g.season IN (2025, 2026)
+GROUP BY g.season
+ORDER BY g.season;
+```
+
+After starting/restarting the local Flask application, select **2025**,
+**2026**, or **All Seasons** for a pitcher with data in those years. The
+new Team filter narrows the pitcher directory first and then offers only
+seasons with that pitcher/team combination. **The public dashboard remains
+on its separately loaded database**: do not build/deploy a 2025 public
+production sample or run these import commands against production.
+
 ## Build the public top-50-pitcher dataset
 
 After the local season acquisition finishes, create a compressed production export containing

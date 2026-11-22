@@ -29,6 +29,8 @@ SWING_DESCRIPTIONS = (
     "foul_bunt",
     "bunt_foul_tip",
     "hit_into_play",
+    "hit_into_play_no_out",
+    "hit_into_play_score",
 )
 WHIFF_DESCRIPTIONS = (
     "swinging_strike",

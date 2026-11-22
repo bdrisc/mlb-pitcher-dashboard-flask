@@ -78,6 +78,8 @@ def _metric_columns() -> list[Any]:
             "foul_bunt",
             "bunt_foul_tip",
             "hit_into_play",
+            "hit_into_play_no_out",
+            "hit_into_play_score",
         )
     )
     whiff = description.in_(
@@ -102,6 +104,8 @@ def _metric_columns() -> list[Any]:
             "foul_bunt",
             "bunt_foul_tip",
             "hit_into_play",
+            "hit_into_play_no_out",
+            "hit_into_play_score",
         )
     )
     bbe = description.in_(("hit_into_play", "hit_into_play_no_out", "hit_into_play_score"))
@@ -170,6 +174,7 @@ def _metric_columns() -> list[Any]:
     xslg_scored_ab = or_(strikeout_ab, scored_slg_ball)
     return [
         func.count(Pitch.pitch_id).label("pitch_count"),
+        _count_where(physical_pitch).label("physical_pitch_count"),
         _count_where(strike).label("strikes"),
         _count_where(swing).label("swings"),
         _count_where(whiff).label("whiffs"),
@@ -178,14 +183,16 @@ def _metric_columns() -> list[Any]:
         _count_where(two_strike_pitch).label("putaway_pitches"),
         _count_where(putaway).label("putaway_strikeouts"),
         _count_where(or_(description == "called_strike", whiff)).label("csw"),
-        _count_where(location_known).label("location_tracked"),
-        _count_where(in_zone).label("in_zone"),
+        _count_where(location_known, physical_pitch).label("location_tracked"),
+        _count_where(in_zone, physical_pitch).label("in_zone"),
         _count_where(in_zone, swing).label("zone_swings"),
         _count_where(in_zone, whiff).label("zone_whiffs"),
-        _count_where(out_of_zone).label("out_of_zone"),
+        _count_where(out_of_zone, physical_pitch).label("out_of_zone"),
         _count_where(out_of_zone, swing).label("out_of_zone_swings"),
         _count_where(out_of_zone, whiff).label("out_of_zone_whiffs"),
-        _count_where(Pitch.is_chase.is_(True)).label("chases"),
+        # Recompute against the SAME zone and swing definitions for old and
+        # newly imported rows; saved is_chase flags may reflect older rules.
+        _count_where(out_of_zone, swing).label("chases"),
         _count_where(tracked_batted_ball).label("batted_balls"),
         _count_where(bbe).label("barrel_bbe_count"),
         _count_where(bbe, batted_ball_kind == "ground_ball").label("gb_count"),
@@ -196,7 +203,8 @@ def _metric_columns() -> list[Any]:
         _count_where(classified_bbe).label("barrel_classified_count"),
         _count_where(and_(bbe, Pitch.launch_speed_angle == 6)).label("barrel_count"),
         _count_where(and_(tracked_batted_ball, Pitch.exit_velocity >= 95)).label("hard_hits"),
-        _count_where(event_recorded).label("plate_appearances"),
+        # Truncated/interrupted at-bats are not completed PA for K%/BB%.
+        _count_where(actual_pa).label("plate_appearances"),
         _count_where(event_name.in_(("strikeout", "strikeout_double_play"))).label("strikeouts"),
         _count_where(event_name.in_(("walk", "intent_walk"))).label("walks"),
         _count_where(physical_rv_pitch).label("run_value_denominator"),
@@ -315,7 +323,7 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         if release_side_sd_ft is not None and release_height_sd_ft is not None
         else None
     )
-    pitches = _integer(row, "pitch_count")
+    physical_pitches = _integer(row, "physical_pitch_count")
     swings = _integer(row, "swings")
     location_tracked = _integer(row, "location_tracked")
     out_of_zone = _integer(row, "out_of_zone")
@@ -402,7 +410,7 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         "woba_pending_outcomes": woba_pending,
         "run_value_per_100": (
             None
-            if not run_value_pitches or not run_value_denominator
+            if run_value_pitches != run_value_denominator or not run_value_denominator
             else float(
                 (Decimal(str(round(pitcher_run_value, 9))) * 100 / run_value_denominator).quantize(
                     Decimal("0.1"), rounding=ROUND_HALF_UP
@@ -410,7 +418,13 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
             )
             or 0.0
         ),
-        "run_value": _rounded(pitcher_run_value, 3),
+        # Withhold incomplete run-value totals instead of treating missing
+        # pitch outcomes as zero or silently diluting RV/100.
+        "run_value": (
+            _rounded(pitcher_run_value, 3)
+            if run_value_denominator and run_value_pitches == run_value_denominator
+            else None
+        ),
         "run_value_pitch_count": run_value_pitches,
         "run_value_denominator": run_value_denominator,
         "run_value_coverage_pct": _rate(run_value_pitches, run_value_denominator),
@@ -466,8 +480,9 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         "vertical_break": _rounded(row["vertical_break"]),
         "release_extension": _rounded(row["release_extension"]),
         "release_extension_pitch_count": _integer(row, "release_extension_pitch_count"),
-        "strike_pct": _rate(_integer(row, "strikes"), pitches),
-        "swing_pct": _rate(swings, pitches),
+        "physical_pitch_count": physical_pitches,
+        "strike_pct": _rate(_integer(row, "strikes"), physical_pitches),
+        "swing_pct": _rate(swings, physical_pitches),
         "whiff_pct": _rate(_integer(row, "whiffs"), swings),
         "zone_whiff_pct": _rate(_integer(row, "zone_whiffs"), _integer(row, "zone_swings")),
         "zone_whiff_count": _integer(row, "zone_whiffs"),
@@ -483,7 +498,7 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         "putaway_pct": _rate(_integer(row, "putaway_strikeouts"), _integer(row, "putaway_pitches")),
         "putaway_strikeout_count": _integer(row, "putaway_strikeouts"),
         "putaway_pitch_count": _integer(row, "putaway_pitches"),
-        "csw_pct": _rate(_integer(row, "csw"), pitches),
+        "csw_pct": _rate(_integer(row, "csw"), physical_pitches),
         "zone_pct": _rate(_integer(row, "in_zone"), location_tracked),
         "chase_pct": _rate(_integer(row, "chases"), out_of_zone),
         "hard_hit_pct": _rate(_integer(row, "hard_hits"), batted_balls),
@@ -714,6 +729,7 @@ def list_pitchers(filters: PitchFilters) -> list[dict[str, Any]]:
             Player.player_name,
             Player.throws,
             team,
+            Game.season,
             func.count(Pitch.pitch_id).label("pitch_count"),
             func.count(func.distinct(Pitch.game_pk)).label("games"),
             func.min(Game.game_date).label("first_game_date"),
@@ -723,7 +739,7 @@ def list_pitchers(filters: PitchFilters) -> list[dict[str, Any]]:
         .join(Pitch, Pitch.pitcher_id == Player.mlb_id)
         .join(Game, Game.game_pk == Pitch.game_pk)
         .where(*conditions)
-        .group_by(Player.mlb_id, Player.player_name, Player.throws, team)
+        .group_by(Player.mlb_id, Player.player_name, Player.throws, team, Game.season)
     )
 
     pitchers: dict[int, dict[str, Any]] = {}
@@ -735,6 +751,8 @@ def list_pitchers(filters: PitchFilters) -> list[dict[str, Any]]:
                 "name": row["player_name"],
                 "throws": row["throws"],
                 "teams": [],
+                "seasons": [],
+                "team_seasons": {},
                 "pitch_count": 0,
                 "games": 0,
                 "first_game_date": row["first_game_date"].isoformat(),
@@ -743,6 +761,14 @@ def list_pitchers(filters: PitchFilters) -> list[dict[str, Any]]:
         )
         if row["team"] and row["team"] not in pitcher["teams"]:
             pitcher["teams"].append(row["team"])
+        if row["season"] is not None:
+            season = int(row["season"])
+            if season not in pitcher["seasons"]:
+                pitcher["seasons"].append(season)
+            if row["team"]:
+                seasons = pitcher["team_seasons"].setdefault(row["team"], [])
+                if season not in seasons:
+                    seasons.append(season)
         pitcher["pitch_count"] += int(row["pitch_count"])
         pitcher["games"] += int(row["games"])
         first_date = row["first_game_date"].isoformat()
@@ -752,6 +778,9 @@ def list_pitchers(filters: PitchFilters) -> list[dict[str, Any]]:
 
     for pitcher in pitchers.values():
         pitcher["teams"].sort()
+        pitcher["seasons"].sort(reverse=True)
+        for seasons in pitcher["team_seasons"].values():
+            seasons.sort(reverse=True)
     return sorted(
         pitchers.values(),
         key=lambda pitcher: ((pitcher["name"] or "").casefold(), pitcher["mlb_id"]),

@@ -500,6 +500,8 @@ def test_pitcher_directory_returns_ids_and_applies_shared_filters(profile_client
                 "name": "Profile Pitcher",
                 "throws": "R",
                 "teams": ["BOS"],
+                "seasons": [2026],
+                "team_seasons": {"BOS": [2026]},
                 "pitch_count": 4,
                 "games": 2,
                 "first_game_date": "2026-04-01",
@@ -817,13 +819,24 @@ def test_run_value_is_pitcher_friendly_weighted_and_respects_filters(app, profil
         )
         db.session.commit()
     data = profile_client.get("/api/v1/pitchers/100/profile?season=2026").get_json()
-    assert data["overall"]["run_value_per_100"] == -6.0
-    assert data["overall"]["run_value"] == -0.3
+    assert data["overall"]["run_value_per_100"] is None
+    assert data["overall"]["run_value"] is None
     assert data["overall"]["run_value_pitch_count"] == 4
     assert data["overall"]["run_value_denominator"] == 5
     assert data["overall"]["run_value_coverage_pct"] == 80.0
     arsenal = {p["pitch_type"]: p for p in data["arsenal"]}
     assert arsenal["FF"]["run_value_per_100"] == 6.7
+    assert arsenal["SL"]["run_value_per_100"] is None
+
+    # Once all source outcomes are available, RV/100 becomes a weighted
+    # per-pitch rate—not an unweighted mean of pitch-type rates.
+    with app.app_context():
+        db.session.get(Pitch, "1002_3_1").delta_run_expectancy = 0.0
+        db.session.commit()
+    data = profile_client.get("/api/v1/pitchers/100/profile?season=2026").get_json()
+    assert data["overall"]["run_value_per_100"] == -6.0
+    assert data["overall"]["run_value"] == -0.3
+    arsenal = {p["pitch_type"]: p for p in data["arsenal"]}
     assert arsenal["SL"]["run_value_per_100"] == -25.0
     assert (
         data["overall"]["run_value_per_100"]
@@ -1338,7 +1351,7 @@ def test_published_run_prevention_labels_show_sources_not_estimates(profile_clie
     html = profile_client.get("/savant-card").get_data(as_text=True)
     for key in ("fip", "xfip", "siera", "xera"):
         assert f'data-metric="{key}"' in html
-    assert "Published" in html
+    assert "Published · Season Reference" not in html
     assert "FanGraphs" in html
     assert "Baseball Savant" in html
     assert "Unadjusted" not in html

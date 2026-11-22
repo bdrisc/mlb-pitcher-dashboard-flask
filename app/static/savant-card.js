@@ -6,6 +6,8 @@ if (root) {
   const elements = {
     form: document.querySelector("#profile-filters"),
     pitcher: document.querySelector("#pitcher-select"),
+    pitcherSearch: document.querySelector("#pitcher-search"),
+    pitcherSuggestions: document.querySelector("#pitcher-suggestions"),
     season: document.querySelector("#season-filter"),
     team: document.querySelector("#team-filter"),
     pitchType: document.querySelector("#pitch-type-filter"),
@@ -173,7 +175,8 @@ if (root) {
     root.setAttribute("aria-busy", String(isLoading));
     setVisible(elements.loading, isLoading);
     elements.apply.disabled = isLoading || !elements.pitcher.value;
-    elements.pitcher.disabled = isLoading || state.pitchers.length === 0;
+    elements.pitcher.disabled = isLoading || matchingPitchers().length === 0;
+    elements.pitcherSearch.disabled = isLoading || state.pitchers.length === 0;
   }
 
   function clearMessages() {
@@ -224,10 +227,36 @@ if (root) {
     select.append(option);
   }
 
-  function populatePitchers() {
+  function matchingPitchers() {
+    const team = elements.team.value;
+    const search = elements.pitcherSearch.value.trim().toLocaleLowerCase();
+    return state.pitchers.filter((pitcher) => {
+      const nameMatches = !search || (pitcher.name || "").toLocaleLowerCase().includes(search) ||
+        String(pitcher.mlb_id).includes(search);
+      return nameMatches && (!team || pitcher.teams.includes(team));
+    });
+  }
+
+  function populateTeams() {
+    const selected = elements.team.value;
+    const teams = [...new Set(state.pitchers.flatMap((pitcher) => pitcher.teams))].sort();
+    elements.team.replaceChildren();
+    appendOption(elements.team, "", "All Teams");
+    teams.forEach((team) => appendOption(elements.team, team, team));
+    elements.team.disabled = teams.length === 0;
+    setValueIfAvailable(elements.team, selected);
+  }
+
+  function populatePitchers(preferredId = elements.pitcher.value, { selectFirst = false } = {}) {
+    const candidates = matchingPitchers();
     elements.pitcher.replaceChildren();
-    appendOption(elements.pitcher, "", "Select a Pitcher");
-    state.pitchers.forEach((pitcher) => {
+    elements.pitcherSuggestions.replaceChildren();
+    appendOption(elements.pitcher, "", candidates.length ? "Select a Pitcher" : "No Matching Pitchers");
+    candidates.forEach((pitcher) => {
+      const suggestion = document.createElement("option");
+      suggestion.value = pitcher.name || `MLB ${pitcher.mlb_id}`;
+      suggestion.label = pitcher.teams.join("/") || "Team N/A";
+      elements.pitcherSuggestions.append(suggestion);
       const hand = pitcher.throws ? `${pitcher.throws}HP` : "Throwing hand N/A";
       const teams = pitcher.teams.length ? pitcher.teams.join("/") : "Team N/A";
       appendOption(
@@ -236,6 +265,13 @@ if (root) {
         `${pitcher.name || `MLB ${pitcher.mlb_id}`} — ${teams} · ${hand}`,
       );
     });
+    const requested = String(preferredId || "");
+    const valid = candidates.some((pitcher) => String(pitcher.mlb_id) === requested);
+    elements.pitcher.value = valid ? requested : (selectFirst && candidates.length
+      ? String(candidates[0].mlb_id) : "");
+    elements.pitcher.disabled = candidates.length === 0;
+    elements.apply.disabled = !elements.pitcher.value;
+    return elements.pitcher.value;
   }
 
   function renderDataFreshness(freshness) {
@@ -251,29 +287,27 @@ if (root) {
   }
 
   function configureDependentFilters({ selectLatestSeason = false } = {}) {
+    const previousSeason = elements.season.value;
     const pitcher = selectedPitcher();
     elements.season.replaceChildren();
     appendOption(elements.season, "", "All Seasons");
-    elements.team.replaceChildren();
-    appendOption(elements.team, "", "All Teams");
-
     if (!pitcher) {
       elements.season.disabled = true;
-      elements.team.disabled = true;
       elements.apply.disabled = true;
       return;
     }
 
-    const firstYear = Number(pitcher.first_game_date.slice(0, 4));
-    const lastYear = Number(pitcher.last_game_date.slice(0, 4));
-    for (let year = lastYear; year >= firstYear; year -= 1) {
-      appendOption(elements.season, year, year);
-    }
-    pitcher.teams.forEach((team) => appendOption(elements.team, team, team));
-    elements.season.disabled = false;
-    elements.team.disabled = pitcher.teams.length === 0;
+    const team = elements.team.value;
+    const seasons = team ? (pitcher.team_seasons?.[team] || []) : (pitcher.seasons || []);
+    seasons.forEach((year) => appendOption(elements.season, year, year));
+    elements.season.disabled = seasons.length === 0;
     elements.apply.disabled = false;
-    if (selectLatestSeason) elements.season.value = String(lastYear);
+    const previousYearAvailable = seasons.some((year) => String(year) === previousSeason);
+    if (seasons.length && (selectLatestSeason || (previousSeason && !previousYearAvailable))) {
+      elements.season.value = String(seasons[0]);
+    } else {
+      setValueIfAvailable(elements.season, previousSeason);
+    }
   }
 
   function setValueIfAvailable(element, value) {
@@ -285,7 +319,6 @@ if (root) {
   function applyUrlState() {
     const params = new URLSearchParams(window.location.search);
     setValueIfAvailable(elements.season, params.get("season"));
-    setValueIfAvailable(elements.team, params.get("team"));
     setValueIfAvailable(elements.pitchType, params.get("pitch_type"));
     setValueIfAvailable(elements.batterSide, params.get("batter_side"));
     setValueIfAvailable(elements.homeAway, params.get("home_away"));
@@ -1073,13 +1106,10 @@ if (root) {
         return;
       }
 
-      populatePitchers();
+      populateTeams();
       const params = new URLSearchParams(window.location.search);
-      const requestedId = params.get("pitcher_id");
-      const requestedExists = state.pitchers.some(
-        (pitcher) => String(pitcher.mlb_id) === requestedId,
-      );
-      elements.pitcher.value = requestedExists ? requestedId : String(state.pitchers[0].mlb_id);
+      setValueIfAvailable(elements.team, params.get("team"));
+      populatePitchers(params.get("pitcher_id"), { selectFirst: true });
       configureDependentFilters({ selectLatestSeason: true });
       applyUrlState();
       await loadProfile();
@@ -1132,17 +1162,49 @@ if (root) {
     loadProfile();
   });
 
+  elements.pitcherSearch.addEventListener("input", () => {
+    populatePitchers(elements.pitcher.value);
+    configureDependentFilters();
+  });
+
+  // Selecting a native autocomplete suggestion with a unique exact name
+  // also selects that pitcher, without requiring an extra dropdown click.
+  elements.pitcherSearch.addEventListener("change", () => {
+    const search = elements.pitcherSearch.value.trim().toLocaleLowerCase();
+    const matches = matchingPitchers().filter(
+      (pitcher) => (pitcher.name || "").toLocaleLowerCase() === search,
+    );
+    if (matches.length !== 1) return;
+    elements.pitcher.value = String(matches[0].mlb_id);
+    configureDependentFilters({ selectLatestSeason: true });
+    elements.dateFrom.value = "";
+    elements.dateTo.value = "";
+    loadProfile();
+  });
+
+  elements.team.addEventListener("change", () => {
+    elements.pitcherSearch.value = "";
+    const previousId = elements.pitcher.value;
+    const nextId = populatePitchers(previousId, { selectFirst: true });
+    configureDependentFilters({ selectLatestSeason: nextId !== previousId });
+    elements.dateFrom.value = "";
+    elements.dateTo.value = "";
+    if (nextId) loadProfile();
+  });
+
   elements.pitcher.addEventListener("change", () => {
     configureDependentFilters({ selectLatestSeason: true });
-    elements.team.value = "";
     elements.dateFrom.value = "";
     elements.dateTo.value = "";
     loadProfile();
   });
 
   elements.reset.addEventListener("click", () => {
-    elements.season.value = "";
     elements.team.value = "";
+    elements.pitcherSearch.value = "";
+    populatePitchers(elements.pitcher.value, { selectFirst: true });
+    configureDependentFilters();
+    elements.season.value = "";
     elements.pitchType.value = "";
     elements.batterSide.value = "";
     elements.count.value = "";
