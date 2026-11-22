@@ -338,7 +338,9 @@ def test_tto_splits_reuse_metrics_and_respect_filters(app, profile_client):
     assert performance[1]["walk_pct"] == 0.0
     assert performance[1]["k_minus_bb_pct"] == 50.0
     assert performance[1]["whiff_pct"] == 50.0
-    assert performance[1]["xwoba_against"] == 0.62
+    assert performance[1]["xwoba_against"] == 0.31
+    assert performance[1]["xwoba_eligible_pa"] == 2
+    assert performance[1]["xwoba_scored_pa"] == 2
     assert performance[1]["avg_velocity"] == 91.0
     assert performance[1]["small_sample"] is True
     assert performance[2]["plate_appearances"] == 0
@@ -891,13 +893,12 @@ def test_run_value_matches_savant_published_2026_nola_arsenal(app):
 
 
 def test_xwoba_against_includes_terminal_outcomes_and_respects_filters(app, profile_client):
-    with app.app_context():
-        # One strikeout and one batted ball: contact-only stays .620, while
-        # overall includes the strikeout's zero weight and becomes .310.
-        db.session.get(Pitch, "1001_1_2").estimated_woba = 0.0
-        db.session.commit()
+    # No contact estimate is present on the strikeout. It still contributes
+    # a legitimate zero to Savant-style full xwOBA and the PA denominator.
     data = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile").json
     assert data["overall"]["xwoba_against"] == 0.310
+    assert data["overall"]["xwoba_eligible_pa"] == 2
+    assert data["overall"]["xwoba_scored_pa"] == 2
     assert data["overall"]["xwoba_on_contact"] == 0.620
     filtered = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile?batter_side=R").json
     assert filtered["overall"]["xwoba_against"] == 0.0
@@ -930,12 +931,29 @@ def test_xwoba_against_includes_terminal_outcomes_and_respects_filters(app, prof
                     events=event,
                     balls=0,
                     strikes=0,
-                    estimated_woba=weight,
+                    # A contact-only value on a walk/HBP is deliberately
+                    # misleading; the correct calculation uses woba_value.
+                    estimated_woba=0.9 if event in ("walk", "hit_by_pitch") else weight,
+                    woba_value=weight if event in ("walk", "hit_by_pitch") else None,
                 )
             )
         db.session.commit()
-    data = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile").json
-    assert data["overall"]["xwoba_against"] == round((0.620 + 0.698223 + 0.729169 + 0.120) / 5, 3)
+
+    # An eligible field out without contact tracking must not silently drop
+    # from the full xwOBA denominator, creating an optimistic partial average.
+    full = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile").json["overall"]
+    assert (full["xwoba_eligible_pa"], full["xwoba_scored_pa"]) == (6, 5)
+    assert full["xwoba_against"] is None
+
+    with app.app_context():
+        db.session.get(Pitch, "1001_18_1").estimated_woba = 0.05
+        # Verified Savant PA weights take precedence when available.
+        db.session.get(Pitch, "1001_10_1").savant_woba_numerator = 0.702
+        db.session.get(Pitch, "1001_10_1").savant_woba_denominator = 1
+        db.session.commit()
+    full = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/profile").json["overall"]
+    assert (full["xwoba_eligible_pa"], full["xwoba_scored_pa"]) == (6, 6)
+    assert full["xwoba_against"] == round((0.620 + 0.702 + 0.729169 + 0.120 + 0.05) / 6, 3)
 
 
 def test_xwoba_against_unavailable_is_not_zero(app, profile_client):
