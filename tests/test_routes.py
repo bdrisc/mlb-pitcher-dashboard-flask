@@ -339,10 +339,7 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b"pairExpanded: false" in response.data
     assert b"state.pairExpanded = false;" in response.data
     assert b"visiblePairs.forEach((pair) => {" in response.data
-    assert (
-        b"state.pairExpanded ? sorted : sorted.slice(0, MAX_PITCH_PAIR_ROWS)"
-        in response.data
-    )
+    assert b"state.pairExpanded ? sorted : sorted.slice(0, MAX_PITCH_PAIR_ROWS)" in response.data
     assert b"setVisible(elements.pairActions, pairs.length > MAX_PITCH_PAIR_ROWS)" in response.data
     assert b'elements.pairToggle.setAttribute("aria-expanded"' in response.data
     assert b"Show Top 5" in response.data
