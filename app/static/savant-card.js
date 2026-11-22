@@ -882,6 +882,13 @@ if (root) {
         "xwoba_against", "run_value_per_100",
       ]) {
         const cell = tableCell(row, formatMetric(key, trip[key]));
+        if (key === "xwoba_against") {
+          cell.title = "Full Savant-style xwOBA allowed on eligible PA in this lineup trip: " +
+            `${trip.xwoba_scored_pa} of ${trip.xwoba_eligible_pa} scored. ` +
+            (trip.xwoba_scored_pa < trip.xwoba_eligible_pa
+              ? "Withheld due to incomplete outcome tracking."
+              : "Lower is better.");
+        }
         if (key === "run_value_per_100") {
           cell.title = "Runs prevented per 100 physical pitches: "
             + Number(trip.run_value_pitch_count).toLocaleString("en-US")
