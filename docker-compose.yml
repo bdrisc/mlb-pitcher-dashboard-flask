@@ -31,6 +31,10 @@ services:
       WEB_CONCURRENCY: "2"
     ports:
       - "8080:8080"
+    volumes:
+      # Keep local Statcast download chunks through web image rebuilds.
+      # This never mounts into the public Render deployment.
+      - statcast_cache:/app/data/cache/statcast
     depends_on:
       database:
         condition: service_healthy
@@ -50,3 +54,4 @@ services:
 
 volumes:
   postgres_data:
+  statcast_cache:
