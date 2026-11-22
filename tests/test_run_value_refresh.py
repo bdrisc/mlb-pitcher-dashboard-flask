@@ -9,6 +9,7 @@ from app.extensions import db
 from app.models import Game, Pitch, Player
 from app.services.run_value_refresh import (
     RunValueRefreshError,
+    fetch_verified_values,
     refresh_run_values,
     validate_source,
 )
