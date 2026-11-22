@@ -212,6 +212,20 @@ def refresh_pitch_types(
             try:
                 edits = plan_pitch_type_changes(existing, official, pitcher_id=pid, season=year)
                 if apply and edits:
+                    # Pitch-type-adjusted angles depend on the prior classification.
+                    # Invalidate only these derived scores, not tracked/raw angles,
+                    # so stale SL expectations are never displayed after an SL->ST relabel.
+                    for edit in edits:
+                        edit.update(
+                            {
+                                "expected_vaa": None,
+                                "vaa_adj": None,
+                                "vaa_adj_model_id": None,
+                                "expected_haa": None,
+                                "haaaa": None,
+                                "haaaa_model_id": None,
+                            }
+                        )
                     db.session.execute(update(Pitch), edits)
                     db.session.commit()
                 summary["verified"] += 1
