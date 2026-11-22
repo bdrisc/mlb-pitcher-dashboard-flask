@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 from app.extensions import db
-from app.models import Game, Pitch
+from app.models import Game
 from tests.test_pitcher_profile import PITCHER_ID, _pitch
 from tests.test_pitcher_profile import profile_client as profile_client_fixture
 
