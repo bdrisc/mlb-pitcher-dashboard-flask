@@ -333,7 +333,7 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b"sorted.slice(0, MAX_PITCH_PAIR_ROWS).forEach((pair) => {" in response.data
     assert b"pairs.filter((pair) => !selected || pair.pitch_a === selected)" in response.data
     assert b"Batted balls occurred, but none have a usable Statcast" in response.data
-    assert b"The second pitch of this pair produced no batted balls." in response.data
+    assert b"No eligible classified batted balls were recorded" in response.data
     assert b"pair.xwoba_scored_batted_balls" in response.data
     assert b"pair.xwoba_batted_balls" in response.data
     assert b"overall.xwoba_scored_pa" in response.data
