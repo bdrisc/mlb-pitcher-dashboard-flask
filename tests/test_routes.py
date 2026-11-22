@@ -116,6 +116,10 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b">Pitch Pair Effectiveness</h2>" in response.data
     assert b'id="pitch-pair-previous"' in response.data
     assert b'id="pitch-pair-body"' in response.data
+    assert b'id="pitch-pair-actions"' in response.data
+    assert b'id="pitch-pair-toggle"' in response.data
+    assert b'aria-controls="pitch-pair-table" aria-expanded="false"' in response.data
+    assert b"Show All Pairs" in response.data
     assert b'data-pair-sort="whiff_pct"' in response.data
     assert b'data-pair-sort="csw_pct"' in response.data
     assert b'data-pair-sort="xwoba_on_contact"' in response.data
@@ -262,6 +266,8 @@ def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
     assert b".pitch-pair-table {" in response.data
     assert b".pitch-pair-small-sample" in response.data
     assert b".pitch-pair-selector {" in response.data
+    assert b".pitch-pair-actions {" in response.data
+    assert b".pitch-pair-toggle {" in response.data
     assert b".location-performance-cell {" in response.data
     assert b"aspect-ratio: 0.78;" in response.data
     assert b"width: min(100%, 380px);" in response.data
@@ -330,7 +336,19 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     )
     assert b"function renderPitchPairRows()" in response.data
     assert b"const MAX_PITCH_PAIR_ROWS = 5;" in response.data
-    assert b"sorted.slice(0, MAX_PITCH_PAIR_ROWS).forEach((pair) => {" in response.data
+    assert b"pairExpanded: false" in response.data
+    assert b"state.pairExpanded = false;" in response.data
+    assert b"visiblePairs.forEach((pair) => {" in response.data
+    assert (
+        b"state.pairExpanded ? sorted : sorted.slice(0, MAX_PITCH_PAIR_ROWS)"
+        in response.data
+    )
+    assert b"setVisible(elements.pairActions, pairs.length > MAX_PITCH_PAIR_ROWS)" in response.data
+    assert b'elements.pairToggle.setAttribute("aria-expanded"' in response.data
+    assert b"Show Top 5" in response.data
+    assert b"Show All ${pairs.length} Pairs" in response.data
+    assert b'elements.pairToggle.addEventListener("click"' in response.data
+    assert b"state.pairExpanded = !state.pairExpanded;" in response.data
     assert b"pairs.filter((pair) => !selected || pair.pitch_a === selected)" in response.data
     assert b"Batted balls occurred, but none have a usable Statcast" in response.data
     assert b"No eligible classified batted balls were recorded" in response.data
