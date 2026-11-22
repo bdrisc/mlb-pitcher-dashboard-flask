@@ -628,13 +628,18 @@ separate sequences, and same-pitch repeats (FF → FF) are supported.
   walks, or other non-contact outcomes. Its denominator is the number of
   batted balls with tracked expected values. The count below the cell and
   its tooltip show tracked and observed BBE coverage. A pair without
-  tracked contact shows a dash, never an invented zero.
+  tracked contact shows a dash, never an invented zero. Hovering the dash
+  distinguishes **no batted balls** from **batted balls lacking a usable
+  Statcast xwOBA estimate**.
 - **RV/100** uses the same context-neutral pitch-level run value and pitcher
   sign as the existing profile: negative opponent run value is good for the
   pitcher. It is calculated on second pitches only, with all second pitches
   in the denominator. If run-value tracking is incomplete, RV/100 is withheld;
   tooltips disclose observed vs. eligible coverage.
-- Click column headers to sort, or select an observed previous pitch.
+- The table displays **at most five pairs**: by default the five most
+  frequently observed sequences. Changing the **Previous Pitch** selector
+  or column sort first filters/sorts the entire matching sample, then shows
+  the first five results. All pair data remain available in the API.
   Pairs with fewer than **30** observed transitions are labeled *Small
   sample*. Missing measurements display a dash; no invented rates.
   These are *observed* associations, not estimates of causal sequencing skill.
