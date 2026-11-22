@@ -45,18 +45,19 @@ def validate_source(frame, aggregate):
         raise RunValueRefreshError("Savant did not return its explicit context-neutral total.")
     official = aggregate[0]
     # Savant's aggregate counts physical pitches, including those without a pitch_type,
-    # but excludes automatic balls (pitch-clock/intentional-walk events). Match the
-    # official denominator without discarding unclassified real pitches.
-    automatic_balls = int(
-        frame["description"].astype("string").str.lower().eq("automatic_ball").sum()
-    )
-    count = len(frame) - automatic_balls
+    # but excludes non-pitch events: automatic balls (pitch-clock/intentional walks)
+    # and automatic strikes (batter pitch-clock violations). Keep all CSV rows for
+    # stable pitch-identity matching; adjust only the official pitch denominator.
+    descriptions = frame["description"].astype("string").str.lower()
+    automatic_balls = int(descriptions.eq("automatic_ball").sum())
+    automatic_strikes = int(descriptions.eq("automatic_strike").sum())
+    count = len(frame) - automatic_balls - automatic_strikes
     total = -float(values.sum())
     if count != int(official["pitches"]):
         raise RunValueRefreshError(
             f"Pitch counts differ from the Savant neutral aggregate: physical={count}, "
             f"CSV rows={len(frame)}, automatic balls={automatic_balls}, "
-            f"aggregate={int(official['pitches'])}."
+            f"automatic strikes={automatic_strikes}, aggregate={int(official['pitches'])}."
         )
     if abs(total - float(official["delev_pitcher_run_exp"])) > 0.005:
         raise RunValueRefreshError("CSV values do not reproduce the Savant neutral total.")
