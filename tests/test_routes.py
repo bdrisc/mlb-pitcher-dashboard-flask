@@ -42,6 +42,13 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b'data-pitchers-url="/api/v1/pitchers"' in response.data
     assert b'id="profile-filters"' in response.data
     assert b'id="pitcher-select"' in response.data
+    assert b'id="pitcher-search"' in response.data
+    assert b'placeholder="Search by name' in response.data
+    assert b'aria-label="Choose pitcher"' in response.data
+    assert b'id="team-filter"' in response.data
+    assert b"<small>Plate Appearances</small>" not in response.data
+    assert b"Published \xc2\xb7 Season Reference" not in response.data
+    assert b"Hover, zoom, pan, isolate pitch types" not in response.data
     assert b'id="database-freshness"' in response.data
     assert b'id="arsenal-body"' in response.data
     assert b'id="platoon-splits"' in response.data
@@ -266,6 +273,7 @@ def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
     assert b".pitch-pair-table {" in response.data
     assert b".pitch-pair-small-sample" in response.data
     assert b".pitch-pair-selector {" in response.data
+    assert b".pitcher-picker {" in response.data
     assert b".pitch-pair-actions {" in response.data
     assert b".pitch-pair-toggle {" in response.data
     assert b".location-performance-cell {" in response.data
@@ -335,6 +343,14 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
         in response.data
     )
     assert b"function renderPitchPairRows()" in response.data
+    assert b"pitcherSearch: document.querySelector" in response.data
+    assert b"function matchingPitchers()" in response.data
+    assert b"function populateTeams()" in response.data
+    assert b"function populatePitchers(" in response.data
+    assert b"pitcher.teams.includes(team)" in response.data
+    assert b"pitcher.team_seasons?.[team]" in response.data
+    assert b'elements.team.addEventListener("change"' in response.data
+    assert b'elements.pitcherSearch.addEventListener("input"' in response.data
     assert b"const MAX_PITCH_PAIR_ROWS = 5;" in response.data
     assert b"pairExpanded: false" in response.data
     assert b"state.pairExpanded = false;" in response.data
