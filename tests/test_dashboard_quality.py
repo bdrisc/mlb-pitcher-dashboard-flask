@@ -122,3 +122,27 @@ def test_automatic_calls_do_not_enter_rate_denominators(app, profile_client):
     assert overall["strike_pct"] == 100.0
     assert overall["csw_pct"] == 75.0
     assert overall["zone_pct"] == 50.0
+
+def test_truncated_at_bat_does_not_inflate_k_bb_pa_denominators(app, profile_client):
+    with app.app_context():
+        db.session.add(
+            _pitch(
+                pitch_id="interrupted_pa",
+                game_pk=1001,
+                batter_id=200,
+                at_bat_number=73,
+                pitch_number=1,
+                inning_half="Top",
+                pitch_type="FF",
+                batter_side="R",
+                description="ball",
+                events="truncated_pa",
+            )
+        )
+        db.session.commit()
+
+    result = profile_client.get(URL).json
+    assert result["sample"]["plate_appearances"] == 2
+    assert result["overall"]["strikeout_pct"] == 50.0
+    assert result["overall"]["walk_pct"] == 0.0
+    assert result["overall"]["k_minus_bb_pct"] == 50.0
