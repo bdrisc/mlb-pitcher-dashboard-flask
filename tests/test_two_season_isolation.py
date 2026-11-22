@@ -12,47 +12,94 @@ from app.models import Game, Pitch, Player, PublishedPitchingMetric, SavantActiv
 def two_year_client(app):
     now = datetime.now(timezone.utc)
     with app.app_context():
-        db.session.add_all([
-            Player(mlb_id=123456, player_name="Two Season Pitcher", throws="R"),
-            Player(mlb_id=234567, player_name="Test Batter", bats="R"),
-            Game(game_pk=2025001, season=2025, game_date=date(2025, 4, 1),
-                 game_type="R", home_team="BOS", away_team="NYY"),
-            Game(game_pk=2026001, season=2026, game_date=date(2026, 4, 1),
-                 game_type="R", home_team="BOS", away_team="NYY"),
-        ])
+        db.session.add_all(
+            [
+                Player(mlb_id=123456, player_name="Two Season Pitcher", throws="R"),
+                Player(mlb_id=234567, player_name="Test Batter", bats="R"),
+                Game(
+                    game_pk=2025001,
+                    season=2025,
+                    game_date=date(2025, 4, 1),
+                    game_type="R",
+                    home_team="BOS",
+                    away_team="NYY",
+                ),
+                Game(
+                    game_pk=2026001,
+                    season=2026,
+                    game_date=date(2026, 4, 1),
+                    game_type="R",
+                    home_team="BOS",
+                    away_team="NYY",
+                ),
+            ]
+        )
         db.session.flush()
         for season, game_pk, velocity, adj, haaaa in [
             (2025, 2025001, 93.0, None, None),
             (2026, 2026001, 96.0, 0.50, -0.25),
         ]:
-            db.session.add(Pitch(
-                pitch_id=f"{game_pk}_1_1", game_pk=game_pk,
-                pitcher_id=123456, batter_id=234567,
-                at_bat_number=1, pitch_number=1,
-                pitch_type="FF", pitch_name="Four-Seam Fastball",
-                inning=1, inning_half="Top", batter_side="R",
-                balls=0, strikes=0, velocity=velocity,
-                spin_rate=2350.0, release_pos_x=-1.5, release_pos_z=5.8,
-                plate_x=0.0, plate_z=2.4, zone=5,
-                horizontal_break_inches=-7, vertical_break_inches=16,
-                vaa=-4.5, haa=0.7, vaa_adj=adj, haaaa=haaaa,
-                delta_run_expectancy=-0.05, description="called_strike",
-            ))
-            db.session.add(PublishedPitchingMetric(
-                mlb_id=123456, season=season, batter_side="ALL",
-                fip=3.0 if season == 2025 else 4.0,
-                xfip=3.1, siera=3.2,
-                xera=2.9 if season == 2025 else 4.1,
-            ))
-            db.session.add(PublishedPitchingMetric(
-                mlb_id=123456, season=season, batter_side="R",
-                fip=3.5, xfip=3.6,
-            ))
-            db.session.add(SavantActiveSpin(
-                mlb_id=123456, season=season, pitch_type="FF",
-                active_spin_pct=90.0 if season == 2025 else 80.0,
-                updated_at=now,
-            ))
+            db.session.add(
+                Pitch(
+                    pitch_id=f"{game_pk}_1_1",
+                    game_pk=game_pk,
+                    pitcher_id=123456,
+                    batter_id=234567,
+                    at_bat_number=1,
+                    pitch_number=1,
+                    pitch_type="FF",
+                    pitch_name="Four-Seam Fastball",
+                    inning=1,
+                    inning_half="Top",
+                    batter_side="R",
+                    balls=0,
+                    strikes=0,
+                    velocity=velocity,
+                    spin_rate=2350.0,
+                    release_pos_x=-1.5,
+                    release_pos_z=5.8,
+                    plate_x=0.0,
+                    plate_z=2.4,
+                    zone=5,
+                    horizontal_break_inches=-7,
+                    vertical_break_inches=16,
+                    vaa=-4.5,
+                    haa=0.7,
+                    vaa_adj=adj,
+                    haaaa=haaaa,
+                    delta_run_expectancy=-0.05,
+                    description="called_strike",
+                )
+            )
+            db.session.add(
+                PublishedPitchingMetric(
+                    mlb_id=123456,
+                    season=season,
+                    batter_side="ALL",
+                    fip=3.0 if season == 2025 else 4.0,
+                    xfip=3.1,
+                    siera=3.2,
+                    xera=2.9 if season == 2025 else 4.1,
+                )
+            )
+            db.session.add(
+                PublishedPitchingMetric(
+                    mlb_id=123456,
+                    season=season,
+                    batter_side="R",
+                    fip=3.5,
+                    xfip=3.6,
+                )
+            )
+            db.session.add(
+                SavantActiveSpin(
+                    mlb_id=123456,
+                    season=season,
+                    pitch_type="FF",
+                    active_spin_pct=90.0 if season == 2025 else 80.0,
+                    updated_at=now,
+                )
+            )
         db.session.commit()
     return app.test_client()
 
