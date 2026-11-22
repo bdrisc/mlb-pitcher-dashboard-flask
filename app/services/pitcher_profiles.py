@@ -322,7 +322,6 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         if release_side_sd_ft is not None and release_height_sd_ft is not None
         else None
     )
-    pitches = _integer(row, "pitch_count")
     physical_pitches = _integer(row, "physical_pitch_count")
     swings = _integer(row, "swings")
     location_tracked = _integer(row, "location_tracked")
