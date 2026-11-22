@@ -121,7 +121,7 @@ def test_large_curve_relabel_rejects_many_unrelated_edits_and_excess_extras():
         plan_pitch_type_changes(existing, official)
 
 
-def test_pitch_type_refresh_invalidates_adjusted_angles_but_preserves_raw_tracking(app, monkeypatch):
+def test_pitch_type_refresh_clears_stale_adjusted_angles(app, monkeypatch):
     with app.app_context():
         db.session.add(Player(mlb_id=592332, player_name="Pitch Type Refresh Test"))
         db.session.add(
