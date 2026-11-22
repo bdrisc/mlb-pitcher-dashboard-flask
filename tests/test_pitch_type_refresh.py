@@ -121,7 +121,7 @@ def test_large_curve_relabel_rejects_many_unrelated_edits_and_excess_extras():
         plan_pitch_type_changes(existing, official)
 
 
-def test_pitch_type_refresh_dry_run_then_updates_only_names_and_codes(app, monkeypatch):
+def test_pitch_type_refresh_invalidates_adjusted_angles_but_preserves_raw_tracking(app, monkeypatch):
     with app.app_context():
         db.session.add(Player(mlb_id=592332, player_name="Pitch Type Refresh Test"))
         db.session.add(
@@ -149,6 +149,14 @@ def test_pitch_type_refresh_dry_run_then_updates_only_names_and_codes(app, monke
                     strikes=0,
                     velocity=91.5,
                     arm_angle=39.4,
+                    vaa=-4.1,
+                    haa=3.0,
+                    expected_vaa=-4.7,
+                    vaa_adj=0.6,
+                    vaa_adj_model_id="old-vertical-model",
+                    expected_haa=3.2,
+                    haaaa=-0.2,
+                    haaaa_model_id="old-horizontal-model",
                     delta_run_expectancy=-0.123,
                 )
             )
@@ -160,6 +168,7 @@ def test_pitch_type_refresh_dry_run_then_updates_only_names_and_codes(app, monke
         dry = refresh_pitch_types(pitcher_id=592332, season=2026, apply=False)
         assert dry["verified"] == 1 and dry["changed_pitches"] == 1
         assert db.session.get(Pitch, "823001_1_1").pitch_type == "SL"
+        assert db.session.get(Pitch, "823001_1_1").vaa_adj == pytest.approx(0.6)
         done = refresh_pitch_types(pitcher_id=592332, season=2026, apply=True)
         assert done["verified"] == 1 and done["changed_pitches"] == 1
         db.session.expire_all()
@@ -167,6 +176,18 @@ def test_pitch_type_refresh_dry_run_then_updates_only_names_and_codes(app, monke
         assert pitch.pitch_type == "ST" and pitch.pitch_name == "Sweeper"
         assert pitch.velocity == pytest.approx(91.5)
         assert pitch.arm_angle == pytest.approx(39.4)
+        assert pitch.vaa == pytest.approx(-4.1)
+        assert pitch.haa == pytest.approx(3.0)
+        assert all(
+            getattr(pitch, field) is None
+            for field in (
+                "expected_vaa", "vaa_adj", "vaa_adj_model_id",
+                "expected_haa", "haaaa", "haaaa_model_id",
+            )
+        )
+        unchanged = db.session.get(Pitch, "823001_1_2")
+        assert unchanged.vaa_adj == pytest.approx(0.6)
+        assert unchanged.haaaa == pytest.approx(-0.2)
         assert pitch.delta_run_expectancy == pytest.approx(-0.123)
 
 
