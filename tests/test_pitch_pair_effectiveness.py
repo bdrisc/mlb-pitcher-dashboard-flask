@@ -19,7 +19,7 @@ def pair_client(app, profile_client):
         db.session.query(Pitch).delete()
         rows = [
             # game_pk, PA, pitch_no, pitch_type, side, balls, strikes,
-            # description, event, expected PA xwOBA, pitcher-opponent RV
+            # description, event, contact xwOBA estimate, pitcher-opponent RV
             (1001, 1, 1, "FF", "R", 0, 0, "called_strike", None, None, None),
             (1001, 1, 2, "SL", "R", 0, 1, "swinging_strike", None, None, -0.04),
             (1001, 1, 3, "FF", "R", 0, 2, "called_strike", None, None, 0.01),
@@ -47,6 +47,7 @@ def pair_client(app, profile_client):
                     description=desc,
                     events=event,
                     estimated_woba=xwoba,
+                    batted_ball_type="line_drive" if desc == "hit_into_play" else None,
                     delta_run_expectancy=rv,
                 )
             )
@@ -73,8 +74,8 @@ def test_directional_pair_outcomes_include_exact_second_pitch_denominators(pair_
     assert ff_sl["small_sample"] is True
     assert (ff_sl["whiff_count"], ff_sl["swing_count"], ff_sl["whiff_pct"]) == (1, 3, 33.3)
     assert (ff_sl["csw_count"], ff_sl["csw_pct"]) == (1, 33.3)
-    assert (ff_sl["xwoba_eligible_pa"], ff_sl["xwoba_scored_pa"]) == (1, 1)
-    assert ff_sl["xwoba_against"] == 0.5
+    assert (ff_sl["xwoba_batted_balls"], ff_sl["xwoba_scored_batted_balls"]) == (1, 1)
+    assert ff_sl["xwoba_on_contact"] == 0.5
     assert ff_sl["rv_scored_pitches"] == 3
     assert ff_sl["run_value_per_100"] == 0.3
 
@@ -82,12 +83,12 @@ def test_directional_pair_outcomes_include_exact_second_pitch_denominators(pair_
     assert reverse["pair_count"] == 2
     assert (reverse["whiff_count"], reverse["swing_count"], reverse["whiff_pct"]) == (1, 1, 100.0)
     assert reverse["csw_pct"] == 100
-    assert reverse["xwoba_against"] is None
-    assert reverse["xwoba_eligible_pa"] == 0
+    assert reverse["xwoba_on_contact"] is None
+    assert reverse["xwoba_batted_balls"] == 0
 
     repeat = pairs[("SL", "SL")]
     assert repeat["pair_count"] == 1
-    assert repeat["xwoba_against"] == 0.7
+    assert repeat["xwoba_on_contact"] == 0.7
     assert repeat["run_value_per_100"] == -10.0
 
 
@@ -95,12 +96,12 @@ def test_second_pitch_filters_preserve_real_previous_pitch(pair_client):
     filtered = _pairs(pair_client, "?pitch_type=SL&batter_side=L")
     assert filtered["total_pairs"] == 1
     assert [(p["pitch_a"], p["pitch_b"]) for p in filtered["pairs"]] == [("FF", "SL")]
-    assert filtered["pairs"][0]["xwoba_against"] == 0.5
+    assert filtered["pairs"][0]["xwoba_on_contact"] == 0.5
 
     counted = _pairs(pair_client, "?pitch_type=SL&balls=1&strikes=1")
     assert counted["total_pairs"] == 1
     assert counted["pairs"][0]["pitch_a"] == "FF"
-    assert counted["pairs"][0]["xwoba_against"] == 0.5
+    assert counted["pairs"][0]["xwoba_on_contact"] == 0.5
 
     right = _pairs(pair_client, "?batter_side=R&pitch_type=SL")
     assert right["total_pairs"] == 3
@@ -115,12 +116,28 @@ def test_missing_tracking_is_not_treated_as_zero(app, pair_client):
 
     rows = {(p["pitch_a"], p["pitch_b"]): p for p in _pairs(pair_client)["pairs"]}
     ff_sl = rows[("FF", "SL")]
-    assert ff_sl["xwoba_eligible_pa"] == 1
-    assert ff_sl["xwoba_scored_pa"] == 0
-    assert ff_sl["xwoba_against"] is None
+    assert ff_sl["xwoba_batted_balls"] == 1
+    assert ff_sl["xwoba_scored_batted_balls"] == 0
+    assert ff_sl["xwoba_on_contact"] is None
     assert ff_sl["rv_scored_pitches"] == 2
     assert ff_sl["run_value_per_100"] is None
     assert ff_sl["whiff_pct"] == 33.3
+
+
+def test_pair_contact_xwoba_does_not_use_noncontact_expected_values(app, pair_client):
+    # An artificial contact estimate on a strikeout must never inflate or
+    # expand xwOBAcon's denominator.
+    with app.app_context():
+        strikeout = db.session.get(Pitch, "pair_1_2")
+        strikeout.events = "strikeout"
+        strikeout.estimated_woba = 0.93
+        db.session.commit()
+    pairs = {(p["pitch_a"], p["pitch_b"]): p for p in _pairs(pair_client)["pairs"]}
+    ff_sl = pairs[("FF", "SL")]
+    assert ff_sl["pair_count"] == 3
+    assert ff_sl["xwoba_batted_balls"] == 1
+    assert ff_sl["xwoba_scored_batted_balls"] == 1
+    assert ff_sl["xwoba_on_contact"] == 0.5
 
 
 def test_gaps_and_automatic_calls_cannot_create_new_pairs(app, pair_client):
