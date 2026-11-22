@@ -7,6 +7,7 @@ if (root) {
     form: document.querySelector("#profile-filters"),
     pitcher: document.querySelector("#pitcher-select"),
     pitcherSearch: document.querySelector("#pitcher-search"),
+    pitcherSuggestions: document.querySelector("#pitcher-suggestions"),
     season: document.querySelector("#season-filter"),
     team: document.querySelector("#team-filter"),
     pitchType: document.querySelector("#pitch-type-filter"),
@@ -249,8 +250,13 @@ if (root) {
   function populatePitchers(preferredId = elements.pitcher.value, { selectFirst = false } = {}) {
     const candidates = matchingPitchers();
     elements.pitcher.replaceChildren();
+    elements.pitcherSuggestions.replaceChildren();
     appendOption(elements.pitcher, "", candidates.length ? "Select a Pitcher" : "No Matching Pitchers");
     candidates.forEach((pitcher) => {
+      const suggestion = document.createElement("option");
+      suggestion.value = pitcher.name || `MLB ${pitcher.mlb_id}`;
+      suggestion.label = pitcher.teams.join("/") || "Team N/A";
+      elements.pitcherSuggestions.append(suggestion);
       const hand = pitcher.throws ? `${pitcher.throws}HP` : "Throwing hand N/A";
       const teams = pitcher.teams.length ? pitcher.teams.join("/") : "Team N/A";
       appendOption(
@@ -1155,6 +1161,21 @@ if (root) {
   elements.pitcherSearch.addEventListener("input", () => {
     populatePitchers(elements.pitcher.value);
     configureDependentFilters();
+  });
+
+  // Selecting a native autocomplete suggestion with a unique exact name
+  // also selects that pitcher, without requiring an extra dropdown click.
+  elements.pitcherSearch.addEventListener("change", () => {
+    const search = elements.pitcherSearch.value.trim().toLocaleLowerCase();
+    const matches = matchingPitchers().filter(
+      (pitcher) => (pitcher.name || "").toLocaleLowerCase() === search,
+    );
+    if (matches.length !== 1) return;
+    elements.pitcher.value = String(matches[0].mlb_id);
+    configureDependentFilters({ selectLatestSeason: true });
+    elements.dateFrom.value = "";
+    elements.dateTo.value = "";
+    loadProfile();
   });
 
   elements.team.addEventListener("change", () => {
