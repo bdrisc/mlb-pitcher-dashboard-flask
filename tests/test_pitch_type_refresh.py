@@ -168,3 +168,50 @@ def test_pitch_type_refresh_dry_run_then_updates_only_names_and_codes(app, monke
         assert pitch.velocity == pytest.approx(91.5)
         assert pitch.arm_angle == pytest.approx(39.4)
         assert pitch.delta_run_expectancy == pytest.approx(-0.123)
+
+
+def test_verified_walker_sweeper_vintage_shift_requires_exact_identity_and_scope():
+    """A 187/609 relabel is safe only for Walker's verified 2026 source vintage."""
+    existing = [
+        (f"822751_1_{i}", "SI" if i <= 397 else "SL" if i <= 584 else "FF")
+        for i in range(1, 610)
+    ]
+    official = {
+        pitch_id: ("ST" if code == "SL" else code) for pitch_id, code in existing
+    }
+    official.update({f"822751_2_{i}": "ST" for i in range(1, 11)})
+
+    with pytest.raises(PitchTypeSourceError, match="exceed the safety cap"):
+        plan_pitch_type_changes(existing, official)
+    edits = plan_pitch_type_changes(
+        existing, official, pitcher_id=676254, season=2026
+    )
+    assert len(edits) == 187
+    assert {row["pitch_type"] for row in edits} == {"ST"}
+    assert {row["pitch_name"] for row in edits} == {"Sweeper"}
+
+    for pitcher_id, season in ((676254, 2025), (123456, 2026)):
+        with pytest.raises(PitchTypeSourceError, match="exceed the safety cap"):
+            plan_pitch_type_changes(
+                existing, official, pitcher_id=pitcher_id, season=season
+            )
+
+    changed = dict(official)
+    changed[existing[0][0]] = "FF"  # Unrelated SI->FF edit must fail.
+    with pytest.raises(PitchTypeSourceError, match="exceed the safety cap"):
+        plan_pitch_type_changes(
+            existing, changed, pitcher_id=676254, season=2026
+        )
+
+    with pytest.raises(PitchTypeSourceError, match="do not match"):
+        plan_pitch_type_changes(
+            existing, {key: value for key, value in official.items() if key != existing[0][0]},
+            pitcher_id=676254, season=2026
+        )
+
+    extra_source = dict(official)
+    extra_source["822751_2_11"] = "ST"
+    with pytest.raises(PitchTypeSourceError, match="exceed the safety cap"):
+        plan_pitch_type_changes(
+            existing, extra_source, pitcher_id=676254, season=2026
+        )
