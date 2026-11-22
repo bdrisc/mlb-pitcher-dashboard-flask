@@ -44,13 +44,14 @@ def source_frame():
 
 
 def test_source_requires_matching_explicit_neutral_total_and_count():
-    expected = [{"pitches": 2, "delev_pitcher_run_exp": -0.2}]
+    # Savant includes unclassified source pitch rows in its physical pitch count.
+    expected = [{"pitches": 3, "delev_pitcher_run_exp": -0.2}]
     values = validate_source(source_frame(), expected)
     assert values == {"1_1_1": -0.1, "1_1_2": 0.3, "1_2_1": None}
     for invalid in (
-        [{"pitches": 3, "delev_pitcher_run_exp": -0.2}],
-        [{"pitches": 2, "delev_pitcher_run_exp": -0.5}],
-        [{"pitches": 2, "unadj_pitcher_run_exp": -0.2}],
+        [{"pitches": 2, "delev_pitcher_run_exp": -0.2}],
+        [{"pitches": 3, "delev_pitcher_run_exp": -0.5}],
+        [{"pitches": 3, "unadj_pitcher_run_exp": -0.2}],
     ):
         with pytest.raises(RunValueRefreshError):
             validate_source(source_frame(), invalid)
@@ -65,12 +66,13 @@ def test_savant_csv_and_neutral_total_both_use_regular_season_only(monkeypatch):
         requests.append((path, params))
         if path == "/statcast_search/csv":
             return source_frame().to_csv(index=False).encode("utf-8")
-        return b'[{"pitches": 2, "delev_pitcher_run_exp": -0.2}]'
+        return b'[{"pitches": 3, "delev_pitcher_run_exp": -0.2}]'
 
     monkeypatch.setattr("app.services.run_value_refresh._download", fake_download)
     values = fetch_verified_values((123, 2025, date(2025, 3, 27), date(2025, 9, 28)))
 
     assert values["1_1_1"] == -0.1
+    assert "1_2_1" in values  # Unclassified source row remains identifiable.
     assert len(requests) == 2
     assert {path for path, _ in requests} == {"/statcast_search/csv", "/statcast_search"}
     for _, params in requests:
@@ -79,8 +81,8 @@ def test_savant_csv_and_neutral_total_both_use_regular_season_only(monkeypatch):
 
 
 def test_count_mismatch_reports_both_counts_for_safe_diagnosis():
-    with pytest.raises(RunValueRefreshError, match=r"CSV physical=2, aggregate=3"):
-        validate_source(source_frame(), [{"pitches": 3, "delev_pitcher_run_exp": -0.2}])
+    with pytest.raises(RunValueRefreshError, match=r"CSV rows=3, aggregate=2"):
+        validate_source(source_frame(), [{"pitches": 2, "delev_pitcher_run_exp": -0.2}])
 
 
 def populate(app):
