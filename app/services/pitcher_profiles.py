@@ -203,7 +203,8 @@ def _metric_columns() -> list[Any]:
         _count_where(classified_bbe).label("barrel_classified_count"),
         _count_where(and_(bbe, Pitch.launch_speed_angle == 6)).label("barrel_count"),
         _count_where(and_(tracked_batted_ball, Pitch.exit_velocity >= 95)).label("hard_hits"),
-        _count_where(event_recorded).label("plate_appearances"),
+        # Truncated/interrupted at-bats are not completed PA for K%/BB%.
+        _count_where(actual_pa).label("plate_appearances"),
         _count_where(event_name.in_(("strikeout", "strikeout_double_play"))).label("strikeouts"),
         _count_where(event_name.in_(("walk", "intent_walk"))).label("walks"),
         _count_where(physical_rv_pitch).label("run_value_denominator"),
