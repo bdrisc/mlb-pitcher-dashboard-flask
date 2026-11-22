@@ -227,73 +227,113 @@ flask --app wsgi statcast fetch-season 2026 --download-only
 flask --app wsgi statcast fetch-season 2026 --force-download
 ```
 
-## Add the full 2025 season to your LOCAL dashboard (preserve 2026)
+## Add the full 2025 season to your LOCAL Docker dashboard (preserve 2026)
 
-The dashboard already supports multiple years in one PostgreSQL database. The
-`fetch-season` importer uses date-stamped, resumable five-day Statcast chunks
-and idempotent pitch-ID upserts: **importing 2025 does not replace 2026**. The
-directory now exposes only seasons actually present for each pitcher, with
-team-specific seasons in the selector.
+The private dashboard uses **local Docker Compose**: the `web` container
+connects to a **separate local `database` container**, not Neon. The public
+Render service uses its own deployment and database settings. Do not run
+the following commands against a cloud container or replace your production
+2026 source file.
 
-**Local-only safety check:** open your *local* `.env` and confirm
-`DATABASE_URL` connects to your own PostgreSQL server/database (for example
-`postgresql+psycopg://...@localhost:5432/mlb_pitch_intelligence`), **not**
-Render's production database. Do not paste credentials into GitHub or chat.
-Use your existing local Python venv and run commands from the repository root:
+A dedicated `statcast_cache` named Docker volume now mounts at
+`/app/data/cache/statcast` inside `web`. The Dockerfile prepares that
+directory with permissions for its non-root `app` user. The existing
+`postgres_data` volume still persists your local 2026 database. The new
+cache volume persists 2025 chunks across `docker compose up --build` and
+container recreation **without a hosting bill** (uses local disk capacity).
 
-```powershell
-git pull origin main
-python -m pip install -r requirements-data.txt
-python -m flask --app wsgi db upgrade
-python -m flask --app wsgi statcast fetch-season 2025
-```
+### Windows / PowerShell — exact steps
 
-This requests the completed **2025 regular season**, March 15–November 15
-download bounds with `game_type=R` retained, and stores cached files under
-`data/cache/statcast/2025/`. It may download hundreds of date chunks and
-a large number of pitches. **If interrupted, rerun the exact same command**
-to reuse completed cached chunks and upsert existing pitch IDs. Never delete
-the 2026 data or switch `STATCAST_SEED_PATH` to a 2025-only file.
+1. Launch **Docker Desktop** and open **PowerShell** in the repository root
+   (the folder containing `docker-compose.yml`). Check that Docker is
+   running and pull the merged changes:
 
-Optional, source-backed refreshes for better coverage of 2025 statistics
-can be done **locally after the base acquisition**; some may require
-a working network connection and/or complete corresponding source files:
+   ```powershell
+   docker compose version
+   git status
+   git pull origin main
+   ```
 
-```powershell
-python -m flask --app wsgi statcast backfill-woba --season 2025
-python -m flask --app wsgi statcast refresh-run-values --season 2025
-python -m flask --app wsgi statcast backfill-barrels --season 2025
-python -m flask --app wsgi statcast backfill-spin-axis --season 2025
-python -m flask --app wsgi statcast backfill-xslg --season 2025
-python -m flask --app wsgi statcast backfill-approach-angles --season 2025
-```
+   If `git status` shows uncommitted changes, save/stash them before
+   pulling; never discard work.
 
-The existing VAAAdj/HAAAA reference models use frozen 2025 MLB reference
-data; if those reference inputs are configured locally, you can also run
-`backfill-vaa-adj --season 2025` and `backfill-haaaa --season 2025`.
-FanGraphs grades, FIP/xFIP/SIERA and published Savant xERA/active-spin
-references use separate **source imports**: the 2025 pitch acquisition
-does not fabricate those published metrics. Check their data-availability
-notes before relying on comparisons.
+2. Apply the Compose/Dockerfile changes. **Do not** run `down -v`:
 
-Validate both years against the **local** database (e.g., in a local
-PostgreSQL SQL client; no password or connection string needs sharing):
+   ```powershell
+   docker compose up -d --build
+   docker compose ps
+   docker compose exec web sh -c "test -w /app/data/cache/statcast && echo cache-writable"
+   ```
 
-```sql
-SELECT g.season, COUNT(*) AS pitches, COUNT(DISTINCT p.pitcher_id) AS pitchers
-FROM pitches AS p
-JOIN games AS g ON g.game_pk = p.game_pk
-WHERE g.season IN (2025, 2026)
-GROUP BY g.season
-ORDER BY g.season;
-```
+   Expect `cache-writable`. If not, stop and check permissions before
+   downloading a season. The `web` and `database` services should both
+   be running/healthy.
 
-After starting/restarting the local Flask application, select **2025**,
-**2026**, or **All Seasons** for a pitcher with data in those years. The
-new Team filter narrows the pitcher directory first and then offers only
-seasons with that pitcher/team combination. **The public dashboard remains
-on its separately loaded database**: do not build/deploy a 2025 public
-production sample or run these import commands against production.
+3. Before import, confirm the **local** existing seasons and counts:
+
+   ```powershell
+   docker compose exec database psql -U postgres -d mlb_pitch_intelligence -c "SELECT g.season, COUNT(*) AS pitches, COUNT(DISTINCT p.pitcher_id) AS pitchers FROM pitches p JOIN games g ON g.game_pk = p.game_pk GROUP BY g.season ORDER BY g.season;"
+   ```
+
+   The known 2026 counts form your before/after reference. This command
+   connects only to the Compose-managed PostgreSQL container.
+
+4. Download and ingest the **entire 2025 MLB regular season** into that
+   local database:
+
+   ```powershell
+   docker compose exec web python -m flask --app wsgi statcast fetch-season 2025
+   ```
+
+   The 5-day chunks are cached under
+   `/app/data/cache/statcast/2025` in `statcast_cache`. The importer
+   uses idempotent pitch-ID upserts; no 2026 pitches are deleted or
+   replaced. The historical regular season ends automatically in
+   November 2025. **If a connection fails or the process is interrupted,
+   rerun the same command**: cached chunks are reused. Do not enable
+   `--force-download` unnecessarily.
+
+5. Confirm chunks are present and verify **both** years in local
+   PostgreSQL:
+
+   ```powershell
+   docker compose exec web sh -c "ls /app/data/cache/statcast/2025 | wc -l"
+   docker compose exec database psql -U postgres -d mlb_pitch_intelligence -c "SELECT g.season, COUNT(*) AS pitches, COUNT(DISTINCT p.pitcher_id) AS pitchers FROM pitches p JOIN games g ON g.game_pk = p.game_pk WHERE g.season IN (2025, 2026) GROUP BY g.season ORDER BY g.season;"
+   ```
+
+   Confirm 2026 counts have not changed. A pitcher with data in both
+   seasons will offer **2025**, **2026** and **All Seasons**. Refresh
+   `http://127.0.0.1:8080/savant-card` in your browser.
+
+6. **Optional, after the base 2025 import has completed:** run
+   source-backed 2025 metric backfills one at a time, checking each
+   command's output. These also target the local database:
+
+   ```powershell
+   docker compose exec web python -m flask --app wsgi statcast backfill-spin-axis --season 2025
+   docker compose exec web python -m flask --app wsgi statcast backfill-xslg --season 2025
+   docker compose exec web python -m flask --app wsgi statcast backfill-barrels --season 2025
+   docker compose exec web python -m flask --app wsgi statcast backfill-approach-angles --season 2025
+   docker compose exec web python -m flask --app wsgi statcast backfill-woba --season 2025
+   docker compose exec web python -m flask --app wsgi statcast refresh-run-values --season 2025
+   ```
+
+   The final two may require additional source requests, and some
+   published FanGraphs/Savant full-season reference values require
+   their separate source imports. Do not interpret a missing published
+   reference as a locally calculated value.
+
+**Important:** `docker compose down` leaves named volumes alone, but
+`docker compose down -v` **deletes the local database AND the Statcast
+cache volume**. Also avoid `docker volume prune` / cleanup commands
+that delete the named volumes. Neither `git pull` nor `docker compose
+up -d --build` should erase either volume.
+
+If you intentionally run your Flask app **outside Docker** with a local
+`.venv`, first verify its `DATABASE_URL` targets a locally reachable
+PostgreSQL database. The default Compose database does not publish a
+host port, so host-Python instructions are *not* interchangeable with the
+Docker commands above.
 
 ## Build the public top-50-pitcher dataset
 
