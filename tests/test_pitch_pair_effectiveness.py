@@ -148,7 +148,8 @@ def test_pair_results_never_cross_pa_batter_or_pitcher(app, pair_client):
 
 
 def test_empty_pairs_are_reported_without_made_up_rates(pair_client):
-    data = _pairs(pair_client, "?balls=3")
-    # This selection has no pitches, so the existing profile API returns 404.
-    # Explicitly check a real first-pitch-only filter instead.
+    # The filter includes three opening pitches, but no second pitches.
+    data = _pairs(pair_client, "?balls=0&strikes=0")
     assert data["total_pairs"] == 0
+    assert data["pairs"] == []
+    assert data["previous_pitch_types"] == []
