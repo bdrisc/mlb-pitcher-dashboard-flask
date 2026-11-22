@@ -32,6 +32,8 @@ def test_directory_lists_only_real_seasons_and_team_seasons(app, profile_client)
                 batter_id=200,
                 at_bat_number=1,
                 pitch_number=1,
+                balls=0,
+                strikes=0,
                 inning_half="Bot",
                 batter_side="R",
                 pitch_type="FF",
@@ -75,6 +77,8 @@ def test_description_variants_count_as_swings_strikes_and_chases(app, profile_cl
                     batter_id=200,
                     at_bat_number=number,
                     pitch_number=1,
+                    balls=0,
+                    strikes=0,
                     inning_half="Top",
                     batter_side="R",
                     pitch_type="FF",
@@ -105,6 +109,8 @@ def test_automatic_calls_do_not_enter_rate_denominators(app, profile_client):
                 batter_id=200,
                 at_bat_number=41,
                 pitch_number=1,
+                balls=0,
+                strikes=0,
                 inning_half="Top",
                 pitch_type="FF",
                 batter_side="R",
@@ -123,6 +129,7 @@ def test_automatic_calls_do_not_enter_rate_denominators(app, profile_client):
     assert overall["csw_pct"] == 75.0
     assert overall["zone_pct"] == 50.0
 
+
 def test_truncated_at_bat_does_not_inflate_k_bb_pa_denominators(app, profile_client):
     with app.app_context():
         db.session.add(
@@ -132,6 +139,8 @@ def test_truncated_at_bat_does_not_inflate_k_bb_pa_denominators(app, profile_cli
                 batter_id=200,
                 at_bat_number=73,
                 pitch_number=1,
+                balls=0,
+                strikes=0,
                 inning_half="Top",
                 pitch_type="FF",
                 batter_side="R",
