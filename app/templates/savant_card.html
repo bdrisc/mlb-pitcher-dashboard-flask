@@ -35,7 +35,9 @@
             <span>Pitcher</span>
             <div class="pitcher-picker">
               <input id="pitcher-search" type="search" autocomplete="off"
-                     placeholder="Search by name…" aria-label="Search pitcher names" disabled>
+                     list="pitcher-suggestions" placeholder="Search by name…"
+                     aria-label="Search pitcher names" disabled>
+              <datalist id="pitcher-suggestions"></datalist>
               <select id="pitcher-select" name="pitcher_id" aria-label="Choose pitcher" required disabled>
                 <option value="">Loading Pitchers…</option>
               </select>
