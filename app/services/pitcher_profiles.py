@@ -410,7 +410,7 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
         "woba_pending_outcomes": woba_pending,
         "run_value_per_100": (
             None
-            if not run_value_pitches or not run_value_denominator
+            if run_value_pitches != run_value_denominator or not run_value_denominator
             else float(
                 (Decimal(str(round(pitcher_run_value, 9))) * 100 / run_value_denominator).quantize(
                     Decimal("0.1"), rounding=ROUND_HALF_UP
@@ -418,7 +418,13 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
             )
             or 0.0
         ),
-        "run_value": _rounded(pitcher_run_value, 3),
+        # Withhold incomplete run-value totals instead of treating missing
+        # pitch outcomes as zero or silently diluting RV/100.
+        "run_value": (
+            _rounded(pitcher_run_value, 3)
+            if run_value_denominator and run_value_pitches == run_value_denominator
+            else None
+        ),
         "run_value_pitch_count": run_value_pitches,
         "run_value_denominator": run_value_denominator,
         "run_value_coverage_pct": _rate(run_value_pitches, run_value_denominator),
