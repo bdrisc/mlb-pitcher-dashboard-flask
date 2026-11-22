@@ -302,8 +302,12 @@ if (root) {
     seasons.forEach((year) => appendOption(elements.season, year, year));
     elements.season.disabled = seasons.length === 0;
     elements.apply.disabled = false;
-    if (selectLatestSeason && seasons.length) elements.season.value = String(seasons[0]);
-    else setValueIfAvailable(elements.season, previousSeason);
+    const previousYearAvailable = seasons.some((year) => String(year) === previousSeason);
+    if (seasons.length && (selectLatestSeason || (previousSeason && !previousYearAvailable))) {
+      elements.season.value = String(seasons[0]);
+    } else {
+      setValueIfAvailable(elements.season, previousSeason);
+    }
   }
 
   function setValueIfAvailable(element, value) {
