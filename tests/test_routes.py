@@ -323,7 +323,10 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b"elements.ttoMixRows" not in response.data
     assert b"function selectTtoView(view)" in response.data
     assert b"renderTtoSplits(profile.times_through_order_splits)" in response.data
-    assert b"renderPitchPairEffectiveness(profile.pitch_pair_effectiveness, pitcher.mlb_id)" in response.data
+    assert (
+        b"renderPitchPairEffectiveness(profile.pitch_pair_effectiveness, pitcher.mlb_id)"
+        in response.data
+    )
     assert b"function renderPitchPairRows()" in response.data
     assert b"pair.xwoba_scored_pa" in response.data
     assert b"pair.rv_scored_pitches" in response.data
