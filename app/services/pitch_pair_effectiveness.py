@@ -85,12 +85,8 @@ def build_pitch_pair_effectiveness(pitcher_id: int, filters) -> dict:
             .filter(or_(description == "called_strike", whiff))
             .label("csw_count"),
             func.count(Pitch.pitch_id).filter(eligible_xwoba_pa).label("xwoba_eligible_pa"),
-            func.count(Pitch.estimated_woba)
-            .filter(eligible_xwoba_pa)
-            .label("xwoba_scored_pa"),
-            func.sum(Pitch.estimated_woba)
-            .filter(eligible_xwoba_pa)
-            .label("xwoba_sum"),
+            func.count(Pitch.estimated_woba).filter(eligible_xwoba_pa).label("xwoba_scored_pa"),
+            func.sum(Pitch.estimated_woba).filter(eligible_xwoba_pa).label("xwoba_sum"),
             func.count(Pitch.delta_run_expectancy).label("rv_scored_pitches"),
             func.sum(Pitch.delta_run_expectancy).label("rv_against_sum"),
         )
