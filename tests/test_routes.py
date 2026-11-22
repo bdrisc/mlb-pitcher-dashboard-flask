@@ -112,6 +112,20 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     )
     assert response.data.count(b'class="plotly-chart') == 4
     assert b"Location by Pitch Type and Batter Handedness" in response.data
+    assert b'id="pitch-pair-heading"' in response.data
+    assert b">Pitch Pair Effectiveness</h2>" in response.data
+    assert b'id="pitch-pair-previous"' in response.data
+    assert b'id="pitch-pair-body"' in response.data
+    assert b'data-pair-sort="whiff_pct"' in response.data
+    assert b'data-pair-sort="csw_pct"' in response.data
+    assert b'data-pair-sort="xwoba_against"' in response.data
+    assert b'data-pair-sort="run_value_per_100"' in response.data
+    assert response.data.index(b'id="transition-heading"') < response.data.index(
+        b'id="pitch-pair-heading"'
+    )
+    assert response.data.index(b'id="pitch-pair-heading"') < response.data.index(
+        b'id="inning-changes-heading"'
+    )
     assert b'id="location-heatmap-grid"' in response.data
     assert b"Pitch Location Performance" in response.data
     assert b'id="location-performance-grid"' in response.data
@@ -244,6 +258,9 @@ def test_performance_metrics_use_uniform_cards_without_accent_strips(client):
     assert b".perceived-velocity-heading .perceived-velocity-line" in response.data
     assert b"white-space: nowrap;" in response.data
     assert b".location-heatmap-panel {" in response.data
+    assert b".pitch-pair-table {" in response.data
+    assert b".pitch-pair-small-sample" in response.data
+    assert b".pitch-pair-selector {" in response.data
     assert b".location-performance-cell {" in response.data
     assert b"aspect-ratio: 0.78;" in response.data
     assert b"width: min(100%, 380px);" in response.data
@@ -306,6 +323,11 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b"elements.ttoMixRows" not in response.data
     assert b"function selectTtoView(view)" in response.data
     assert b"renderTtoSplits(profile.times_through_order_splits)" in response.data
+    assert b"renderPitchPairEffectiveness(profile.pitch_pair_effectiveness, pitcher.mlb_id)" in response.data
+    assert b"function renderPitchPairRows()" in response.data
+    assert b"pair.xwoba_scored_pa" in response.data
+    assert b"pair.rv_scored_pitches" in response.data
+    assert b'key === "xwoba_against"' in response.data
     assert b"ArrowRight" in response.data
     assert response.data.index(b'formatMetric("avg_velocity"') < response.data.index(
         b'formatMetric("avg_effective_velocity"'
