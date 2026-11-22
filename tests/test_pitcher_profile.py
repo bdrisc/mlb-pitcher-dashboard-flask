@@ -500,6 +500,8 @@ def test_pitcher_directory_returns_ids_and_applies_shared_filters(profile_client
                 "name": "Profile Pitcher",
                 "throws": "R",
                 "teams": ["BOS"],
+                "seasons": [2026],
+                "team_seasons": {"BOS": [2026]},
                 "pitch_count": 4,
                 "games": 2,
                 "first_game_date": "2026-04-01",
@@ -1349,7 +1351,7 @@ def test_published_run_prevention_labels_show_sources_not_estimates(profile_clie
     html = profile_client.get("/savant-card").get_data(as_text=True)
     for key in ("fip", "xfip", "siera", "xera"):
         assert f'data-metric="{key}"' in html
-    assert "Published" in html
+    assert "Published · Season Reference" not in html
     assert "FanGraphs" in html
     assert "Baseball Savant" in html
     assert "Unadjusted" not in html
