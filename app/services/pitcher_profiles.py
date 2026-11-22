@@ -714,6 +714,7 @@ def list_pitchers(filters: PitchFilters) -> list[dict[str, Any]]:
             Player.player_name,
             Player.throws,
             team,
+            Game.season,
             func.count(Pitch.pitch_id).label("pitch_count"),
             func.count(func.distinct(Pitch.game_pk)).label("games"),
             func.min(Game.game_date).label("first_game_date"),
@@ -723,7 +724,7 @@ def list_pitchers(filters: PitchFilters) -> list[dict[str, Any]]:
         .join(Pitch, Pitch.pitcher_id == Player.mlb_id)
         .join(Game, Game.game_pk == Pitch.game_pk)
         .where(*conditions)
-        .group_by(Player.mlb_id, Player.player_name, Player.throws, team)
+        .group_by(Player.mlb_id, Player.player_name, Player.throws, team, Game.season)
     )
 
     pitchers: dict[int, dict[str, Any]] = {}
@@ -735,6 +736,8 @@ def list_pitchers(filters: PitchFilters) -> list[dict[str, Any]]:
                 "name": row["player_name"],
                 "throws": row["throws"],
                 "teams": [],
+                "seasons": [],
+                "team_seasons": {},
                 "pitch_count": 0,
                 "games": 0,
                 "first_game_date": row["first_game_date"].isoformat(),
@@ -743,6 +746,14 @@ def list_pitchers(filters: PitchFilters) -> list[dict[str, Any]]:
         )
         if row["team"] and row["team"] not in pitcher["teams"]:
             pitcher["teams"].append(row["team"])
+        if row["season"] is not None:
+            season = int(row["season"])
+            if season not in pitcher["seasons"]:
+                pitcher["seasons"].append(season)
+            if row["team"]:
+                seasons = pitcher["team_seasons"].setdefault(row["team"], [])
+                if season not in seasons:
+                    seasons.append(season)
         pitcher["pitch_count"] += int(row["pitch_count"])
         pitcher["games"] += int(row["games"])
         first_date = row["first_game_date"].isoformat()
@@ -752,6 +763,9 @@ def list_pitchers(filters: PitchFilters) -> list[dict[str, Any]]:
 
     for pitcher in pitchers.values():
         pitcher["teams"].sort()
+        pitcher["seasons"].sort(reverse=True)
+        for seasons in pitcher["team_seasons"].values():
+            seasons.sort(reverse=True)
     return sorted(
         pitchers.values(),
         key=lambda pitcher: ((pitcher["name"] or "").casefold(), pitcher["mlb_id"]),
