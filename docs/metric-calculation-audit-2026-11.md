@@ -94,7 +94,7 @@ using sample-based rates as season-leaderboard equivalents.
 | Perceived Velocity | Imported Statcast `effective_speed`, extension-adjusted; **not** location-based effective velocity |
 | Extension | Mean source release extension, feet |
 | Spin | Mean source spin rate, rpm |
-| Spin Axis | Imported/backfilled source spin axis; circular display/aggregation needs validation around the 0°/360° boundary |
+| Spin Axis | Imported/backfilled source spin axis; arsenal uses circular sine/cosine averaging across 0°/360° and suppresses undefined opposing-direction means |
 | Spin Efficiency | Published Savant active-spin percentage, full-season pitch-type reference, not a locally filtered movement proxy |
 | HB / IVB | Source-derived horizontal/induced vertical movement in inches |
 | HB/IVB vs AVG | Local same pitch, throwing hand, arm-angle reference cohort; a **custom comparator** |
