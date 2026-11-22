@@ -61,7 +61,10 @@ def test_actual_rv_does_not_count_unknown_or_automatic_pitch_values(app):
 
         assert metrics["run_value_denominator"] == 3
         assert metrics["run_value_pitch_count"] == 2
-        assert metrics["run_value"] == pytest.approx(-0.1)
-        assert metrics["run_value_per_100"] == pytest.approx(-3.3)
+        # The physical-pitch population contains an untracked RV outcome:
+        # a partial sum must not masquerade as a complete RV/100.
+        assert metrics["run_value"] is None
+        assert metrics["run_value_per_100"] is None
+        assert metrics["run_value_coverage_pct"] == pytest.approx(66.7)
         assert metrics["paired_actual_run_value"] == pytest.approx(-0.1)
         assert metrics["expected_run_value"] == pytest.approx(-0.1)
