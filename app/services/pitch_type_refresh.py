@@ -110,7 +110,10 @@ def _is_verified_walker_sweeper_relabel(by_id, edits, *, pitcher_id, season, ext
         return False
     if len(by_id) != 609 or len(extras) != 10 or len(edits) != 187:
         return False
-    counts = {code: sum(current == code for current in by_id.values()) for code in ("SI", "SL", "FF")}
+    counts = {
+        code: sum(current == code for current in by_id.values())
+        for code in ("SI", "SL", "FF")
+    }
     if counts != {"SI": 397, "SL": 187, "FF": 25}:
         return False
     return all(
