@@ -380,6 +380,50 @@
         </div>
       </section>
 
+      <section class="dashboard-section pitch-pair-section" aria-labelledby="pitch-pair-heading">
+        <div class="section-heading pitch-pair-heading">
+          <div>
+            <h2 id="pitch-pair-heading">Pitch Pair Effectiveness</h2>
+          </div>
+          <label class="field pitch-pair-selector" for="pitch-pair-previous">
+            <span>Previous Pitch</span>
+            <select id="pitch-pair-previous" aria-controls="pitch-pair-body">
+              <option value="">All Previous Pitches</option>
+            </select>
+          </label>
+        </div>
+        <p id="pitch-pair-empty" class="separation-note" hidden>
+          No consecutive, classified pitch pairs match these filters.
+        </p>
+        <div id="pitch-pair-table" class="table-shell pitch-pair-shell">
+          <table class="pitch-pair-table" aria-labelledby="pitch-pair-heading">
+            <thead>
+              <tr>
+                <th scope="col" data-pair-sort-col="pair" aria-sort="none">
+                  <button type="button" data-pair-sort="pair">Pitch Pair</button>
+                </th>
+                <th scope="col" data-pair-sort-col="pair_count" aria-sort="descending">
+                  <button type="button" data-pair-sort="pair_count">#</button>
+                </th>
+                <th scope="col" data-pair-sort-col="whiff_pct" aria-sort="none">
+                  <button type="button" data-pair-sort="whiff_pct" title="Second-pitch whiffs divided by second-pitch swings">Whiff%</button>
+                </th>
+                <th scope="col" data-pair-sort-col="csw_pct" aria-sort="none">
+                  <button type="button" data-pair-sort="csw_pct" title="Second-pitch called strikes and whiffs divided by second pitches">CSW%</button>
+                </th>
+                <th scope="col" data-pair-sort-col="xwoba_against" aria-sort="none">
+                  <button type="button" data-pair-sort="xwoba_against" title="Second-pitch PA-ending xwOBA against; lower is better">xwOBA</button>
+                </th>
+                <th scope="col" data-pair-sort-col="run_value_per_100" aria-sort="none">
+                  <button type="button" data-pair-sort="run_value_per_100" title="Second-pitch runs prevented per 100 pitches; higher is better">RV/100</button>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="pitch-pair-body"></tbody>
+          </table>
+        </div>
+      </section>
+
       <section class="dashboard-section chart-section" aria-labelledby="inning-changes-heading">
         <div class="section-heading">
           <div>
