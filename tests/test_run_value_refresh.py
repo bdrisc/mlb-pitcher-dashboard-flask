@@ -9,6 +9,7 @@ from app.extensions import db
 from app.models import Game, Pitch, Player
 from app.services.run_value_refresh import (
     RunValueRefreshError,
+    fetch_verified_values,
     refresh_run_values,
     validate_source,
 )
@@ -55,6 +56,31 @@ def test_source_requires_matching_explicit_neutral_total_and_count():
             validate_source(source_frame(), invalid)
     with pytest.raises(RunValueRefreshError):
         validate_source(pd.concat([source_frame(), source_frame()]), expected)
+
+
+def test_savant_csv_and_neutral_total_both_use_regular_season_only(monkeypatch):
+    requests = []
+
+    def fake_download(path, params):
+        requests.append((path, params))
+        if path == "/statcast_search/csv":
+            return source_frame().to_csv(index=False).encode("utf-8")
+        return b'[{"pitches": 2, "delev_pitcher_run_exp": -0.2}]'
+
+    monkeypatch.setattr("app.services.run_value_refresh._download", fake_download)
+    values = fetch_verified_values((123, 2025, date(2025, 3, 27), date(2025, 9, 28)))
+
+    assert values["1_1_1"] == -0.1
+    assert len(requests) == 2
+    assert {path for path, _ in requests} == {"/statcast_search/csv", "/statcast_search"}
+    for _, params in requests:
+        assert params["hfGT"] == "R|"
+        assert params["hfSea"] == "2025|"
+
+
+def test_count_mismatch_reports_both_counts_for_safe_diagnosis():
+    with pytest.raises(RunValueRefreshError, match=r"CSV physical=2, aggregate=3"):
+        validate_source(source_frame(), [{"pitches": 3, "delev_pitcher_run_exp": -0.2}])
 
 
 def populate(app):

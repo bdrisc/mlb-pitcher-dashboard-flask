@@ -48,7 +48,10 @@ def validate_source(frame, aggregate):
     count = int(frame["pitch_type"].notna().sum())
     total = -float(values.sum())
     if count != int(official["pitches"]):
-        raise RunValueRefreshError("Pitch counts differ from the Savant neutral aggregate.")
+        raise RunValueRefreshError(
+            f"Pitch counts differ from the Savant neutral aggregate: CSV physical={count}, "
+            f"aggregate={int(official['pitches'])}."
+        )
     if abs(total - float(official["delev_pitcher_run_exp"])) > 0.005:
         raise RunValueRefreshError("CSV values do not reproduce the Savant neutral total.")
     identities = frame[["game_pk", "at_bat_number", "pitch_number"]]
@@ -68,7 +71,9 @@ def fetch_verified_values(job):
         "player_type": "pitcher",
         "pitchers_lookup[]": pitcher_id,
         "hfSea": f"{season}|",
-        "hfGT": "R|PO|S|A|",
+        # The dashboard only imports game_type=R pitches. Match that population
+        # in BOTH the detail CSV and neutral aggregate for strict parity.
+        "hfGT": "R|",
         "game_date_gt": first.isoformat(),
         "game_date_lt": last.isoformat(),
         "min_pitches": 0,
