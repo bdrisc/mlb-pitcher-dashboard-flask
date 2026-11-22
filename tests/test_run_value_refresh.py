@@ -86,12 +86,12 @@ def test_savant_csv_and_neutral_total_both_use_regular_season_only(monkeypatch):
 def test_count_mismatch_reports_all_counts_for_safe_diagnosis():
     with pytest.raises(
         RunValueRefreshError,
-        match=r"physical=3, CSV rows=3, automatic balls=0, aggregate=2",
+        match=r"physical=3, CSV rows=3, automatic balls=0, automatic strikes=0, aggregate=2",
     ):
         validate_source(source_frame(), [{"pitches": 2, "delev_pitcher_run_exp": -0.2}])
 
 
-def test_automatic_balls_excluded_but_real_unclassified_pitches_count():
+def test_automatic_balls_and_strikes_excluded_but_real_unclassified_pitches_count():
     frame = source_frame()
     frame.loc[len(frame)] = {
         "game_pk": 1,
@@ -101,10 +101,22 @@ def test_automatic_balls_excluded_but_real_unclassified_pitches_count():
         "pitch_type": None,
         "description": "automatic_ball",
     }
+    frame.loc[len(frame)] = {
+        "game_pk": 1,
+        "at_bat_number": 2,
+        "pitch_number": 3,
+        "delta_run_exp": None,
+        "pitch_type": None,
+        "description": "automatic_strike",
+    }
     validated = validate_source(frame, [{"pitches": 3, "delev_pitcher_run_exp": -0.2}])
-    assert len(validated) == 4  # Source IDs remain available for local identity matching.
+    assert len(validated) == 5  # Retain non-pitch IDs for local identity matching.
     assert validated["1_2_2"] is None
-    with pytest.raises(RunValueRefreshError, match=r"automatic balls=1"):
+    assert validated["1_2_3"] is None
+    with pytest.raises(
+        RunValueRefreshError,
+        match=r"automatic balls=1, automatic strikes=1, aggregate=4",
+    ):
         validate_source(frame, [{"pitches": 4, "delev_pitcher_run_exp": -0.2}])
 
 
