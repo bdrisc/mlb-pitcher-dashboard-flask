@@ -43,6 +43,11 @@ if (root) {
     transitionBody: document.querySelector("#transition-body"),
     transitionTable: document.querySelector("#transition-table"),
     transitionEmpty: document.querySelector("#transition-empty"),
+    pairPrevious: document.querySelector("#pitch-pair-previous"),
+    pairBody: document.querySelector("#pitch-pair-body"),
+    pairTable: document.querySelector("#pitch-pair-table"),
+    pairEmpty: document.querySelector("#pitch-pair-empty"),
+    pairSortButtons: document.querySelectorAll("[data-pair-sort]"),
     splits: document.querySelector("#platoon-splits"),
     ttoTabs: document.querySelectorAll("[data-tto-view]"),
     ttoPerformancePanel: document.querySelector("#tto-performance-panel"),
@@ -62,6 +67,9 @@ if (root) {
     separation: null,
     separationPitcherId: null,
     ttoView: "performance",
+    pairEffectiveness: null,
+    pairPitcherId: null,
+    pairSort: { key: "pair_count", direction: "desc" },
   };
 
   const pitchColors = {
@@ -684,6 +692,108 @@ if (root) {
     });
   }
 
+  function renderPitchPairEffectiveness(data, pitcherId) {
+    const previous = state.pairPitcherId === pitcherId ? elements.pairPrevious.value : "";
+    state.pairEffectiveness = data;
+    state.pairPitcherId = pitcherId;
+    if (!previous) state.pairSort = { key: "pair_count", direction: "desc" };
+
+    elements.pairPrevious.replaceChildren();
+    appendOption(elements.pairPrevious, "", "All Previous Pitches");
+    (data?.previous_pitch_types || []).forEach((pitch) => {
+      appendOption(elements.pairPrevious, pitch.pitch_type, `${pitch.pitch_name} (${pitch.pitch_type})`);
+    });
+    elements.pairPrevious.value =
+      (data?.previous_pitch_types || []).some((pitch) => pitch.pitch_type === previous)
+        ? previous : "";
+    elements.pairPrevious.disabled = !(data?.previous_pitch_types || []).length;
+    renderPitchPairRows();
+  }
+
+  function renderPitchPairRows() {
+    const data = state.pairEffectiveness || { pairs: [] };
+    const selected = elements.pairPrevious.value;
+    const { key, direction } = state.pairSort;
+    const pairs = data.pairs.filter((pair) => !selected || pair.pitch_a === selected);
+
+    elements.pairBody.replaceChildren();
+    setVisible(elements.pairEmpty, pairs.length === 0);
+    setVisible(elements.pairTable, pairs.length > 0);
+    document.querySelectorAll("[data-pair-sort-col]").forEach((heading) => {
+      heading.setAttribute(
+        "aria-sort",
+        heading.dataset.pairSortCol !== key
+          ? "none" : (direction === "asc" ? "ascending" : "descending"),
+      );
+    });
+    if (!pairs.length) return;
+
+    const sorted = [...pairs].sort((a, b) => {
+      if (key === "pair") {
+        const first = `${a.pitch_a}:${a.pitch_b}`;
+        const second = `${b.pitch_a}:${b.pitch_b}`;
+        return (direction === "asc" ? 1 : -1) * first.localeCompare(second);
+      }
+      // A missing value always sorts last, regardless of direction.
+      const left = a[key];
+      const right = b[key];
+      if (left == null && right == null) return b.pair_count - a.pair_count;
+      if (left == null) return 1;
+      if (right == null) return -1;
+      return (direction === "asc" ? 1 : -1) * (left - right) ||
+        b.pair_count - a.pair_count || a.pitch_a.localeCompare(b.pitch_a) ||
+        a.pitch_b.localeCompare(b.pitch_b);
+    });
+
+    sorted.forEach((pair) => {
+      const row = document.createElement("tr");
+      const heading = document.createElement("th");
+      heading.scope = "row";
+      heading.className = "pitch-pair-name";
+      const names = document.createElement("strong");
+      names.textContent = `${pair.pitch_a} → ${pair.pitch_b}`;
+      names.title = `${pair.pitch_a_name} followed by ${pair.pitch_b_name} within the same plate appearance.`;
+      heading.append(names);
+      if (pair.small_sample) {
+        const small = document.createElement("small");
+        small.className = "pitch-pair-small-sample";
+        small.textContent = "Small sample";
+        small.title = "Fewer than 30 observed consecutive pitch pairs";
+        heading.append(small);
+      }
+      row.append(heading);
+
+      tableCell(row, pair.pair_count.toLocaleString("en-US")).title =
+        `${pair.pair_count.toLocaleString("en-US")} consecutive, classified pitches. ` +
+        "The dashboard filters apply to the second pitch.";
+      tableCell(row, formatMetric("whiff_pct", pair.whiff_pct)).title =
+        `${pair.whiff_count} whiffs / ${pair.swing_count} swings on the second pitch. ` +
+        "Uses the same whiff and swing definitions as the overall profile.";
+      tableCell(row, formatMetric("csw_pct", pair.csw_pct)).title =
+        `${pair.csw_count} called strikes and whiffs / ${pair.pair_count} second pitches.`;
+
+      const xwobaCell = tableCell(row, formatMetric("xwoba_against", pair.xwoba_against));
+      xwobaCell.title =
+        `Second-pitch xwOBA against on completed, eligible plate appearances: ` +
+        `${pair.xwoba_scored_pa} of ${pair.xwoba_eligible_pa} PA tracked. ` +
+        "Does not use nonterminal pitches or calculate xwOBAcon. " +
+        (pair.xwoba_against == null ? "Unavailable without complete PA tracking." : "Lower is better.");
+      if (pair.xwoba_eligible_pa) {
+        const count = document.createElement("small");
+        count.className = "pitch-pair-count-note";
+        count.textContent = `${pair.xwoba_scored_pa} PA`;
+        xwobaCell.append(count);
+      }
+      tableCell(row, formatMetric("run_value_per_100", pair.run_value_per_100)).title =
+        `Context-neutral runs prevented on the second pitch per 100 physical pitches. ` +
+        `${pair.rv_scored_pitches} of ${pair.pair_count} pitches have RV tracking. ` +
+        (pair.run_value_per_100 == null
+          ? "Unavailable unless all second pitches have run-value data."
+          : "Positive = runs prevented for the pitcher.");
+      elements.pairBody.append(row);
+    });
+  }
+
   function splitMetric(label, key, value) {
     const wrapper = document.createElement("div");
     const term = document.createElement("dt");
@@ -863,6 +973,7 @@ if (root) {
     renderArsenal(profile.arsenal);
     renderSeparation(profile.pitch_separation, pitcher.mlb_id);
     renderTransitions(profile.pitch_transition_matrix);
+    renderPitchPairEffectiveness(profile.pitch_pair_effectiveness, pitcher.mlb_id);
     renderSplits(profile.platoon_splits);
     renderTtoSplits(profile.times_through_order_splits);
     setVisible(elements.content, true);
@@ -964,6 +1075,21 @@ if (root) {
   });
   elements.arsenalView.addEventListener("change", updateArsenalView);
   elements.separationReference.addEventListener("change", renderSeparationRows);
+  elements.pairPrevious.addEventListener("change", renderPitchPairRows);
+  elements.pairSortButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const key = button.dataset.pairSort;
+      const current = state.pairSort;
+      const defaultDirection = key === "pair" || key === "xwoba_against" ? "asc" : "desc";
+      state.pairSort = {
+        key,
+        direction: current.key === key
+          ? (current.direction === "asc" ? "desc" : "asc")
+          : defaultDirection,
+      };
+      renderPitchPairRows();
+    });
+  });
 
   elements.form.addEventListener("submit", (event) => {
     event.preventDefault();
