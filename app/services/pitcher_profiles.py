@@ -13,6 +13,7 @@ from app.extensions import db
 from app.models import Game, Pitch, Player
 from app.services.database_queries import pitch_filter_conditions, pitcher_team_expression
 from app.services.expected_run_value import expected_run_value_columns, xrv_quality_status
+from app.services.expected_woba import full_xwoba_expressions
 from app.services.fangraphs_stuff import profile_grades
 from app.services.filters import PitchFilters
 from app.services.movement_reference import movement_vs_average
@@ -128,16 +129,9 @@ def _metric_columns() -> list[Any]:
         Pitch.batted_ball_type != "",
         Pitch.estimated_woba.is_not(None),
     )
-    # Savant supplies expected weights for terminal PA outcomes, including
-    # strikeouts (0), unintentional walks and HBP. Nonterminal pitches and
-    # outcomes outside the wOBA denominator must not enter this average.
-    expected_pa = and_(
-        event_recorded,
-        event_name.notin_(
-            ("intent_walk", "sac_bunt", "sac_bunt_double_play", "catcher_interf", "truncated_pa")
-        ),
-        Pitch.estimated_woba.is_not(None),
-    )
+    # The speed/angle field is CONTACT-ONLY. Full xwOBA must also account
+    # for strikeouts (zero) and Savant's actual BB/HBP outcome weights.
+    expected_pa, expected_pa_value = full_xwoba_expressions()
     # Savant xBA: expected hits on tracked batted balls / (tracked AB + strikeouts).
     # Batted balls without a Statcast xBA estimate do not count as zero-hit balls.
     official_ab = and_(
@@ -260,7 +254,9 @@ def _metric_columns() -> list[Any]:
         ).label("woba_pending_outcomes"),
         func.sum(Pitch.savant_woba_numerator).filter(actual_pa).label("woba_numerator"),
         func.sum(Pitch.savant_woba_denominator).filter(actual_pa).label("woba_denominator"),
-        func.avg(Pitch.estimated_woba).filter(expected_pa).label("xwoba_against"),
+        _count_where(expected_pa).label("xwoba_eligible_pa"),
+        func.count(expected_pa_value).filter(expected_pa).label("xwoba_scored_pa"),
+        func.sum(expected_pa_value).filter(expected_pa).label("xwoba_sum"),
         func.avg(Pitch.estimated_woba).filter(expected_contact).label("xwoba_on_contact"),
         _count_where(official_ab).label("xba_at_bats"),
         _count_where(xba_scored_ab).label("xba_scored_at_bats"),
@@ -359,6 +355,14 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
             return None
         calculated = Decimal(str(round(float(value), 9))) * 100 / xrv_scored
         return float(calculated.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP))
+
+    xwoba_eligible = _integer(row, "xwoba_eligible_pa")
+    xwoba_scored = _integer(row, "xwoba_scored_pa")
+    full_xwoba = (
+        _rounded(float(row["xwoba_sum"]) / xwoba_eligible, 3)
+        if xwoba_eligible and xwoba_eligible == xwoba_scored
+        else None
+    )
 
     woba_denom = _integer(row, "woba_denominator")
     woba_pending = _integer(row, "woba_pending_outcomes")
@@ -516,7 +520,10 @@ def _performance_metrics(row: RowMapping) -> dict[str, Any]:
             _integer(row, "strikeouts") - _integer(row, "walks"), plate_appearances
         ),
         "avg_exit_velocity": _rounded(row["avg_exit_velocity"]),
-        "xwoba_against": _rounded(row["xwoba_against"], 3),
+        "xwoba_against": full_xwoba,
+        "xwoba_eligible_pa": xwoba_eligible,
+        "xwoba_scored_pa": xwoba_scored,
+        "xwoba_missing_pa": xwoba_eligible - xwoba_scored,
         "xwoba_on_contact": _rounded(row["xwoba_on_contact"], 3),
     }
 
@@ -633,6 +640,8 @@ def _times_through_order_splits(conditions: list[Any], total_pitches: int) -> di
                 "k_minus_bb_pct": metrics["k_minus_bb_pct"],
                 "whiff_pct": metrics["whiff_pct"],
                 "xwoba_against": metrics["xwoba_against"],
+                "xwoba_eligible_pa": metrics["xwoba_eligible_pa"],
+                "xwoba_scored_pa": metrics["xwoba_scored_pa"],
                 "run_value_per_100": metrics["run_value_per_100"],
                 "avg_velocity": metrics["avg_velocity"],
                 "run_value_pitch_count": metrics["run_value_pitch_count"],

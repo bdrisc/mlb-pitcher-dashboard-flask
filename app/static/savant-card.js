@@ -332,7 +332,14 @@ if (root) {
       element.textContent = formatMetric(key, overall[key]);
       if (["fip", "xfip", "siera", "xera"].includes(key)) element.title = publishedTitle(key, overall);
       if (key === "woba_against") element.title = wobaTitle(overall);
-      if (key === "xwoba_against") element.title = "Expected wOBA allowed, including strikeouts, unintentional walks and hit-by-pitches; lower is better. Recalculates with the active filters.";
+      if (key === "xwoba_against") {
+        element.title = "Savant-style full xwOBA allowed: expected tracked contact, " +
+          "zero for strikeouts, and sourced unintentional walk/HBP weights. " +
+          `${overall.xwoba_scored_pa} of ${overall.xwoba_eligible_pa} eligible PA scored. ` +
+          (overall.xwoba_missing_pa
+            ? "Incomplete tracking: xwOBA withheld to avoid biased values."
+            : "Lower is better. Responds to active filters.");
+      }
       if (key === "xba") element.title = xbaTitle(overall);
       if (key === "xslg") element.title = xslgTitle(overall);
       if (key === "run_value_per_100") element.title = runValueTitle(overall);
@@ -772,16 +779,17 @@ if (root) {
       tableCell(row, formatMetric("csw_pct", pair.csw_pct)).title =
         `${pair.csw_count} called strikes and whiffs / ${pair.pair_count} second pitches.`;
 
-      const xwobaCell = tableCell(row, formatMetric("xwoba_against", pair.xwoba_against));
+      const xwobaCell = tableCell(row, formatMetric("xwoba_on_contact", pair.xwoba_on_contact));
       xwobaCell.title =
-        `Second-pitch xwOBA against on completed, eligible plate appearances: ` +
-        `${pair.xwoba_scored_pa} of ${pair.xwoba_eligible_pa} PA tracked. ` +
-        "Does not use nonterminal pitches or calculate xwOBAcon. " +
-        (pair.xwoba_against == null ? "Unavailable without complete PA tracking." : "Lower is better.");
-      if (pair.xwoba_eligible_pa) {
+        `Second-pitch expected wOBA on CONTACT: ` +
+        `${pair.xwoba_scored_batted_balls} of ${pair.xwoba_batted_balls} batted balls tracked. ` +
+        "Includes only the second pitch of each pair; excludes walks, strikeouts and other " +
+        "non-contact outcomes. " +
+        (pair.xwoba_on_contact == null ? "No tracked contact in this pair." : "Lower is better.");
+      if (pair.xwoba_batted_balls) {
         const count = document.createElement("small");
         count.className = "pitch-pair-count-note";
-        count.textContent = `${pair.xwoba_scored_pa} PA`;
+        count.textContent = `${pair.xwoba_scored_batted_balls} BBE`;
         xwobaCell.append(count);
       }
       tableCell(row, formatMetric("run_value_per_100", pair.run_value_per_100)).title =
@@ -874,6 +882,13 @@ if (root) {
         "xwoba_against", "run_value_per_100",
       ]) {
         const cell = tableCell(row, formatMetric(key, trip[key]));
+        if (key === "xwoba_against") {
+          cell.title = "Full Savant-style xwOBA allowed on eligible PA in this lineup trip: " +
+            `${trip.xwoba_scored_pa} of ${trip.xwoba_eligible_pa} scored. ` +
+            (trip.xwoba_scored_pa < trip.xwoba_eligible_pa
+              ? "Withheld due to incomplete outcome tracking."
+              : "Lower is better.");
+        }
         if (key === "run_value_per_100") {
           cell.title = "Runs prevented per 100 physical pitches: "
             + Number(trip.run_value_pitch_count).toLocaleString("en-US")
@@ -1080,7 +1095,7 @@ if (root) {
     button.addEventListener("click", () => {
       const key = button.dataset.pairSort;
       const current = state.pairSort;
-      const defaultDirection = key === "pair" || key === "xwoba_against" ? "asc" : "desc";
+      const defaultDirection = key === "pair" || key === "xwoba_on_contact" ? "asc" : "desc";
       state.pairSort = {
         key,
         direction: current.key === key

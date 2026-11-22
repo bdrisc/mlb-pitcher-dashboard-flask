@@ -118,7 +118,8 @@ def test_savant_card_serves_the_database_backed_dashboard_shell(client):
     assert b'id="pitch-pair-body"' in response.data
     assert b'data-pair-sort="whiff_pct"' in response.data
     assert b'data-pair-sort="csw_pct"' in response.data
-    assert b'data-pair-sort="xwoba_against"' in response.data
+    assert b'data-pair-sort="xwoba_on_contact"' in response.data
+    assert b">xwOBAcon</button>" in response.data
     assert b'data-pair-sort="run_value_per_100"' in response.data
     assert response.data.index(b'id="transition-heading"') < response.data.index(
         b'id="pitch-pair-heading"'
@@ -328,9 +329,11 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
         in response.data
     )
     assert b"function renderPitchPairRows()" in response.data
-    assert b"pair.xwoba_scored_pa" in response.data
+    assert b"pair.xwoba_scored_batted_balls" in response.data
+    assert b"pair.xwoba_batted_balls" in response.data
+    assert b"overall.xwoba_scored_pa" in response.data
     assert b"pair.rv_scored_pitches" in response.data
-    assert b'key === "xwoba_against"' in response.data
+    assert b'key === "xwoba_on_contact"' in response.data
     assert b"ArrowRight" in response.data
     assert response.data.index(b'formatMetric("avg_velocity"') < response.data.index(
         b'formatMetric("avg_effective_velocity"'

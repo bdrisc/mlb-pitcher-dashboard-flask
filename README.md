@@ -609,7 +609,7 @@ the compact color legend remains.
 
 Immediately below the **Pitch Sequencing Transition Matrix**, the dashboard
 shows observed **directional** consecutive same-plate-appearance outcomes.
-The table contains **Pitch Pair**, **#**, **Whiff%**, **CSW%**, **xwOBA**, and
+The table contains **Pitch Pair**, **#**, **Whiff%**, **CSW%**, **xwOBAcon**, and
 pitcher-oriented **RV/100** (runs prevented). **FF → SL** and **SL → FF** are
 separate sequences, and same-pitch repeats (FF → FF) are supported.
 
@@ -623,11 +623,12 @@ separate sequences, and same-pitch repeats (FF → FF) are supported.
 - **Whiff%** is whiffs on the second pitch divided by swings on that pitch,
   and **CSW%** is called strikes plus whiffs divided by second pitches.
   Their event definitions match the existing profile.
-- **xwOBA** uses only valid, *plate-appearance-ending* outcomes on the second
-  pitch, including eligible strikeouts and walks; it is not xwOBAcon and is not
-  calculated from all second pitches. The table displays eligible scored
-  PA count under xwOBA. If eligible terminal PAs have missing xwOBA tracking,
-  the rate is withheld, not treated as zero.
+- **xwOBAcon** uses Statcast's expected wOBA on **batted balls** hit on the
+  second pitch of each directional pair; it does NOT include strikeouts,
+  walks, or other non-contact outcomes. Its denominator is the number of
+  batted balls with tracked expected values. The count below the cell and
+  its tooltip show tracked and observed BBE coverage. A pair without
+  tracked contact shows a dash, never an invented zero.
 - **RV/100** uses the same context-neutral pitch-level run value and pitcher
   sign as the existing profile: negative opponent run value is good for the
   pitcher. It is calculated on second pitches only, with all second pitches
@@ -1131,16 +1132,42 @@ seasons. The public app runs the migration and backfills in the background.
 
 ### Overall xwOBA Against
 
-The main pitcher card shows `xwOBA` to three decimals. It averages
-Statcast's `estimated_woba_using_speedangle` on completed plate appearances,
-including the supplied strikeout, unintentional-walk and hit-by-pitch weights.
-Intentional walks, sacrifice bunts, catcher interference and truncated plate
-appearances are excluded. Missing expected values stay missing; they are not
-replaced with actual hit results or zero. This differs from xwOBAcon, which
-measures contact only. All dashboard filters apply before aggregation.
+The main pitcher card shows **full xwOBA allowed** to three decimals using
+the Statcast/Savant outcome mix, NOT the contact-only expected-weight field
+on all PA outcomes:
 
-This uses fields already stored in both databases. No migration, refresh or
-re-import is required: pull `main` and restart the native Flask app locally.
+- **Batted balls**: use the stored Statcast
+  `estimated_woba_using_speedangle` from the completed PA.
+- **Strikeouts**, including strikeout double plays: count in the denominator
+  with an offensive expected value of exactly **zero**, even though the
+  contact-only source field is null.
+- **Unintentional walks and hit by pitches**: count in the denominator using
+  verified Savant outcome weights (`savant_woba_numerator`), or the official
+  imported `woba_value` if the verified field has not been refreshed.
+  A missing source weight is NOT guessed.
+- **Eligibility**: exclude intentional walks, sacrifice bunts, catcher
+  interference, and truncated PA; prefer Savant's verified PA denominator
+  whenever available. Sacrifice flies remain included.
+
+The full xwOBA numerator is the sum of these expected outcome weights, divided
+by the **number of eligible completed plate appearances**, not the number of
+contact-only estimates. If any eligible PA cannot be scored because a weight
+or contact estimate is missing, **full xwOBA is withheld** rather than
+averaging a biased subset. The API includes `xwoba_eligible_pa`,
+`xwoba_scored_pa` and `xwoba_missing_pa` for this reason.
+
+The same SQL aggregation is used for overall, per-pitch arsenal, platoon
+splits and times-through-order splits, preserving the dashboard's filters.
+**xwOBAcon** remains a separate contact-only metric on tracked batted balls,
+including the pitch-pair table and location performance comparisons.
+Data-source vintage and missing tracking may still affect exact agreement
+with Savant's currently published leaderboards.
+
+This calculation uses fields already stored in the local and public pitch
+databases; **no schema migration** is required. Existing `woba_value` values
+are sufficient for BB/HBP when present. To maximize the source-backed
+weights and coverage, the optional Savant wOBA backfill described above
+can be run for any seasons with unrefreshed outcomes.
 
 ### VAA and HAA by pitch type
 
