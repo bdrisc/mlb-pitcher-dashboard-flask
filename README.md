@@ -605,6 +605,46 @@ the compact color legend remains.
   batter side, and location, including raw sums and their corresponding
   denominators. No new schema migration or full league re-import is required.
 
+### Pitch Pair Effectiveness
+
+Immediately below the **Pitch Sequencing Transition Matrix**, the dashboard
+shows observed **directional** consecutive same-plate-appearance outcomes.
+The table contains **Pitch Pair**, **#**, **Whiff%**, **CSW%**, **xwOBA**, and
+pitcher-oriented **RV/100** (runs prevented). **FF → SL** and **SL → FF** are
+separate sequences, and same-pitch repeats (FF → FF) are supported.
+
+- A pair must have genuinely adjacent pitch numbers within the same game,
+  pitcher, batter and plate appearance. Invalid/unknown pitch classifications
+  and automatic balls/strikes cannot form pairs. Filtering season, team, dates,
+  count, venue, pitch type or batter hand uses the normal dashboard filters on
+  the **second pitch**, while its real preceding pitch remains unfiltered.
+  The local **Previous Pitch** selector narrows observed pairs without
+  reassigning predecessors.
+- **Whiff%** is whiffs on the second pitch divided by swings on that pitch,
+  and **CSW%** is called strikes plus whiffs divided by second pitches.
+  Their event definitions match the existing profile.
+- **xwOBA** uses only valid, *plate-appearance-ending* outcomes on the second
+  pitch, including eligible strikeouts and walks; it is not xwOBAcon and is not
+  calculated from all second pitches. The table displays eligible scored
+  PA count under xwOBA. If eligible terminal PAs have missing xwOBA tracking,
+  the rate is withheld, not treated as zero.
+- **RV/100** uses the same context-neutral pitch-level run value and pitcher
+  sign as the existing profile: negative opponent run value is good for the
+  pitcher. It is calculated on second pitches only, with all second pitches
+  in the denominator. If run-value tracking is incomplete, RV/100 is withheld;
+  tooltips disclose observed vs. eligible coverage.
+- Click column headers to sort, or select an observed previous pitch.
+  Pairs with fewer than **30** observed transitions are labeled *Small
+  sample*. Missing measurements display a dash; no invented rates.
+  These are *observed* associations, not estimates of causal sequencing skill.
+
+A **context-matched expected-performance delta** is deliberately deferred
+until its baseline, uncertainty and out-of-sample stability can be validated.
+This stage adds the descriptive table without misleading pair-effect scores.
+Both local and public dashboards use the same Flask profile API and code;
+the displayed sample depends on each database's Statcast coverage. No schema
+migration is required.
+
 ### Times Through the Order Splits
 
 Directly below **Platoon Splits**, the dashboard provides two tabs:
