@@ -133,9 +133,7 @@ def plan_pitcher(stored, packet, season, pitcher):
         )
     outcomes = verify_woba_outcomes(packet["woba_detail"], pa_aggregate, pitcher, season)
     official_pa = {
-        key
-        for key, row in keys.items()
-        if row["events"] and row["events"] not in NON_PA_EVENTS
+        key for key, row in keys.items() if row["events"] and row["events"] not in NON_PA_EVENTS
     }
     require(set(outcomes) == official_pa, "Official PA pitch coverage differs from detail.")
     require(
