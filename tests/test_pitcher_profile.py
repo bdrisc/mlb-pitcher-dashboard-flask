@@ -179,7 +179,11 @@ def _pitch(**overrides) -> Pitch:
 
 def test_location_performance_uses_same_hand_and_filters_for_league_reference(app, profile_client):
     """Only same-hand, same-pitch, same-batter contacts in the same zone are compared."""
+    # Exercise the historical-season database fallback with a synthetic league.
     with app.app_context():
+        for game in db.session.query(Game).all():
+            game.season = 2025
+            game.game_date = game.game_date.replace(year=2025)
         db.session.add_all(
             [
                 Player(mlb_id=300, player_name="League Righty", throws="R"),
@@ -229,7 +233,7 @@ def test_location_performance_uses_same_hand_and_filters_for_league_reference(ap
             )
         db.session.commit()
 
-    url = f"/api/v1/pitchers/{PITCHER_ID}/charts?season=2026&pitch_type=FF&batter_side=R"
+    url = f"/api/v1/pitchers/{PITCHER_ID}/charts?season=2025&pitch_type=FF&batter_side=R"
     response = profile_client.get(url)
     assert response.status_code == 200
     result = response.json["charts"]["location_performance"]
@@ -258,7 +262,7 @@ def test_location_performance_uses_same_hand_and_filters_for_league_reference(ap
     assert league["hard_hit_count"] == 1
 
     # Leaving pitch/batter filters off adds other qualifying types and hands.
-    unfiltered = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/charts?season=2026").json[
+    unfiltered = profile_client.get(f"/api/v1/pitchers/{PITCHER_ID}/charts?season=2025").json[
         "charts"
     ]["location_performance"]
     assert len(unfiltered["league_bins"]) > 1
@@ -268,6 +272,27 @@ def test_location_performance_uses_same_hand_and_filters_for_league_reference(ap
     team = profile_client.get(url + "&team=BOS").json["charts"]["location_performance"]
     assert team["league_ignores_team_filter"] is True
     assert team["league_bins"] == result["league_bins"]
+
+
+def test_location_performance_uses_verified_2026_reference(profile_client):
+    from app.services.filters import PitchFilters
+    from app.services.location_reference import shared_league_bins
+
+    url = f"/api/v1/pitchers/{PITCHER_ID}/charts?season=2026"
+    response = profile_client.get(url)
+    assert response.status_code == 200
+    result = response.json["charts"]["location_performance"]
+    assert result["league_bins"] == shared_league_bins(PitchFilters(season=2026), "R")
+    assert len(result["league_bins"]) == 256
+    assert result["reference_scope"] == "Verified full 2026 MLB regular season, same throwing hand"
+
+    filtered = profile_client.get(url + "&pitch_type=FF&batter_side=R&team=BOS")
+    assert filtered.status_code == 200
+    reference = filtered.json["charts"]["location_performance"]
+    assert reference["league_bins"] == shared_league_bins(
+        PitchFilters(season=2026, pitch_types=("FF",), batter_sides=("R",)), "R"
+    )
+    assert reference["league_ignores_team_filter"] is True
 
 
 def test_profile_returns_identity_sample_overall_arsenal_and_splits(profile_client):
