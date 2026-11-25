@@ -99,3 +99,27 @@ def test_exact_hand_pitch_side_count_matching(tmp_path, monkeypatch):
     assert result(PitchFilters(season=2026, strikes=2, batter_sides=("R",)), "R") is None
     assert result(PitchFilters(), "R") is None
     assert result(PitchFilters(season=2025), "R") is None
+
+
+def test_reference_hash_is_independent_of_line_endings(tmp_path):
+    import json
+    from hashlib import sha256
+
+    from app.services.pitch_roles import _load
+
+    payload = {
+        "version": 1,
+        "season": 2026,
+        "pitchers": 800,
+        "physical_pitches": 700000,
+        "games": 2430,
+        "distributions": {"test": [1, 2, 3]},
+    }
+    raw = (json.dumps(payload, indent=2) + "\n").encode()
+    paths = [tmp_path / "lf.json", tmp_path / "crlf.json"]
+    paths[0].write_bytes(raw)
+    paths[1].write_bytes(raw.replace(b"\n", b"\r\n"))
+    for path in paths:
+        loaded, digest = _load(str(path), path.stat().st_mtime_ns)
+        assert loaded == payload
+        assert digest == sha256(raw).hexdigest()
