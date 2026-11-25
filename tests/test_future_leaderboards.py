@@ -9,8 +9,9 @@ from scripts.acquire_future_leaderboards import (
     build_report,
     normalize,
     synthetic_bodies,
+    validate_correction,
 )
-from scripts.rehearse_snapshot_release import ReleaseError
+from scripts.rehearse_snapshot_release import ReleaseError, sha
 
 PID = 2000000010
 
@@ -88,3 +89,24 @@ def test_invalid_spin_is_rejected():
     bodies["savant_spin"] = bodies["savant_spin"].replace(b"95.5%", b"104.94%")
     with pytest.raises(ReleaseError, match="active-spin"):
         normalize(bodies, 2027, staged())
+
+
+def test_correction_provenance(tmp_path):
+    report = {"season": 2027, "synthetic": True, "historical_fingerprint": {"sealed": True}}
+    correction = {
+        "schema": 1,
+        "status": "CORRECTIONS_PASS_QUARANTINED",
+        "season": 2027,
+        "synthetic": True,
+        "staging_report_sha256": "a" * 64,
+        "historical_fingerprint": report["historical_fingerprint"],
+        "patched_pitches": 1,
+        "production_write_allowed": False,
+    }
+    path = tmp_path / "correction.json"
+    path.write_text(json.dumps(correction), encoding="utf-8")
+    validate_correction(path, sha(path), report, staged(), "a" * 64)
+    with pytest.raises(ReleaseError, match="approved staged"):
+        validate_correction(path, sha(path), report, staged(), "b" * 64)
+    with pytest.raises(ReleaseError, match="checksum"):
+        validate_correction(path, "b" * 64, report, staged(), "a" * 64)

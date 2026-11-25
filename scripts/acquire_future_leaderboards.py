@@ -180,8 +180,15 @@ def normalize(bodies, season, staged):
         for code in ("ALL", *CATEGORIES):
             triple = values.get(code, [None] * 3)
             if any(v is not None for v in triple):
-                grade_rows.append(dict(mlb_id=pid, season=season, fangraphs_id=str(fg_id),
-                                       category=code, **dict(zip(GRADE_FIELDS, triple, strict=True))))
+                grade_rows.append(
+                    dict(
+                        mlb_id=pid,
+                        season=season,
+                        fangraphs_id=str(fg_id),
+                        category=code,
+                        **dict(zip(GRADE_FIELDS, triple, strict=True)),
+                    )
+                )
         expected_grades = {"ALL", *(PITCH_CATEGORIES[c] for c in expected_codes
                                     if c in PITCH_CATEGORIES)}
         for code in sorted(expected_grades):
@@ -215,6 +222,8 @@ def normalize(bodies, season, staged):
             "outside_staging_pitchers": sorted(set(source) - set(staged)),
         }
     return {
+        "coverage_review_required": True,
+        "identity_review_required": True,
         "coverage": coverage,
         "unmapped_fangraphs_grades": unmapped_grades,
         "unmapped_fangraphs_rates": unmapped_rates,
