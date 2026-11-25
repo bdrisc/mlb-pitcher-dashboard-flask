@@ -178,24 +178,23 @@ def validate_totals(actual, plan):
             all(n is not None and d in (0, 1) for n, d in pa),
             "Incomplete wOBA components.",
         )
+        rv_total = -fsum(rv for rv, _, _ in values if rv is not None)
         require(
             len(values) == official["pitches"]
             and len(pa) == official["official_pa"]
-            and abs(
-                -fsum(rv for rv, _, _ in values if rv is not None)
-                - official["rv_total_pitcher"]
-            )
-            <= 0.005
+            and abs(rv_total - official["rv_total_pitcher"]) <= 0.005
             and abs(fsum(n for n, _ in pa) - official["woba_numerator"]) <= 1e-7
             and sum(d for _, d in pa) == official["woba_denominator"],
             "Post-correction official aggregate mismatch.",
         )
 
 
-def apply_transaction(conn, season, patches, plan, before, unchanged):
+def apply_transaction(conn, database, season, patches, plan, before, unchanged):
     """All updates and checks share one caller-owned PostgreSQL transaction."""
     with conn.cursor() as cur:
         cur.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+    assert_identity(conn, database)
+    with conn.cursor() as cur:
         # Prevent competing changes during the verification and update transaction.
         cur.execute(
             "LOCK TABLE players, games, pitches, fangraphs_stuff, "
@@ -281,12 +280,8 @@ def run(args):
     args.output.mkdir(parents=True, exist_ok=False)
     clone_staging(source, target)
     print(f"Created isolated correction candidate: {target.database}", flush=True)
-    # Identity check on a separate read-only connection; SET TRANSACTION must
-    # be the first statement on the connection that performs the transaction.
     with connect(target) as conn:
-        assert_identity(conn, target.database)
-    with connect(target) as conn:
-        after = apply_transaction(conn, season, patches, plan, before, unchanged)
+        after = apply_transaction(conn, target.database, season, patches, plan, before, unchanged)
         # psycopg commits on successful exit, and rolls back on any exception.
     require(snapshot(target, season) == after, "Committed correction fingerprint differs.")
     require(snapshot(source, season) == before, "Original staging database changed.")
