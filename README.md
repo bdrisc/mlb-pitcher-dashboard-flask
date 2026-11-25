@@ -1,5 +1,12 @@
 # MLB Pitcher Dashboard
 
+
+> **Production data protection (November 25, 2026):** The reviewed snapshot is frozen.
+> Production startup data refresh and scheduled deploy-hook sync are disabled.
+> Follow [the controlled snapshot release runbook](docs/controlled-snapshot-release.md)
+> instead of the historical startup/automatic refresh instructions below. Schema migrations
+> still run. Never enable legacy maintenance against a verified database.
+
 [![CI](https://github.com/bdrisc/mlb-pitcher-dashboard-flask/actions/workflows/ci.yml/badge.svg)](https://github.com/bdrisc/mlb-pitcher-dashboard-flask/actions/workflows/ci.yml)
 
 **Stack:** Python · Flask · PostgreSQL · SQLAlchemy · Alembic · Plotly · Docker · Render

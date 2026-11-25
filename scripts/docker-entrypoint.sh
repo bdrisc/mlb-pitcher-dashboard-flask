@@ -9,9 +9,9 @@ fi
 
 echo "Starting web server on port ${PORT:-10000}."
 
-# Allow a reviewed, synchronized snapshot to remain unchanged across restarts.
-# Migrations and normal web serving still run when maintenance is disabled.
-if [ "${STARTUP_MAINTENANCE_ENABLED:-1}" = "0" ]; then
+# Production must never refresh or seed live data during a deployment.
+# Legacy startup maintenance is an explicit development-only opt-in.
+if [ "${APP_ENV:-development}" != "development" ] || [ "${STARTUP_MAINTENANCE_ENABLED:-0}" != "1" ]; then
     echo "Background data maintenance disabled; serving existing database snapshot."
     exec "$@"
 fi

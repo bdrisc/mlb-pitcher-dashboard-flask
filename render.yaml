@@ -22,10 +22,12 @@ services:
         value: data/production_statcast_2026.csv.gz
       - key: RUN_MIGRATIONS
         value: "1"
+      - key: STARTUP_MAINTENANCE_ENABLED
+        value: "0"
       - key: SEED_DATABASE
-        value: "1"
+        value: "0"
       - key: SYNC_RECENT_ON_STARTUP
-        value: "1"
+        value: "0"
       - key: SYNC_RECENT_LOOKBACK_DAYS
         value: "4"
       - key: GUNICORN_WORKERS
