@@ -190,11 +190,7 @@ def test_movement_reference_window_is_stable(tmp_path, monkeypatch, compact, ang
     monkeypatch.setattr(reference, "compact_reference_path", lambda season: packed_path)
     _write_reference(
         csv_path,
-        [
-            _row(p, "R", "FF", b, 10, -8.0, 16.0)
-            for p in range(100, 105)
-            for b in (37, 42, 47)
-        ],
+        [_row(p, "R", "FF", b, 10, -8.0, 16.0) for p in range(100, 105) for b in (37, 42, 47)],
     )
     if compact:
         packed_path.touch()
