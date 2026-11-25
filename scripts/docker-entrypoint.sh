@@ -9,6 +9,13 @@ fi
 
 echo "Starting web server on port ${PORT:-10000}."
 
+# Allow a reviewed, synchronized snapshot to remain unchanged across restarts.
+# Migrations and normal web serving still run when maintenance is disabled.
+if [ "${STARTUP_MAINTENANCE_ENABLED:-1}" = "0" ]; then
+    echo "Background data maintenance disabled; serving existing database snapshot."
+    exec "$@"
+fi
+
 (
     delay="${STARTUP_MAINTENANCE_DELAY_SECONDS:-15}"
     echo "Background maintenance will start in ${delay} seconds."
@@ -74,18 +81,6 @@ echo "Starting web server on port ${PORT:-10000}."
         fi
     fi
 
-    if [ "$maintenance_ok" = "1" ] && [ "${SYNC_VAA_ADJ_ON_STARTUP:-1}" = "1" ]; then
-        if ! flask --app wsgi statcast backfill-vaa-adj; then
-            echo "VAAAdj backfill unavailable; saved values retained." >&2
-        fi
-    fi
-
-    if [ "$maintenance_ok" = "1" ] && [ "${SYNC_HAAAA_ON_STARTUP:-1}" = "1" ]; then
-        if ! flask --app wsgi statcast backfill-haaaa; then
-            echo "HAAAA backfill unavailable; saved values retained." >&2
-        fi
-    fi
-
     if [ "$maintenance_ok" = "1" ] && [ "${SYNC_FANGRAPHS_ON_STARTUP:-1}" = "1" ]; then
         if ! flask --app wsgi fangraphs seed-if-needed; then
             echo "FanGraphs snapshot import unavailable." >&2
@@ -117,6 +112,20 @@ echo "Starting web server on port ${PORT:-10000}."
         echo "Checking official pitch classifications for the stored pitcher pool."
         if ! flask --app wsgi statcast refresh-pitch-types --season 2026 --apply; then
             echo "Some official pitch classifications could not be verified; saved types retained." >&2
+        fi
+    fi
+
+    # Recent ingestion and pitch-type corrections may invalidate adjusted angles.
+    # Recompute after both writers, using the final stored classifications.
+    if [ "$maintenance_ok" = "1" ] && [ "${SYNC_VAA_ADJ_ON_STARTUP:-1}" = "1" ]; then
+        if ! flask --app wsgi statcast backfill-vaa-adj; then
+            echo "VAAAdj backfill unavailable; saved values retained." >&2
+        fi
+    fi
+
+    if [ "$maintenance_ok" = "1" ] && [ "${SYNC_HAAAA_ON_STARTUP:-1}" = "1" ]; then
+        if ! flask --app wsgi statcast backfill-haaaa; then
+            echo "HAAAA backfill unavailable; saved values retained." >&2
         fi
     fi
 
