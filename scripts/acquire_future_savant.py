@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import io
 import json
 import time
@@ -146,9 +147,7 @@ def parse_detail(data, pitcher, season):
             require(row[field].isdigit(), "Noninteger detail identity or season.")
             row[field] = int(row[field])
         require(
-            row["pitcher"] == pitcher
-            and row["game_year"] == season
-            and row["game_type"] == "R",
+            row["pitcher"] == pitcher and row["game_year"] == season and row["game_type"] == "R",
             "Savant returned an incorrect pitcher, season or game type.",
         )
         raw_value = row["delta_run_exp"]
@@ -222,7 +221,8 @@ def build_bundle(report, staged, raw, records, staging_sha):
             data = destination.read_bytes()
             require(
                 0 < len(data) <= MAX_BYTES
-                and evidence(destination) == {k: record[k] for k in ("bytes", "sha256")},
+                and len(data) == record["bytes"]
+                and hashlib.sha256(data).hexdigest() == record["sha256"],
                 "Archived response changed during replay.",
             )
             packet[kind] = (
@@ -320,7 +320,10 @@ def main():
             bundle, plan = acquire(report, staged, args.output, args.staging_sha)
             path = args.output / "evidence_bundle.json"
         require(sha(args.staging_report) == args.staging_sha, "Staging report changed.")
-        print(f"Pitchers: {plan['pitchers']}; pitches: {plan['pitches']}; PA: {plan['official_pa']}")
+        print(
+            f"Pitchers: {plan['pitchers']}; pitches: {plan['pitches']}; "
+            f"PA: {plan['official_pa']}"
+        )
         print(f"Archived responses: {len(bundle['acquisition']['responses'])}")
         print(f"Bundle SHA-256: {sha(path)}")
         print("SAVANT_EVIDENCE_PASS_NOT_APPLIED")

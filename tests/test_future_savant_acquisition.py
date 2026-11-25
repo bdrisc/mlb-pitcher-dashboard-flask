@@ -1,6 +1,7 @@
 """Raw Savant acquisition and replay tests without any network or database access."""
 
 import json
+from urllib.parse import urlencode
 
 import pytest
 
@@ -47,9 +48,7 @@ def test_archive_replay_and_exact_regular_season_queries(tmp_path):
     for record in bundle["acquisition"]["responses"]:
         assert record["parameters"]["hfGT"] == "R|"
         assert record["parameters"]["hfSea"] == "2027|"
-    assert replay_bundle(
-        report, staged, output / "evidence_bundle.json", "a" * 64, bundle
-    ) == plan
+    assert replay_bundle(report, staged, output / "evidence_bundle.json", "a" * 64, bundle) == plan
 
 
 @pytest.mark.parametrize("failure", ["raw", "metadata", "query", "bundle", "stage"])
@@ -79,11 +78,7 @@ def test_real_mode_uses_four_separate_queries_and_preserves_response(tmp_path):
     report["synthetic"] = False
     pitcher = next(iter(staged))
     specs = query_specs(pitcher, 2027, "2027-04-01", "2027-04-02")
-    from urllib.parse import urlencode
-
-    responses = {
-        path + "?" + urlencode(params): kind for kind, (path, params) in specs.items()
-    }
+    responses = {path + "?" + urlencode(params): kind for kind, (path, params) in specs.items()}
     calls = []
 
     def fake_fetch(url):
@@ -134,3 +129,18 @@ def test_bad_aggregate_does_not_emit_approved_bundle(tmp_path):
         acquire(report, staged, output, "a" * 64, fetch=fetch, delay=0)
     assert not (output / "evidence_bundle.json").exists()
     assert len(list((output / "raw").iterdir())) == 8
+
+
+def test_missing_response_rejected(tmp_path):
+    report, staged = fixture()
+    output = tmp_path / "archive"
+    bundle, _ = acquire(report, staged, output, "a" * 64)
+    bundle["acquisition"]["responses"].pop()
+    with pytest.raises(ReleaseError, match="Missing archived response"):
+        replay_bundle(report, staged, output / "evidence_bundle.json", "a" * 64, bundle)
+
+
+def test_wrong_pitcher_rejected():
+    raw, _, _ = synthetic_download("detail")
+    with pytest.raises(ReleaseError, match="incorrect pitcher"):
+        parse_detail(raw, 1234, 2027)
