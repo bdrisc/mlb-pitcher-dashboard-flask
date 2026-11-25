@@ -1030,6 +1030,14 @@ if (root) {
   const roleBest = document.querySelector("#pitch-roles-best");
   const roleNote = document.querySelector("#pitch-roles-note");
 
+  function formatRolePercentile(value) {
+    if (value == null) return "—";
+    const n = Math.round(value);
+    const lastTwo = n % 100;
+    const suffix = lastTwo >= 11 && lastTwo <= 13 ? "th" : ({1: "st", 2: "nd", 3: "rd"}[n % 10] || "th");
+    return `${n}${suffix} %ile`;
+  }
+
   function renderPitchRoles(data, arsenal) {
     roleProfile = data;
     roleArsenal = arsenal;
@@ -1037,7 +1045,8 @@ if (root) {
     roleBody.replaceChildren();
     roleBest.replaceChildren();
     if (!data) {
-      roleNote.textContent = "Pitch role analysis unavailable.";
+      roleNote.hidden = false;
+      roleNote.textContent = "Pitch type role analysis unavailable.";
       return;
     }
     const mode = roleView.value;
@@ -1060,7 +1069,7 @@ if (root) {
       const v = c.display_value ?? c.value;
       return v == null ? "—" : (r.metric.endsWith("per_100") ? (v > 0 ? "+" : "") + v.toFixed(1) : v.toFixed(1) + "%");
     };
-    const rankText = c => c.percentile == null ? "—" : c.percentile.toFixed(1).replace(/\.0$/, "") + " Pctl";
+    const rankText = c => formatRolePercentile(c.percentile);
     for (const r of data.rows) {
       const row = document.createElement("tr");
       add(row, "th", r.label).scope = "row";
@@ -1087,8 +1096,8 @@ if (root) {
       add(best, "td", summary(r.best_vs_peers, rankText));
       roleBest.append(best);
     }
-    roleNote.textContent = data.reference_available ?
-      "MLB " + data.season + " reference through " + data.reference_through + " · Same pitch type, pitcher hand, batter side and count scope. Full-season benchmarks; unqualified cells are uncolored." :
+    roleNote.hidden = data.reference_available;
+    roleNote.textContent = data.reference_available ? "" :
       "Full MLB season reference unavailable for this selection. Raw statistics remain visible; percentiles are withheld.";
   }
   roleView.addEventListener("change", () => renderPitchRoles(roleProfile, roleArsenal));
