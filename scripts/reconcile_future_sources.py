@@ -300,7 +300,12 @@ def main():
             bundle_evidence = evidence(args.bundle)
             require(bundle_evidence["sha256"] == args.bundle_sha, "Bundle checksum mismatch.")
             bundle = read_json(args.bundle)
-        result = plan_all(report, staged, bundle)
+        if not args.synthetic:
+            from scripts.acquire_future_savant import replay_bundle
+
+            result = replay_bundle(report, staged, args.bundle, args.staging_sha, bundle)
+        else:
+            result = plan_all(report, staged, bundle)
         require(sha(args.staging_report) == args.staging_sha, "Staging report changed.")
         if not args.synthetic:
             require(evidence(args.bundle) == bundle_evidence, "Evidence changed during review.")
