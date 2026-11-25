@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from decimal import ROUND_HALF_UP, Decimal
-from math import atan2, cos, degrees, hypot, radians, sin, sqrt
+from math import atan2, cos, degrees, hypot, isfinite, radians, sin, sqrt
 from typing import Any
 
 from sqlalchemy import and_, case, func, or_, select
@@ -292,6 +292,8 @@ def _rounded(value: Any, digits: int = 1) -> float | None:
         return None
     # Normalize insignificant SQL floating-point summation drift before rounding.
     # Use the same decimal half-up convention as the published outcome rates.
+    if not isfinite(float(value)):
+        return None
     normalized = Decimal(str(round(float(value), 9)))
     return float(normalized.quantize(Decimal(1).scaleb(-digits), rounding=ROUND_HALF_UP))
 

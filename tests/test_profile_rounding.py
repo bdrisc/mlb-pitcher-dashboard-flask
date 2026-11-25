@@ -15,3 +15,8 @@ def test_profile_rounding_is_stable_at_decimal_boundaries():
     ):
         assert _rounded(value, digits) == expected
     assert _rounded(None) is None
+
+
+def test_profile_rounding_rejects_nonfinite_values():
+    for value in (float("inf"), float("-inf"), float("nan")):
+        assert _rounded(value) is None
