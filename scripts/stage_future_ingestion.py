@@ -292,7 +292,9 @@ def verify_new_rows(target, paths, season, manifest, schedule):
                         for expected in batch:
                             key = expected["pitch_id"]
                             require(key not in seen, "Duplicate staged pitch identity.")
-                            require(actual[key] == expected, f"Stored pitch differs from source: {key}")
+                            require(
+                                actual[key] == expected, f"Stored pitch differs from source: {key}"
+                            )
                             seen.add(key)
             require(len(seen) == coverage["rows"], "Incomplete pitch comparison.")
     return coverage
