@@ -2219,3 +2219,21 @@ summary,
     text-align: center;
   }
 }
+
+/* Pitch Arsenal Roles: high = green, low = red. */
+.pitch-roles-shell { overflow-x: auto; }
+.pitch-roles-table { width: 100%; }
+.pitch-roles-table th, .pitch-roles-table td { padding: .35rem .5rem; }
+.pitch-roles-table th:first-child { text-align: left; white-space: nowrap; }
+.role-tile { display: flex; flex-direction: column; justify-content: center; min-width: 4rem;
+  min-height: 2.4rem; border-radius: .3rem; padding: .35rem; text-align: center; }
+.role-tile small { font-size: .7rem; }
+.role-p0 { background: #9e3939; color: #fff; }
+.role-p1 { background: #945454; color: #fff; }
+.role-p2 { background: #64666c; color: #fff; }
+.role-p3 { background: #53765e; color: #fff; }
+.role-p4 { background: #387a51; color: #fff; }
+.role-p5 { background: #176540; color: #fff; }
+.pitch-roles-legend { display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: .25rem; font-size: .75rem; margin: .6rem 0 1rem; }
+.pitch-roles-legend i { display: inline-block; width: 1rem; height: .65rem; border-radius: .15rem; }

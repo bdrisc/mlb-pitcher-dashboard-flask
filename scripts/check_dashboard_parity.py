@@ -101,6 +101,7 @@ def compare_profiles(local, public, tolerance=1e-7):
         "sample",
         "overall",
         "arsenal",
+        "pitch_roles",
         "platoon_splits",
         "pitch_separation",
         "pitch_tunneling",
