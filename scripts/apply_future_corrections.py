@@ -59,7 +59,12 @@ def approved_plan(args):
         bundle_evidence = evidence(args.bundle)
         require(bundle_evidence == plan["bundle_evidence"], "Evidence bundle changed.")
         bundle = read_json(args.bundle)
-    rebuilt = plan_all(report, staged, bundle)
+    if args.synthetic:
+        rebuilt = plan_all(report, staged, bundle)
+    else:
+        from scripts.acquire_future_savant import replay_bundle
+
+        rebuilt = replay_bundle(report, staged, args.bundle, args.staging_sha, bundle)
     rebuilt["staging_report_sha256"] = args.staging_sha
     rebuilt["bundle_evidence"] = bundle_evidence
     require(rebuilt == plan, "Plan cannot be reproduced from reviewed evidence.")
