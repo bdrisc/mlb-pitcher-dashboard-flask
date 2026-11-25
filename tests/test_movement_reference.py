@@ -150,3 +150,66 @@ def test_packaged_2026_reference_matches_uploaded_full_league_source(tmp_path, m
         )["hb_vs_avg"]
         is None
     )
+
+
+@pytest.mark.parametrize(
+    ("angle", "expected"),
+    [
+        (47.95 - 1e-12, 48.0),
+        (47.95 + 1e-12, 48.0),
+        (54.35 - 1e-12, 54.4),
+        (54.35 + 1e-12, 54.4),
+    ],
+)
+def test_movement_arm_angle_rounding_is_stable(angle, expected):
+    result = reference.movement_vs_average(
+        season=2026,
+        pitch_type="FF",
+        throwing_hand="R",
+        arm_angle=angle,
+        horizontal_break=-8.0,
+        vertical_break=17.0,
+    )
+    assert result["movement_avg_arm_angle"] == expected
+
+
+@pytest.mark.parametrize("compact", [False, True])
+@pytest.mark.parametrize(
+    ("angle", "expected_count"),
+    [
+        (42.5 - 1e-12, 150),
+        (42.5 + 1e-12, 150),
+        (42.5 - 1e-7, 100),
+        (42.5 + 1e-7, 100),
+    ],
+)
+def test_movement_reference_window_is_stable(tmp_path, monkeypatch, compact, angle, expected_count):
+    csv_path = tmp_path / "reference.csv.gz"
+    packed_path = tmp_path / "reference.b85"
+    monkeypatch.setattr(reference, "reference_path", lambda season: csv_path)
+    monkeypatch.setattr(reference, "compact_reference_path", lambda season: packed_path)
+    _write_reference(
+        csv_path,
+        [_row(p, "R", "FF", b, 10, -8.0, 16.0) for p in range(100, 105) for b in (37, 42, 47)],
+    )
+    if compact:
+        packed_path.touch()
+        monkeypatch.setattr(
+            reference,
+            "_load_compact_reference",
+            lambda *args: (
+                {("R", "FF"): [(b, 50, -400.0, 800.0) for b in (37, 42, 47)]},
+                {(("R", "FF"), 37): (5, 5), (("R", "FF"), 38): (5, 5)},
+            ),
+        )
+    result = reference.movement_vs_average(
+        season=2026,
+        pitch_type="FF",
+        throwing_hand="R",
+        arm_angle=angle,
+        horizontal_break=-8.05,
+        vertical_break=16.05,
+    )
+    assert result["movement_avg_pitches"] == expected_count
+    assert result["hb_vs_avg"] == 0.1
+    assert result["ivb_vs_avg"] == 0.1

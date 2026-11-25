@@ -13,6 +13,7 @@ import gzip
 import lzma
 import struct
 from collections import defaultdict
+from decimal import ROUND_HALF_UP, Decimal
 from functools import lru_cache
 from math import ceil, floor, isfinite
 from pathlib import Path
@@ -124,6 +125,11 @@ def _load_compact_reference(path_str: str, modified_ns: int):
     return bins, counts
 
 
+def _stable_round(value: float) -> float:
+    """Match profile half-up rounding after removing float summation drift."""
+    return float(Decimal(str(round(value, 9))).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP))
+
+
 def movement_vs_average(
     *,
     season: int | None,
@@ -150,14 +156,15 @@ def movement_vs_average(
         or not all(isfinite(float(x)) for x in (arm_angle, horizontal_break, vertical_break))
     ):
         return result
+    normalized_angle = round(float(arm_angle), 9)
     compact = compact_reference_path(season)
     if compact.is_file():
         try:
             bins, distinct = _load_compact_reference(str(compact), compact.stat().st_mtime_ns)
         except (OSError, ValueError, EOFError, struct.error, lzma.LZMAError):
             return result
-        first_bin = ceil(float(arm_angle) - ARM_ANGLE_WINDOW_DEGREES - 0.5)
-        last_bin = floor(float(arm_angle) + ARM_ANGLE_WINDOW_DEGREES - 0.5)
+        first_bin = ceil(normalized_angle - ARM_ANGLE_WINDOW_DEGREES - 0.5)
+        last_bin = floor(normalized_angle + ARM_ANGLE_WINDOW_DEGREES - 0.5)
         width = last_bin - first_bin + 1
         if width not in (10, 11):
             return result
@@ -179,7 +186,7 @@ def movement_vs_average(
             (throwing_hand, pitch_type), ()
         )
         eligible = [
-            row for row in rows if abs(row[0] + 0.5 - float(arm_angle)) <= ARM_ANGLE_WINDOW_DEGREES
+            row for row in rows if abs(row[0] + 0.5 - normalized_angle) <= ARM_ANGLE_WINDOW_DEGREES
         ]
         count = sum(row[2] for row in eligible)
         pitchers = len({row[1] for row in eligible})
@@ -187,15 +194,15 @@ def movement_vs_average(
         ivb_sum = sum(row[4] for row in eligible)
     result["movement_avg_pitches"] = count
     result["movement_avg_pitchers"] = pitchers
-    result["movement_avg_arm_angle"] = round(float(arm_angle), 1)
+    result["movement_avg_arm_angle"] = _stable_round(normalized_angle)
     if count < MIN_COMPARISON_PITCHES or pitchers < MIN_COMPARISON_PITCHERS:
         return result
 
     league_hb = hb_sum / count
     league_ivb = ivb_sum / count
     hand_sign = -1 if throwing_hand == "R" else 1
-    result["hb_vs_avg"] = round((float(horizontal_break) - league_hb) * hand_sign, 1)
-    result["ivb_vs_avg"] = round(float(vertical_break) - league_ivb, 1)
+    result["hb_vs_avg"] = _stable_round((float(horizontal_break) - league_hb) * hand_sign)
+    result["ivb_vs_avg"] = _stable_round(float(vertical_break) - league_ivb)
     return result
 
 
