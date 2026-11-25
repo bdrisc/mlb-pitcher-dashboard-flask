@@ -575,6 +575,10 @@ def _arsenal_rows(
     arsenal = []
     for row in db.session.execute(statement).mappings():
         pitch_count = _integer(row, "pitch_count")
+        metrics = _performance_metrics(row)
+        roles = role_values(row)
+        for key, cell in roles.items():
+            cell["display_value"] = metrics.get(key, _rate(_integer(row, "first_pitch_strikes"), _integer(row, "first_pitch_opportunities")))
         arsenal.append(
             {
                 "pitch_type": row["pitch_type"],
@@ -582,8 +586,8 @@ def _arsenal_rows(
                 or PITCH_NAME_MAP.get(row["pitch_type"], row["pitch_type"]),
                 "pitch_count": pitch_count,
                 "usage_pct": _rate(pitch_count, total_pitches),
-                **_performance_metrics(row),
-                "role_values": role_values(row),
+                **metrics,
+                "role_values": roles,
                 **movement_vs_average(
                     season=season,
                     pitch_type=row["pitch_type"],

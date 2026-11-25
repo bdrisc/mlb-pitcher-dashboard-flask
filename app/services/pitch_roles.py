@@ -103,6 +103,12 @@ def _load(path, mtime_ns):
         raise ValueError("Incorrect pitch role reference version")
     if payload.get("pitchers", 0) < 750 or payload.get("physical_pitches", 0) < 650000 or payload.get("games", 0) < 2400:
         raise ValueError("Incomplete MLB reference")
+    distributions = payload.get("distributions")
+    if not isinstance(distributions, dict) or not distributions:
+        raise ValueError("Missing pitch role distributions")
+    for values in distributions.values():
+        if not isinstance(values, list) or not all(isinstance(v, (int, float)) and isfinite(v) for v in values) or values != sorted(values):
+            raise ValueError("Invalid pitch role distribution")
     return payload, sha256(data).hexdigest()
 
 
@@ -114,7 +120,9 @@ def percentile(value, peers):
     """Midrank empirical percentile; identical observations receive identical ranks."""
     if len(peers) < MIN_PEERS:
         return None
-    return round(100 * (bisect_left(peers, value) + bisect_right(peers, value)) / (2 * len(peers)), 1)
+    # SQL sums can differ at machine precision across aggregation orders.
+    epsilon = 1e-10
+    return round(100 * (bisect_left(peers, value - epsilon) + bisect_right(peers, value + epsilon)) / (2 * len(peers)), 1)
 
 
 def build_pitch_roles(arsenal, filters, hand):

@@ -1056,9 +1056,11 @@ if (root) {
       th.title = p.pitch_name;
     });
     roleHead.append(header);
-    const rawText = (r, c) => c.value == null ? "—" :
-      (r.metric.endsWith("per_100") ? (c.value > 0 ? "+" : "") + c.value.toFixed(1) : c.value.toFixed(1) + "%");
-    const rankText = c => c.percentile == null ? "—" : Math.round(c.percentile) + " Pctl";
+    const rawText = (r, c) => {
+      const v = c.display_value ?? c.value;
+      return v == null ? "—" : (r.metric.endsWith("per_100") ? (v > 0 ? "+" : "") + v.toFixed(1) : v.toFixed(1) + "%");
+    };
+    const rankText = c => c.percentile == null ? "—" : c.percentile.toFixed(1).replace(/\.0$/, "") + " Pctl";
     for (const r of data.rows) {
       const row = document.createElement("tr");
       add(row, "th", r.label).scope = "row";

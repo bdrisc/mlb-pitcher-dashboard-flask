@@ -75,8 +75,8 @@ def export(season):
     payload = {"version": VERSION, "season": season, "pitchers": pitchers,
                "physical_pitches": physical_pitches, "games": games,
                "through": through.isoformat(),
-               "distributions": {k: sorted(v) for k, v in sorted(distributions.items()) if len(v) >= MIN_PEERS}}
-    if not payload["distributions"]:
+               "distributions": {k: sorted(v) for k, v in sorted(distributions.items()) if v}}
+    if not any(len(v) >= MIN_PEERS for v in payload["distributions"].values()):
         raise ValueError("No qualifying peer groups")
     path = reference_path(season)
     tmp = path.with_suffix(".tmp")

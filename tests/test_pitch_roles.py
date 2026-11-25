@@ -41,3 +41,30 @@ def test_missing_reference_never_falls_back():
     assert whiff["cells"][0]["percentile"] is None
     assert whiff["most_effective"] == ["SL"]
     assert whiff["best_vs_peers"] == []
+
+
+def test_exact_hand_pitch_side_count_matching(tmp_path, monkeypatch):
+    import json
+    import app.services.pitch_roles as roles
+
+    monkeypatch.setattr(roles, "REFERENCE_DIR", tmp_path)
+    masks = filter_count_key(PitchFilters(season=2026, batter_sides=("R",)))
+    k = roles.peer_key("SL", "R", "R", masks, "whiff_pct")
+    other = roles.peer_key("SL", "L", "R", masks, "whiff_pct")
+    all_side = roles.peer_key("SL", "R", "ALL", masks, "whiff_pct")
+    path = roles.reference_path(2026)
+    path.write_text(json.dumps({"version": 1, "season": 2026, "pitchers": 800,
+        "physical_pitches": 700000, "games": 2430, "through": "2026-09-27",
+        "distributions": {k: [25] * 20, other: [75] * 20, all_side: [50] * 20}}))
+    row = dict.fromkeys(ROLE_FIELDS, 0)
+    row.update(physical_pitch_count=100, role_regular_pitches=100, swings=80, whiffs=40)
+    arsenal = [{"pitch_type": "SL", "role_values": role_values(row)}]
+    def result(filters, hand):
+        return build_pitch_roles(arsenal, filters, hand)["rows"][1]["cells"][0]["percentile"]
+    assert result(PitchFilters(season=2026, batter_sides=("R",)), "R") == 100
+    assert result(PitchFilters(season=2026, batter_sides=("R",)), "L") == 0
+    assert result(PitchFilters(season=2026), "R") == 50
+    assert result(PitchFilters(season=2026, batter_sides=("L",)), "R") is None
+    assert result(PitchFilters(season=2026, strikes=2, batter_sides=("R",)), "R") is None
+    assert result(PitchFilters(), "R") is None
+    assert result(PitchFilters(season=2025), "R") is None
