@@ -119,14 +119,50 @@ def original_players(url, expected_games):
 def synthetic_sources(output):
     """Create clearly synthetic records to exercise the real staging path."""
     fields = [
-        "game_date", "game_pk", "game_type", "at_bat_number", "pitch_number",
-        "pitch_type", "player_name", "pitcher", "batter", "stand", "p_throws",
-        "balls", "strikes", "description", "type", "home_team", "away_team",
-        "inning", "inning_topbot", "zone", "release_speed", "release_spin_rate",
-        "spin_axis", "pfx_x", "pfx_z", "plate_x", "plate_z", "sz_top", "sz_bot",
-        "release_pos_x", "vx0", "vy0", "vz0", "ax", "ay", "az", "events",
-        "bb_type", "launch_speed", "launch_speed_angle", "estimated_ba_using_speedangle",
-        "estimated_slg_using_speedangle", "estimated_woba_using_speedangle", "delta_run_exp",
+        "game_date",
+        "game_pk",
+        "game_type",
+        "at_bat_number",
+        "pitch_number",
+        "pitch_type",
+        "player_name",
+        "pitcher",
+        "batter",
+        "stand",
+        "p_throws",
+        "balls",
+        "strikes",
+        "description",
+        "type",
+        "home_team",
+        "away_team",
+        "inning",
+        "inning_topbot",
+        "zone",
+        "release_speed",
+        "release_spin_rate",
+        "spin_axis",
+        "pfx_x",
+        "pfx_z",
+        "plate_x",
+        "plate_z",
+        "sz_top",
+        "sz_bot",
+        "release_pos_x",
+        "vx0",
+        "vy0",
+        "vz0",
+        "ax",
+        "ay",
+        "az",
+        "events",
+        "bb_type",
+        "launch_speed",
+        "launch_speed_angle",
+        "estimated_ba_using_speedangle",
+        "estimated_slg_using_speedangle",
+        "estimated_woba_using_speedangle",
+        "delta_run_exp",
     ]
     paths = []
     schedule = {}
@@ -139,31 +175,78 @@ def synthetic_sources(output):
             writer = csv.DictWriter(handle, fieldnames=fields)
             writer.writeheader()
             common = {
-                "game_date": day, "game_pk": game, "game_type": "R",
-                "at_bat_number": 1, "pitch_type": "FF", "player_name": "Fixture, Pitcher",
-                "pitcher": 2000000010, "batter": 2000000011, "stand": "R",
-                "p_throws": "R", "balls": 0, "home_team": "BOS", "away_team": "NYY",
-                "inning": 1, "inning_topbot": "Top", "release_speed": 95,
-                "release_spin_rate": 2400, "spin_axis": 210, "pfx_x": -0.7, "pfx_z": 1.4,
-                "plate_x": 0.1, "plate_z": 2.5, "sz_top": 3.5, "sz_bot": 1.5,
-                "release_pos_x": -2, "vx0": 5, "vy0": -135, "vz0": -4,
-                "ax": -10, "ay": 30, "az": -15,
+                "game_date": day,
+                "game_pk": game,
+                "game_type": "R",
+                "at_bat_number": 1,
+                "pitch_type": "FF",
+                "player_name": "Fixture, Pitcher",
+                "pitcher": 2000000010,
+                "batter": 2000000011,
+                "stand": "R",
+                "p_throws": "R",
+                "balls": 0,
+                "home_team": "BOS",
+                "away_team": "NYY",
+                "inning": 1,
+                "inning_topbot": "Top",
+                "release_speed": 95,
+                "release_spin_rate": 2400,
+                "spin_axis": 210,
+                "pfx_x": -0.7,
+                "pfx_z": 1.4,
+                "plate_x": 0.1,
+                "plate_z": 2.5,
+                "sz_top": 3.5,
+                "sz_bot": 1.5,
+                "release_pos_x": -2,
+                "vx0": 5,
+                "vy0": -135,
+                "vz0": -4,
+                "ax": -10,
+                "ay": 30,
+                "az": -15,
             }
-            writer.writerow({
-                **common, "pitch_number": 1, "strikes": 0, "description": "called_strike",
-                "type": "S", "zone": 5, "delta_run_exp": -0.04,
-            })
-            writer.writerow({
-                **common, "pitch_number": 2, "strikes": 1, "description": "foul_tip",
-                "type": "S", "zone": 14, "delta_run_exp": -0.05,
-            })
-            writer.writerow({
-                **common, "pitch_number": 3, "strikes": 2, "description": "hit_into_play",
-                "type": "X", "zone": 5, "events": "single", "bb_type": "line_drive",
-                "launch_speed": 101, "launch_speed_angle": 4,
-                "estimated_ba_using_speedangle": 0.6, "estimated_slg_using_speedangle": 0.9,
-                "estimated_woba_using_speedangle": 0.55, "delta_run_exp": 0.4,
-            })
+            writer.writerow(
+                {
+                    **common,
+                    "pitch_number": 1,
+                    "strikes": 0,
+                    "description": "called_strike",
+                    "type": "S",
+                    "zone": 5,
+                    "delta_run_exp": -0.04,
+                }
+            )
+            writer.writerow(
+                {
+                    **common,
+                    "pitch_number": 2,
+                    "strikes": 1,
+                    "description": "foul_tip",
+                    "type": "S",
+                    "zone": 14,
+                    "delta_run_exp": -0.05,
+                }
+            )
+            writer.writerow(
+                {
+                    **common,
+                    "pitch_number": 3,
+                    "strikes": 2,
+                    "description": "hit_into_play",
+                    "type": "X",
+                    "zone": 5,
+                    "events": "single",
+                    "bb_type": "line_drive",
+                    "launch_speed": 101,
+                    "launch_speed_angle": 4,
+                    "estimated_ba_using_speedangle": 0.6,
+                    "estimated_slg_using_speedangle": 0.9,
+                    "estimated_woba_using_speedangle": 0.55,
+                    "delta_run_exp": 0.4,
+                }
+            )
         paths.append(path)
     schedule_path = output / "synthetic_schedule.json"
     save(schedule_path, schedule)
@@ -194,8 +277,7 @@ def stage_files(target, paths, manifest, season, player_ids):
     with app.app_context():
         try:
             require(
-                db.engine.url.database == target.database
-                and db.engine.url.host == target.host,
+                db.engine.url.database == target.database and db.engine.url.host == target.host,
                 "Application database target mismatch.",
             )
             for path, expected in zip(paths, manifest["sources"], strict=True):
@@ -261,9 +343,19 @@ def verify_new_rows(target, paths, season, manifest, schedule):
                 (season,),
             )
             labels = (
-                "rows", "pitchers", "games", "natural_keys", "rv_present", "spin_axis_present",
-                "vaa_present", "haa_present", "vaa_adj_present", "haaaa_present",
-                "whiffs", "strikes", "hard_hits",
+                "rows",
+                "pitchers",
+                "games",
+                "natural_keys",
+                "rv_present",
+                "spin_axis_present",
+                "vaa_present",
+                "haa_present",
+                "vaa_adj_present",
+                "haaaa_present",
+                "whiffs",
+                "strikes",
+                "hard_hits",
             )
             coverage = dict(zip(labels, cur.fetchone(), strict=True))
             require(
@@ -325,7 +417,10 @@ def run(args):
         paths, schedule_path, manifest_path, digest = synthetic_sources(args.output)
     else:
         paths, schedule_path, manifest_path, digest = (
-            args.sources, args.schedule, args.manifest, args.manifest_sha
+            args.sources,
+            args.schedule,
+            args.manifest,
+            args.manifest_sha,
         )
     manifest, schedule, copies = verified_sources(
         paths, schedule_path, manifest_path, digest, args.season, args.output / "sources"
