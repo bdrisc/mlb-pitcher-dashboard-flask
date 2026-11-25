@@ -13,7 +13,7 @@ from scripts.apply_future_corrections import (
     validate_totals,
 )
 from scripts.reconcile_future_sources import plan_all, synthetic_bundle
-from scripts.rehearse_snapshot_release import ReleaseError, connect
+from scripts.rehearse_snapshot_release import ReleaseError, assert_identity, connect
 
 
 def fixture():
@@ -77,7 +77,7 @@ def test_reject_incorrect_post_correction_aggregates(field):
 @pytest.mark.skipif(
     os.environ.get("GITHUB_ACTIONS") != "true", reason="Requires disposable CI PostgreSQL."
 )
-def test_postgres_transaction_rolls_back_then_applies():
+def test_postgres_transaction_rolls_back_then_applies(monkeypatch):
     from sqlalchemy.engine import make_url
 
     url = make_url(os.environ["DATABASE_URL"])
@@ -85,6 +85,26 @@ def test_postgres_transaction_rolls_back_then_applies():
     staged, plan = fixture()
     patches = expected_patches(staged, plan)
     with connect(url) as conn:
+        # GitHub forwards localhost to the Docker service's bridge address.
+        # Prove the real guard rejects that address; adapt only this test.
+        with conn.cursor() as cur:
+            cur.execute("SELECT host(inet_server_addr()), current_database()")
+            host, database = cur.fetchone()
+        assert database == url.database
+        if host not in {"127.0.0.1", "::1"}:
+            with pytest.raises(ReleaseError, match="loopback check failed"):
+                assert_identity(conn, url.database)
+
+            def assert_ci_identity(connection, expected):
+                assert connection is conn and expected == url.database
+                with connection.cursor() as cur:
+                    cur.execute("SELECT current_database(), pg_my_temp_schema()")
+                    name, schema = cur.fetchone()
+                assert name == expected and schema != 0
+
+            monkeypatch.setattr(
+                "scripts.apply_future_corrections.assert_identity", assert_ci_identity
+            )
         # Every table is temporary and shadows its permanent counterpart.
         # Nothing persists beyond this connection, even if a test fails.
         with conn.cursor() as cur:
