@@ -34,9 +34,10 @@ def test_acquire_and_replay(tmp_path):
     assert result["savant_active_spin"][0]["active_spin_pct"] == 95.5
     assert not result["missing_values"]
     assert len(list((out / "raw").iterdir())) == 8
-    assert build_report(
-        report, staged(), out / "raw", result["responses"], "a" * 64, "b" * 64
-    ) == result
+    assert (
+        build_report(report, staged(), out / "raw", result["responses"], "a" * 64, "b" * 64)
+        == result
+    )
     record = result["responses"]["savant_xera"]
     (out / "raw" / record["file"]).write_bytes(b"changed")
     with pytest.raises(ReleaseError, match="checksum"):

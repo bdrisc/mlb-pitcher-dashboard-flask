@@ -32,16 +32,33 @@ RATE_FIELDS = ("FIP", "xFIP", "SIERA")
 
 def specs(season):
     fg = dict(
-        pos="all", stats="pit", lg="all", qual=0, season=season, season1=season,
-        ind=0, month=0, team=0, rost=0, pageitems=10000, pagenum=1,
+        pos="all",
+        stats="pit",
+        lg="all",
+        qual=0,
+        season=season,
+        season1=season,
+        ind=0,
+        month=0,
+        team=0,
+        rost=0,
+        pageitems=10000,
+        pagenum=1,
     )
     return {
         "fangraphs_grades": (FANGRAPHS_ENDPOINT, {**fg, "type": 36}, "json"),
         "fangraphs_rates": (FANGRAPHS_ENDPOINT, {**fg, "type": 8, "hand": ""}, "json"),
         "savant_xera": (
             SAVANT_ENDPOINT,
-            dict(type="pitcher", year=season, position="", team="", filterType="pa",
-                 min=0, csv="true"),
+            dict(
+                type="pitcher",
+                year=season,
+                position="",
+                team="",
+                filterType="pa",
+                min=0,
+                csv="true",
+            ),
             "csv",
         ),
         "savant_spin": (
@@ -92,8 +109,11 @@ def fg_rows(data, season, grades):
     payload = strict_json(data)
     rows = payload["data"]
     require(
-        isinstance(rows, list) and bool(rows) and type(payload["totalCount"]) is int
-        and len(rows) == payload["totalCount"] and len(rows) < 10000,
+        isinstance(rows, list)
+        and bool(rows)
+        and type(payload["totalCount"]) is int
+        and len(rows) == payload["totalCount"]
+        and len(rows) < 10000,
         "Incomplete or truncated FanGraphs leaderboard.",
     )
     # Reuse established source-schema validation before strict normalization.
@@ -146,8 +166,9 @@ def csv_rows(data, season, spin):
         pid = integer(row["entity_id" if spin else "player_id"])
         require(pid not in result, "Duplicate Savant player ID.")
         if spin:
-            values = {code: metric(row[field], percent=True)
-                      for field, code in SAVANT_SPIN_FIELDS.items()}
+            values = {
+                code: metric(row[field], percent=True) for field, code in SAVANT_SPIN_FIELDS.items()
+            }
         else:
             values = metric(row["xera"])
             require(values is None or values >= 0, "Negative published xERA.")
@@ -189,17 +210,25 @@ def normalize(bodies, season, staged):
                         **dict(zip(GRADE_FIELDS, triple, strict=True)),
                     )
                 )
-        expected_grades = {"ALL", *(PITCH_CATEGORIES[c] for c in expected_codes
-                                    if c in PITCH_CATEGORIES)}
+        expected_grades = {
+            "ALL",
+            *(PITCH_CATEGORIES[c] for c in expected_codes if c in PITCH_CATEGORIES),
+        }
         for code in sorted(expected_grades):
             for field, value in zip(GRADE_FIELDS, values.get(code, [None] * 3), strict=True):
                 if value is None:
                     gaps.append([pid, "fangraphs_grades", code, field])
         rate_id, rate = rates.get(pid, (None, {}))
-        row = dict(mlb_id=pid, season=season, batter_side="ALL",
-                   fangraphs_id=str(rate_id) if rate_id is not None else None,
-                   fip=rate.get("FIP"), xfip=rate.get("xFIP"), siera=rate.get("SIERA"),
-                   xera=xera.get(pid))
+        row = dict(
+            mlb_id=pid,
+            season=season,
+            batter_side="ALL",
+            fangraphs_id=str(rate_id) if rate_id is not None else None,
+            fip=rate.get("FIP"),
+            xfip=rate.get("xFIP"),
+            siera=rate.get("SIERA"),
+            xera=xera.get(pid),
+        )
         for field in ("fip", "xfip", "siera", "xera"):
             if row[field] is None:
                 gaps.append([pid, "published_rates", "ALL", field])
@@ -207,14 +236,19 @@ def normalize(bodies, season, staged):
             rate_rows.append(row)
         for code, value in sorted(spin.get(pid, {}).items()):
             if value is not None:
-                spin_rows.append(dict(mlb_id=pid, season=season, pitch_type=code,
-                                      active_spin_pct=value))
+                spin_rows.append(
+                    dict(mlb_id=pid, season=season, pitch_type=code, active_spin_pct=value)
+                )
         for code in expected_codes:
             if code in SAVANT_SPIN_FIELDS.values() and spin.get(pid, {}).get(code) is None:
                 gaps.append([pid, "savant_spin", code, "active_spin_pct"])
     coverage = {}
-    for name, source in (("fangraphs_grades", grades), ("fangraphs_rates", rates),
-                         ("savant_xera", xera), ("savant_spin", spin)):
+    for name, source in (
+        ("fangraphs_grades", grades),
+        ("fangraphs_rates", rates),
+        ("savant_xera", xera),
+        ("savant_spin", spin),
+    ):
         coverage[name] = {
             "source_pitchers": len(source),
             "matched_pitchers": len(set(source) & set(staged)),
@@ -237,15 +271,27 @@ def normalize(bodies, season, staged):
 
 def synthetic_bodies(season):
     pid = 2000000010
-    row = dict(playerid=9000001, xMLBAMID=pid, Season=season, sp_stuff=112,
-               sp_location=104, sp_pitching=109, sp_s_FF=115, sp_l_FF=103, sp_p_FF=110,
-               FIP=3.2, xFIP=3.5, SIERA=3.4)
+    row = dict(
+        playerid=9000001,
+        xMLBAMID=pid,
+        Season=season,
+        sp_stuff=112,
+        sp_location=104,
+        sp_pitching=109,
+        sp_s_FF=115,
+        sp_l_FF=103,
+        sp_p_FF=110,
+        FIP=3.2,
+        xFIP=3.5,
+        SIERA=3.4,
+    )
     fg = json.dumps({"data": [row], "totalCount": 1}).encode()
     spin = io.StringIO()
     writer = csv.DictWriter(spin, fieldnames=["entity_id", "year", *SAVANT_SPIN_FIELDS])
     writer.writeheader()
-    writer.writerow({"entity_id": pid, "year": f"{season}_spin-based",
-                     "active_spin_fourseam": "95.5%"})
+    writer.writerow(
+        {"entity_id": pid, "year": f"{season}_spin-based", "active_spin_fourseam": "95.5%"}
+    )
     return {
         "fangraphs_grades": fg,
         "fangraphs_rates": fg,
@@ -263,15 +309,18 @@ def build_report(report, staged, raw, records, staging_sha, correction_sha):
         record = records[kind]
         name = f"{kind}.{suffix}"
         require(
-            record["file"] == name and record["url"] == endpoint + "?" + urlencode(params)
-            and record["parameters"] == params and record["synthetic"] is report["synthetic"]
+            record["file"] == name
+            and record["url"] == endpoint + "?" + urlencode(params)
+            and record["parameters"] == params
+            and record["synthetic"] is report["synthetic"]
             and record["http_status"] == 200
             and json.loads((raw / f"{name}.meta.json").read_bytes()) == record,
             "Source provenance mismatch.",
         )
         data = (raw / name).read_bytes()
         require(
-            0 < len(data) <= MAX_BYTES and len(data) == record["bytes"]
+            0 < len(data) <= MAX_BYTES
+            and len(data) == record["bytes"]
             and digest(data) == record["sha256"],
             "Raw leaderboard checksum mismatch.",
         )
@@ -305,9 +354,18 @@ def acquire(report, staged, output, staging_sha, correction_sha, fetch=download)
         name = f"{kind}.{suffix}"
         with (raw / name).open("xb") as handle:
             handle.write(data)
-        record = dict(file=name, url=url, parameters=params, started_utc=started,
-                      received_utc=timestamp(), http_status=status, content_type=content_type,
-                      synthetic=report["synthetic"], bytes=len(data), sha256=digest(data))
+        record = dict(
+            file=name,
+            url=url,
+            parameters=params,
+            started_utc=started,
+            received_utc=timestamp(),
+            http_status=status,
+            content_type=content_type,
+            synthetic=report["synthetic"],
+            bytes=len(data),
+            sha256=digest(data),
+        )
         save(raw / f"{name}.meta.json", record)
         records[kind] = record
         print(f"Archived {kind}", flush=True)
@@ -320,7 +378,8 @@ def validate_correction(path, expected_sha, report, staged, staging_sha):
     require(sha(path) == expected_sha, "Correction report checksum mismatch.")
     correction = json.loads(path.read_bytes())
     require(
-        correction["schema"] == 1 and correction["status"] == "CORRECTIONS_PASS_QUARANTINED"
+        correction["schema"] == 1
+        and correction["status"] == "CORRECTIONS_PASS_QUARANTINED"
         and correction["season"] == report["season"]
         and correction["synthetic"] is report["synthetic"]
         and correction["staging_report_sha256"] == staging_sha
@@ -346,13 +405,20 @@ def main():
         require(bool(args.output) != bool(args.verify_report), "Choose acquisition or replay.")
         report, staged = read_staged_sources(args.staging_report, args.staging_sha)
         require(args.synthetic is report["synthetic"], "Synthetic/real mode mismatch.")
-        validate_correction(args.correction_report, args.correction_sha, report, staged,
-                            args.staging_sha)
+        validate_correction(
+            args.correction_report, args.correction_sha, report, staged, args.staging_sha
+        )
         if args.verify_report:
             require(sha(args.verify_report) == args.report_sha, "Report checksum mismatch.")
             result = json.loads(args.verify_report.read_bytes())
-            rebuilt = build_report(report, staged, args.verify_report.parent / "raw",
-                                   result["responses"], args.staging_sha, args.correction_sha)
+            rebuilt = build_report(
+                report,
+                staged,
+                args.verify_report.parent / "raw",
+                result["responses"],
+                args.staging_sha,
+                args.correction_sha,
+            )
             require(result == rebuilt, "Evidence plan differs from raw archive.")
             path = args.verify_report
             require(sha(path) == args.report_sha, "Report changed during replay.")
@@ -360,8 +426,11 @@ def main():
             require(not args.report_sha, "Report checksum applies only to replay.")
             result = acquire(report, staged, args.output, args.staging_sha, args.correction_sha)
             path = args.output / "leaderboard_evidence.json"
-        require(sha(args.staging_report) == args.staging_sha
-                and sha(args.correction_report) == args.correction_sha, "Reviewed input changed.")
+        require(
+            sha(args.staging_report) == args.staging_sha
+            and sha(args.correction_report) == args.correction_sha,
+            "Reviewed input changed.",
+        )
         for table in ("fangraphs_stuff", "published_pitching_metrics", "savant_active_spin"):
             print(f"{table}: {len(result[table])} planned rows")
         print(f"Missing published values: {len(result['missing_values'])}")
@@ -370,8 +439,10 @@ def main():
         print("No database writes or publication performed.")
         return 0
     except Exception as exc:
-        print("LEADERBOARD_EVIDENCE_FAILED:", str(exc) if isinstance(exc, ValueError)
-              else type(exc).__name__)
+        print(
+            "LEADERBOARD_EVIDENCE_FAILED:",
+            str(exc) if isinstance(exc, ValueError) else type(exc).__name__,
+        )
         return 1
 
 
