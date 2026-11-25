@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 ENTRYPOINT = Path(__file__).resolve().parents[1] / "scripts" / "docker-entrypoint.sh"
 
 
