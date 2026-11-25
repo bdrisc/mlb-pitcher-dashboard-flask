@@ -10,6 +10,9 @@ that Pitch A caused the result on Pitch B.
 
 from __future__ import annotations
 
+from decimal import ROUND_HALF_UP, Decimal
+from math import isfinite
+
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import aliased
 
@@ -39,6 +42,14 @@ WHIFF_DESCRIPTIONS = (
     "missed_bunt",
 )
 SMALL_PAIR_SAMPLE = 30
+
+
+def _stable_round(value: float, digits: int) -> float | None:
+    """Match profile rounding, removing insignificant SQL summation drift."""
+    if not isfinite(value):
+        return None
+    normalized = Decimal(str(round(value, 9)))
+    return float(normalized.quantize(Decimal(1).scaleb(-digits), rounding=ROUND_HALF_UP))
 
 
 def _rate(numerator: int, denominator: int) -> float | None:
@@ -113,12 +124,12 @@ def build_pitch_pair_effectiveness(pitcher_id: int, filters) -> dict:
         # Paired calculations remain exactly aligned with the profile's
         # pitcher-oriented RV sign and its per-100 physical-pitch denominator.
         xwoba_con = (
-            round(float(row["xwoba_contact_sum"]) / scored_contact, 3)
+            _stable_round(float(row["xwoba_contact_sum"]) / scored_contact, 3)
             if scored_contact and row["xwoba_contact_sum"] is not None
             else None
         )
         rv_100 = (
-            round(-float(row["rv_against_sum"]) * 100 / n, 1)
+            _stable_round(-float(row["rv_against_sum"]) * 100 / n, 1)
             if n and scored_rv == n and row["rv_against_sum"] is not None
             else None
         )

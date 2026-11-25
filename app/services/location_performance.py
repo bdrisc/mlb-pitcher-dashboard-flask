@@ -17,6 +17,7 @@ from app.extensions import db
 from app.models import Game, Pitch, Player
 from app.services.database_queries import pitch_filter_conditions
 from app.services.filters import PitchFilters
+from app.services.location_reference import REFERENCE_SEASON, shared_league_bins
 from app.services.pitch_data import PITCH_NAME_MAP
 
 # Matches the fixed horizontal strike zone shown in the location KDE charts.
@@ -113,19 +114,20 @@ def build_location_performance(
 ) -> dict[str, Any]:
     """Return filter-matched pitcher and same-hand league contact samples.
 
-    The league reference includes all loaded pitchers of the *same throwing
-    hand* (including the selected pitcher) in identical season, date, count,
-    home/away, pitch-type, and batter-side filters. A team filter is
-    intentionally NOT applied to the league reference.
+    For the verified 2026 season, use the same full-league snapshot on both
+    deployments. Other seasons retain the loaded-database reference.
+    A team filter is intentionally NOT applied to the league reference.
     """
     hand = (throwing_hand or "").upper()
     pitcher_rows = _aggregate(pitch_filter_conditions(filters, pitcher_id=pitcher_id))
     league_filters = replace(filters, pitcher=None, team=None)
-    league_rows = (
-        _aggregate(pitch_filter_conditions(league_filters), throwing_hand=hand)
-        if hand in ("R", "L")
-        else []
-    )
+    shared = filters.season == REFERENCE_SEASON
+    if hand not in ("R", "L"):
+        league_rows = []
+    elif shared:
+        league_rows = shared_league_bins(league_filters, hand)
+    else:
+        league_rows = _aggregate(pitch_filter_conditions(league_filters), throwing_hand=hand)
 
     pitch_counts: dict[str, int] = {}
     for row in pitcher_rows:
@@ -147,5 +149,9 @@ def build_location_performance(
         "min_league_contacts": MIN_LEAGUE_CONTACTS,
         "strike_zone": {"left": -STRIKE_HALF_WIDTH_FT, "right": STRIKE_HALF_WIDTH_FT},
         "league_ignores_team_filter": bool(filters.team),
-        "reference_scope": "All loaded MLB pitchers of the same throwing hand",
+        "reference_scope": (
+            "Verified full 2026 MLB regular season, same throwing hand"
+            if shared
+            else "All loaded MLB pitchers of the same throwing hand"
+        ),
     }
