@@ -339,6 +339,36 @@
         </div>
       </section>
 
+      <section class="dashboard-section pitch-roles-section" aria-labelledby="pitch-roles-heading">
+        <div class="section-heading">
+          <h2 id="pitch-roles-heading">Pitch Type Roles</h2>
+          <label class="field"><span>View</span>
+            <select id="pitch-roles-view">
+              <option value="both">Raw Stats &amp; Percentiles</option>
+              <option value="raw">Raw Stats</option>
+              <option value="pct">Percentiles</option>
+            </select>
+          </label>
+        </div>
+        <p id="pitch-roles-note" class="separation-note" hidden></p>
+        <div class="table-shell pitch-roles-shell">
+          <table class="arsenal-table pitch-roles-table" aria-labelledby="pitch-roles-heading">
+            <thead id="pitch-roles-head"></thead><tbody id="pitch-roles-body"></tbody>
+          </table>
+        </div>
+        <div class="pitch-roles-legend" aria-label="Percentile color scale">
+          <span>Below average</span><i class="role-p0"></i><i class="role-p1"></i><i class="role-p2"></i>
+          <i class="role-p3"></i><i class="role-p4"></i><i class="role-p5"></i><span>Elite</span>
+        </div>
+        <h3>Best Pitch by Job</h3>
+        <div class="table-shell">
+          <table class="arsenal-table pitch-roles-table">
+            <thead><tr><th scope="col">Job</th><th scope="col">Most Effective</th><th scope="col">Best vs. Peers</th></tr></thead>
+            <tbody id="pitch-roles-best"></tbody>
+          </table>
+        </div>
+      </section>
+
       <section class="dashboard-section" aria-labelledby="separation-heading">
         <div class="section-heading">
           <div>

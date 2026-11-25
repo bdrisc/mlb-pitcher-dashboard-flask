@@ -19,6 +19,7 @@ from app.services.filters import PitchFilters
 from app.services.movement_reference import movement_vs_average
 from app.services.pitch_data import PITCH_NAME_MAP
 from app.services.pitch_pair_effectiveness import build_pitch_pair_effectiveness
+from app.services.pitch_roles import build_pitch_roles, role_values
 from app.services.pitch_separation import build_pitch_separation
 from app.services.pitch_sequencing import build_pitch_transition_matrix
 from app.services.pitch_tunneling import add_tunneling_to_separation, build_pitch_tunneling
@@ -176,6 +177,13 @@ def _metric_columns() -> list[Any]:
         func.count(Pitch.pitch_id).label("pitch_count"),
         _count_where(physical_pitch).label("physical_pitch_count"),
         _count_where(strike).label("strikes"),
+        _count_where(physical_pitch, Pitch.balls == 0, Pitch.strikes == 0).label(
+            "first_pitch_opportunities"
+        ),
+        _count_where(strike, physical_pitch, Pitch.balls == 0, Pitch.strikes == 0).label(
+            "first_pitch_strikes"
+        ),
+        _count_where(physical_pitch, Game.game_type == "R").label("role_regular_pitches"),
         _count_where(swing).label("swings"),
         _count_where(whiff).label("whiffs"),
         _count_where(swinging_strike).label("swinging_strikes"),
@@ -571,6 +579,15 @@ def _arsenal_rows(
     arsenal = []
     for row in db.session.execute(statement).mappings():
         pitch_count = _integer(row, "pitch_count")
+        metrics = _performance_metrics(row)
+        roles = role_values(row)
+        for key, cell in roles.items():
+            cell["display_value"] = metrics.get(
+                key,
+                _rate(
+                    _integer(row, "first_pitch_strikes"), _integer(row, "first_pitch_opportunities")
+                ),
+            )
         arsenal.append(
             {
                 "pitch_type": row["pitch_type"],
@@ -578,7 +595,8 @@ def _arsenal_rows(
                 or PITCH_NAME_MAP.get(row["pitch_type"], row["pitch_type"]),
                 "pitch_count": pitch_count,
                 "usage_pct": _rate(pitch_count, total_pitches),
-                **_performance_metrics(row),
+                **metrics,
+                "role_values": roles,
                 **movement_vs_average(
                     season=season,
                     pitch_type=row["pitch_type"],
@@ -914,6 +932,7 @@ def build_pitcher_profile(pitcher_id: int, filters: PitchFilters) -> dict[str, A
             "pitching_plus": stuff["pitching_plus"],
         },
         "arsenal": arsenal,
+        "pitch_roles": build_pitch_roles(arsenal, filters, player.throws),
         "pitch_separation": separation,
         "pitch_tunneling": tunneling,
         "pitch_transition_matrix": build_pitch_transition_matrix(tunneling),

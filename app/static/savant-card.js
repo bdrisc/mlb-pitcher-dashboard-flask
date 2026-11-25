@@ -1022,6 +1022,86 @@ if (root) {
     selectTtoView(state.ttoView);
   }
 
+  let roleProfile = null;
+  let roleArsenal = [];
+  const roleView = document.querySelector("#pitch-roles-view");
+  const roleHead = document.querySelector("#pitch-roles-head");
+  const roleBody = document.querySelector("#pitch-roles-body");
+  const roleBest = document.querySelector("#pitch-roles-best");
+  const roleNote = document.querySelector("#pitch-roles-note");
+
+  function formatRolePercentile(value) {
+    if (value == null) return "—";
+    const n = Math.round(value);
+    const lastTwo = n % 100;
+    const suffix = lastTwo >= 11 && lastTwo <= 13 ? "th" : ({1: "st", 2: "nd", 3: "rd"}[n % 10] || "th");
+    return `${n}${suffix} %ile`;
+  }
+
+  function renderPitchRoles(data, arsenal) {
+    roleProfile = data;
+    roleArsenal = arsenal;
+    roleHead.replaceChildren();
+    roleBody.replaceChildren();
+    roleBest.replaceChildren();
+    if (!data) {
+      roleNote.hidden = false;
+      roleNote.textContent = "Pitch type role analysis unavailable.";
+      return;
+    }
+    const mode = roleView.value;
+    const pitchNames = Object.fromEntries(arsenal.map(p => [p.pitch_type, p.pitch_name]));
+    const add = (row, tag, value) => {
+      const cell = document.createElement(tag);
+      cell.textContent = value;
+      row.append(cell);
+      return cell;
+    };
+    const header = document.createElement("tr");
+    add(header, "th", "Role").scope = "col";
+    arsenal.forEach(p => {
+      const th = add(header, "th", p.pitch_type || "UN");
+      th.scope = "col";
+      th.title = p.pitch_name;
+    });
+    roleHead.append(header);
+    const rawText = (r, c) => {
+      const v = c.display_value ?? c.value;
+      return v == null ? "—" : (r.metric.endsWith("per_100") ? (v > 0 ? "+" : "") + v.toFixed(1) : v.toFixed(1) + "%");
+    };
+    const rankText = c => formatRolePercentile(c.percentile);
+    for (const r of data.rows) {
+      const row = document.createElement("tr");
+      add(row, "th", r.label).scope = "row";
+      for (const c of r.cells) {
+        const td = add(row, "td", "");
+        const tile = document.createElement("div");
+        tile.className = "role-tile";
+        const p = c.percentile;
+        if (p != null) tile.classList.add("role-p" + (p >= 90 ? 5 : p >= 75 ? 4 : p >= 60 ? 3 : p >= 40 ? 2 : p >= 25 ? 1 : 0));
+        add(tile, "strong", mode === "pct" ? rankText(c) : rawText(r, c));
+        if (mode === "both") add(tile, "small", rankText(c));
+        tile.title = "Sample: " + c.sample + " / minimum " + c.minimum +
+          "; comparable MLB offerings: " + c.peer_count + "; " + c.status.replaceAll("_", " ");
+        td.append(tile);
+      }
+      roleBody.append(row);
+      const best = document.createElement("tr");
+      add(best, "th", r.label).scope = "row";
+      const summary = (codes, formatter) => codes.map(code => {
+        const c = r.cells.find(x => x.pitch_type === code);
+        return (pitchNames[code] || code) + " · " + formatter(c);
+      }).join(" / ") || "—";
+      add(best, "td", summary(r.most_effective, c => rawText(r, c)));
+      add(best, "td", summary(r.best_vs_peers, rankText));
+      roleBest.append(best);
+    }
+    roleNote.hidden = data.reference_available;
+    roleNote.textContent = data.reference_available ? "" :
+      "Full MLB season reference unavailable for this selection. Raw statistics remain visible; percentiles are withheld.";
+  }
+  roleView.addEventListener("change", () => renderPitchRoles(roleProfile, roleArsenal));
+
   function renderProfile(profile) {
     const { pitcher, sample, overall } = profile;
     elements.monogram.textContent = initials(pitcher.name);
@@ -1036,6 +1116,7 @@ if (root) {
     elements.summary.textContent = `${sample.pitches.toLocaleString("en-US")} pitches across ${sample.games.toLocaleString("en-US")} games`;
     renderMetricCards(overall);
     renderArsenal(profile.arsenal);
+    renderPitchRoles(profile.pitch_roles, profile.arsenal);
     renderSeparation(profile.pitch_separation, pitcher.mlb_id);
     renderTransitions(profile.pitch_transition_matrix);
     renderPitchPairEffectiveness(profile.pitch_pair_effectiveness, pitcher.mlb_id);

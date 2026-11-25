@@ -332,7 +332,9 @@ def test_savant_card_javascript_is_served_as_a_static_asset(client):
     assert b"function renderTtoSplits(tto)" in response.data
     assert b"ttoDataNote" not in response.data
     assert b"selected pitches have a recorded lineup trip" not in response.data
-    assert b'"xwoba_against", "run_value_per_100",\n      ]' in response.data
+    assert b'"xwoba_against", "run_value_per_100",\n      ]' in response.data.replace(
+        b"\r\n", b"\n"
+    )
     assert b"ttoMixHead: document.querySelector" in response.data
     assert b"ttoMixBody: document.querySelector" in response.data
     assert b'percentage.textContent = formatNumber(usage, 1) + "%";' in response.data
