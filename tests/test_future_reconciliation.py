@@ -4,8 +4,9 @@ from copy import deepcopy
 
 import pytest
 
-from scripts.reconcile_future_sources import plan_all, synthetic_bundle
-from scripts.rehearse_snapshot_release import ReleaseError
+from scripts.reconcile_future_sources import plan_all, read_staged_sources, synthetic_bundle
+from scripts.rehearse_snapshot_release import ReleaseError, save, sha
+from scripts.stage_future_ingestion import synthetic_sources, verified_sources
 
 
 def fixture():
@@ -66,3 +67,31 @@ def test_reject_incomplete_or_invalid_official_evidence(failure):
         packet["detail"][0]["delta_run_exp"] = None
     with pytest.raises((ReleaseError, ValueError)):
         plan_all(report, staged, bundle)
+
+
+def test_staged_copy_manifest_and_independent_fixture(tmp_path):
+    paths, schedule, manifest, digest = synthetic_sources(tmp_path)
+    approved, _, copies = verified_sources(
+        paths, schedule, manifest, digest, 2027, tmp_path / "sources"
+    )
+    report_path = tmp_path / "staging_report.json"
+    save(
+        report_path,
+        {
+            "schema": 1,
+            "season": 2027,
+            "synthetic": True,
+            "status": "STAGING_PASS_QUARANTINED",
+            "production_write_allowed": False,
+            "source_manifest": approved,
+            "source_values_matched": 6,
+        },
+    )
+    report, staged = read_staged_sources(report_path, sha(report_path))
+    plan = plan_all(report, staged, synthetic_bundle())
+    assert plan["status"] == "RECONCILIATION_PLAN_PASS_NOT_APPLIED"
+    assert len(plan["patches"]) == 6
+    with copies[0].open("ab") as handle:
+        handle.write(b"\n")
+    with pytest.raises(ReleaseError):
+        read_staged_sources(report_path, sha(report_path))

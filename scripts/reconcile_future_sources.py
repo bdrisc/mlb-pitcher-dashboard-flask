@@ -209,9 +209,7 @@ def plan_all(report, staged, bundle):
     return {
         "schema": 1,
         "status": (
-            "RESTAGE_REQUIRED_NO_PATCHES"
-            if revisions
-            else "RECONCILIATION_PLAN_PASS_NOT_APPLIED"
+            "RESTAGE_REQUIRED_NO_PATCHES" if revisions else "RECONCILIATION_PLAN_PASS_NOT_APPLIED"
         ),
         "season": report["season"],
         "synthetic": report["synthetic"],
