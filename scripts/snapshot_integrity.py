@@ -21,12 +21,20 @@ TABLES = {
     "savant_active_spin": 'mlb_id, season, pitch_type COLLATE "C"',
     "alembic_version": 'version_num COLLATE "C"',
 }
+ROLE_2025_SHA = "1bfc3e33b9e9b629e90f6eada1038887eea36a71a698317df710fb3b068013fd"
+ROLE_2026_SHA = "23aea893b98db8cab6fdc7434dc7bce9a911f35f1358780c5e633904c9c153c5"
+LOCATION_SHA = "eb09bc3ce164730186ce699c7c3443150a8339626dff1775ec6639b8a9d3ec99"
+MOVEMENT_SHA = "afcfc905ce8aadac1ce08edc9dad418b06a4b964faf12f89eb181f52977acb20"
 REFERENCES = {
-    "league_pitch_roles_2025.json": "1bfc3e33b9e9b629e90f6eada1038887eea36a71a698317df710fb3b068013fd",
-    "league_pitch_roles_2026.json": "23aea893b98db8cab6fdc7434dc7bce9a911f35f1358780c5e633904c9c153c5",
-    "league_location_2026.json.gz": "eb09bc3ce164730186ce699c7c3443150a8339626dff1775ec6639b8a9d3ec99",
-    "league_movement_2026.b85": "afcfc905ce8aadac1ce08edc9dad418b06a4b964faf12f89eb181f52977acb20",
+    "league_pitch_roles_2025.json": ROLE_2025_SHA,
+    "league_pitch_roles_2026.json": ROLE_2026_SHA,
+    "league_location_2026.json.gz": LOCATION_SHA,
+    "league_movement_2026.b85": MOVEMENT_SHA,
 }
+
+
+class SnapshotError(ValueError):
+    """Safe diagnostic for a rejected snapshot."""
 
 
 def file_digest(path):
@@ -39,17 +47,17 @@ def file_digest(path):
 def validate_report(path):
     """Only seal the exact independently reviewed passing audit."""
     if file_digest(path) != REPORT_SHA:
-        raise ValueError("Audit differs from the reviewed 660-comparison report.")
+        raise SnapshotError("Audit differs from the reviewed 660-comparison report.")
     report = json.loads(path.read_bytes())
     if report["status"] != "PASS" or len(report["results"]) != 660:
-        raise ValueError("Extended audit did not pass.")
+        raise SnapshotError("Extended audit did not pass.")
     return REPORT_SHA
 
 
 def reference_hashes():
     found = {name: file_digest(ROOT / "data" / name) for name in REFERENCES}
     if found != REFERENCES:
-        raise ValueError("Reviewed league reference checksum mismatch.")
+        raise SnapshotError("Reviewed league reference checksum mismatch.")
     for name in ("vaa_adj_reference_2025.json", "haaaa_reference_2025.json"):
         found[name] = file_digest(ROOT / "data" / name)
     return found
@@ -62,7 +70,7 @@ def fingerprint(url, environment):
 
     parsed = make_url(url)
     if parsed.get_backend_name() not in ("postgresql", "postgres"):
-        raise ValueError("Expected a PostgreSQL connection.")
+        raise SnapshotError("Expected a PostgreSQL connection.")
     dsn = parsed.set(drivername="postgresql").render_as_string(hide_password=False)
     with psycopg.connect(dsn) as conn:
         with conn.cursor() as cur:
@@ -80,7 +88,7 @@ def fingerprint(url, environment):
             )
             coverage = list(cur.fetchone())
             if coverage != COVERAGE[environment]:
-                raise ValueError(f"{environment}: unexpected 2026 coverage {coverage}")
+                raise SnapshotError(f"{environment}: unexpected 2026 coverage {coverage}")
             cur.execute(
                 """
                 SELECT g.game_type, count(*) FROM pitches p
@@ -89,7 +97,7 @@ def fingerprint(url, environment):
                 """
             )
             if cur.fetchall() != [("R", coverage[1])]:
-                raise ValueError(f"{environment}: unexpected game types")
+                raise SnapshotError(f"{environment}: unexpected game types")
         tables = {}
         for table, order in TABLES.items():
             digest = hashlib.sha256()
@@ -137,7 +145,7 @@ def main():
     try:
         if args.mode == "capture":
             if not args.report or args.baseline.exists():
-                raise ValueError("Capture requires --report and a new baseline path.")
+                raise SnapshotError("Capture requires --report and a new baseline path.")
             audit_sha = validate_report(args.report)
             snapshot = collect()
             baseline = {
@@ -154,7 +162,7 @@ def main():
         else:
             baseline = json.loads(args.baseline.read_bytes())
             if baseline["audit_sha256"] != REPORT_SHA or baseline["snapshot"]["schema"] != 1:
-                raise ValueError("Unsupported or unreviewed baseline.")
+                raise SnapshotError("Unsupported or unreviewed baseline.")
             changed = differences(baseline["snapshot"], collect())
             if changed:
                 print("SNAPSHOT_DRIFT: " + ", ".join(changed))
@@ -163,7 +171,7 @@ def main():
         return 0
     except Exception as exc:
         # Do not echo database connection strings or driver error details.
-        message = type(exc).__name__
+        message = str(exc) if isinstance(exc, SnapshotError) else type(exc).__name__
         print("SNAPSHOT_CHECK_FAILED: " + message)
         return 1
 

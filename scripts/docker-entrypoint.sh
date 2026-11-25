@@ -10,8 +10,8 @@ fi
 echo "Starting web server on port ${PORT:-10000}."
 
 # Production must never refresh or seed live data during a deployment.
-# Legacy startup maintenance is an explicit non-production opt-in only.
-if [ "${APP_ENV:-development}" = "production" ] || [ "${STARTUP_MAINTENANCE_ENABLED:-0}" != "1" ]; then
+# Legacy startup maintenance is an explicit development-only opt-in.
+if [ "${APP_ENV:-development}" != "development" ] || [ "${STARTUP_MAINTENANCE_ENABLED:-0}" != "1" ]; then
     echo "Background data maintenance disabled; serving existing database snapshot."
     exec "$@"
 fi
