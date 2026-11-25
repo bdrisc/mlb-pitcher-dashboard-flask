@@ -105,7 +105,7 @@ def test_packaged_2026_reference_matches_uploaded_full_league_source(tmp_path, m
     bins, distinct = reference._load_compact_reference(str(path), path.stat().st_mtime_ns)
     assert len(bins) == 30
     assert sum(len(rows) for rows in bins.values()) == 1927
-    assert sum(row[1] for rows in bins.values() for row in rows) == 708046
+    assert sum(row[1] for rows in bins.values() for row in rows) == 708337
     assert len(distinct) == 2501
 
     right_fastball = reference.movement_vs_average(
@@ -117,7 +117,7 @@ def test_packaged_2026_reference_matches_uploaded_full_league_source(tmp_path, m
         vertical_break=17.0,
     )
     assert right_fastball["movement_avg_pitchers"] == 385
-    assert right_fastball["movement_avg_pitches"] == 53174
+    assert right_fastball["movement_avg_pitches"] == 53181
     assert right_fastball["hb_vs_avg"] == 0.5
     assert right_fastball["ivb_vs_avg"] == 0.8
 
