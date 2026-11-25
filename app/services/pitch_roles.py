@@ -152,7 +152,9 @@ def _load(path, mtime_ns):
             or values != sorted(values)
         ):
             raise ValueError("Invalid pitch role distribution")
-    return payload, sha256(data).hexdigest()
+    # Git may convert LF to CRLF on Windows; hash the same reference bytes
+    # after normalizing line endings, without changing parsed distributions.
+    return payload, sha256(data.replace(b"\r\n", b"\n")).hexdigest()
 
 
 def peer_key(pitch_type, hand, side, counts, metric):

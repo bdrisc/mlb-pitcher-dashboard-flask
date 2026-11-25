@@ -186,6 +186,11 @@ def main():
         else:
             pitcher_ids = [args.pitcher]
 
+        report["pitchers_requested"] = len(pitcher_ids)
+        if not pitcher_ids:
+            report["error"] = f"No public pitchers available for season {args.season}."
+            print(report["error"], file=sys.stderr)
+
         for pitcher_id in pitcher_ids:
             try:
                 result = compare_one(client, pitcher_id, args.season, args.public_url, 1e-7)
@@ -233,12 +238,16 @@ def main():
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
         print(f"Saved complete read-only comparison: {args.output}")
-    return (
-        1
-        if any(
-            result.get("different_fields") or result.get("error") for result in report["results"]
-        )
-        else 0
+    return audit_exit_code(report)
+
+
+def audit_exit_code(report):
+    """A successful audit must compare at least one profile without errors."""
+    if report.get("error") or not report["results"]:
+        return 1
+    return int(
+        any(row.get("different_fields") or row.get("error") for row in report["results"])
+        or bool(report.get("game_differences"))
     )
 
 
