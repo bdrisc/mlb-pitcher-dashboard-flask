@@ -261,9 +261,7 @@ def run(args):
     manifest = report["source_manifest"]
     paths = [args.staging_report.parent / "sources" / row["file"] for row in manifest["sources"]]
     schedule = {
-        row["game_pk"]: row["game_date"]
-        for records in staged.values()
-        for row in records.values()
+        row["game_pk"]: row["game_date"] for records in staged.values() for row in records.values()
     }
     players = original_players(recovery, schedule)
     require(
