@@ -78,6 +78,8 @@ def historical_fingerprint(url, player_ids):
     }
     tables = {}
     with connect(url) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         assert_identity(conn, url.database)
         with conn.cursor() as cur:
             cur.execute("SET LOCAL TIME ZONE 'UTC'")
@@ -104,7 +106,9 @@ def original_players(url, expected_games):
     with connect(url) as conn:
         assert_identity(conn, url.database)
         with conn.cursor() as cur:
-            cur.execute("SELECT count(*) FROM games WHERE game_pk = ANY(%s)", (list(expected_games),))
+            cur.execute(
+                "SELECT count(*) FROM games WHERE game_pk = ANY(%s)", (list(expected_games),)
+            )
             require(cur.fetchone()[0] == 0, "Source game IDs overlap the sealed snapshot.")
             cur.execute("SELECT count(*) FROM games WHERE season >= 2027")
             require(cur.fetchone()[0] == 0, "Expected an exclusively historical source.")
@@ -221,12 +225,21 @@ def stage_files(target, paths, manifest, season, player_ids):
 
 def verify_new_rows(target, paths, season, manifest, schedule):
     """Check persisted identities and values against transformed source records."""
-    from app.services.statcast_ingestion import _pitch_records, clean_statcast, read_statcast_csv
     from psycopg import sql
+
+    from app.services.statcast_ingestion import (
+        CSV_READ_CHUNK_SIZE,
+        _csv_columns,
+        _iter_statcast_csv,
+        _pitch_records,
+        clean_statcast,
+    )
 
     coverage = {}
     seen = set()
     with connect(target) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         assert_identity(conn, target.database)
         with conn.cursor() as cur:
             cur.execute("SELECT game_pk, game_date FROM games WHERE season = %s", (season,))
@@ -259,27 +272,28 @@ def verify_new_rows(target, paths, season, manifest, schedule):
                 "Staged pitch coverage mismatch.",
             )
             for path in paths:
-                records = _pitch_records(clean_statcast(read_statcast_csv(path)))
-                for start in range(0, len(records), 1000):
-                    batch = records[start : start + 1000]
-                    ids = [r["pitch_id"] for r in batch]
-                    fields = sorted(batch[0])
-                    cur.execute(
-                        sql.SQL("SELECT {} FROM pitches WHERE pitch_id = ANY(%s)").format(
-                            sql.SQL(", ").join(map(sql.Identifier, fields))
-                        ),
-                        (ids,),
-                    )
-                    actual = {
-                        row[fields.index("pitch_id")]: dict(zip(fields, row, strict=True))
-                        for row in cur
-                    }
-                    require(len(actual) == len(batch), "Missing persisted pitch IDs.")
-                    for expected in batch:
-                        key = expected["pitch_id"]
-                        require(key not in seen, "Duplicate staged pitch identity.")
-                        require(actual[key] == expected, f"Stored pitch differs from source: {key}")
-                        seen.add(key)
+                for chunk in _iter_statcast_csv(path, _csv_columns(path), CSV_READ_CHUNK_SIZE):
+                    records = _pitch_records(clean_statcast(chunk))
+                    for start in range(0, len(records), 1000):
+                        batch = records[start : start + 1000]
+                        ids = [r["pitch_id"] for r in batch]
+                        fields = sorted(batch[0])
+                        cur.execute(
+                            sql.SQL("SELECT {} FROM pitches WHERE pitch_id = ANY(%s)").format(
+                                sql.SQL(", ").join(map(sql.Identifier, fields))
+                            ),
+                            (ids,),
+                        )
+                        actual = {
+                            row[fields.index("pitch_id")]: dict(zip(fields, row, strict=True))
+                            for row in cur
+                        }
+                        require(len(actual) == len(batch), "Missing persisted pitch IDs.")
+                        for expected in batch:
+                            key = expected["pitch_id"]
+                            require(key not in seen, "Duplicate staged pitch identity.")
+                            require(actual[key] == expected, f"Stored pitch differs from source: {key}")
+                            seen.add(key)
             require(len(seen) == coverage["rows"], "Incomplete pitch comparison.")
     return coverage
 
@@ -376,7 +390,9 @@ def main():
         if any(inputs) or args.season != 2027:
             parser.error("Synthetic rehearsal accepts no source overrides and uses 2027.")
     elif not all(inputs) or args.season < 2027:
-        parser.error("Provide a reviewed future source manifest, digest, schedule and source files.")
+        parser.error(
+            "Provide a reviewed future source manifest, digest, schedule and source files."
+        )
     try:
         run(args)
     except Exception as exc:
