@@ -681,8 +681,14 @@ def ingest_statcast_file(
     *,
     batch_size: int = 2_000,
     csv_chunk_size: int = CSV_READ_CHUNK_SIZE,
+    frozen_player_ids: frozenset[int] = frozenset(),
+    insert_only_season: int | None = None,
 ) -> IngestionReport:
     """Audit and atomically stream one Statcast file into the database."""
+    if insert_only_season is not None and insert_only_season < 2027:
+        raise IngestionError("Insert-only staging protects historical seasons.")
+    if frozen_player_ids and insert_only_season is None:
+        raise IngestionError("Frozen player protection requires insert-only staging.")
     if csv_chunk_size < 1:
         raise ValueError("csv_chunk_size must be at least 1.")
 
@@ -731,7 +737,20 @@ def ingest_statcast_file(
             seen_pitch_ids.update(pitch_ids)
             existing = _existing_pitch_ids(pitch_ids, batch_size)
 
-            player_rows = _player_records(data)
+            if insert_only_season is not None:
+                if existing or set(data["season"]) != {insert_only_season}:
+                    raise IngestionError("Staging rejects existing pitches or another season.")
+                game_ids = data["game_pk"].unique().tolist()
+                prior_game = db.session.scalar(
+                    select(Game.game_pk)
+                    .where(Game.game_pk.in_(game_ids), Game.season != insert_only_season)
+                    .limit(1)
+                )
+                if prior_game is not None or set(data["game_type"]) != {"R"}:
+                    raise IngestionError("Staging rejects historical games or non-regular games.")
+            player_rows = [
+                row for row in _player_records(data) if row["mlb_id"] not in frozen_player_ids
+            ]
             game_rows = _game_records(data)
             pitch_rows = _pitch_records(data)
 
