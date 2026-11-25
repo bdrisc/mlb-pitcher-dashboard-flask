@@ -27,6 +27,7 @@ services:
       STATCAST_SEED_PATH: data/production_statcast_2026.csv.gz
       RUN_MIGRATIONS: "1"
       SEED_DATABASE: "1"
+      STARTUP_MAINTENANCE_ENABLED: "${STARTUP_MAINTENANCE_ENABLED:-0}"
       PORT: "8080"
       WEB_CONCURRENCY: "2"
     ports:

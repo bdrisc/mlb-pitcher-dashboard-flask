@@ -7,7 +7,8 @@ ENTRYPOINT = Path(__file__).resolve().parents[1] / "scripts" / "docker-entrypoin
 
 def test_snapshot_opt_out_precedes_background_writers():
     script = ENTRYPOINT.read_text()
-    guard = script.index('if [ "${STARTUP_MAINTENANCE_ENABLED:-1}" = "0" ]; then')
+    guard = script.index('if [ "${APP_ENV:-development}" = "production" ]')
+    assert '[ "${STARTUP_MAINTENANCE_ENABLED:-0}" != "1" ]' in script
     assert script.index("flask --app wsgi db upgrade") < guard
     assert script.index('exec "$@"', guard) < script.index("statcast seed-if-needed")
 

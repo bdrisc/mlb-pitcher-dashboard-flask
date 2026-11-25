@@ -31,8 +31,9 @@ def test_render_blueprint_connects_web_database_and_health_check():
     assert "preDeployCommand:" not in blueprint
     assert "initialDeployHook:" not in blueprint
     assert '      - key: RUN_MIGRATIONS\n        value: "1"' in blueprint
-    assert '      - key: SEED_DATABASE\n        value: "1"' in blueprint
-    assert '      - key: SYNC_RECENT_ON_STARTUP\n        value: "1"' in blueprint
+    assert '      - key: STARTUP_MAINTENANCE_ENABLED\n        value: "0"' in blueprint
+    assert '      - key: SEED_DATABASE\n        value: "0"' in blueprint
+    assert '      - key: SYNC_RECENT_ON_STARTUP\n        value: "0"' in blueprint
     assert '      - key: SYNC_RECENT_LOOKBACK_DAYS\n        value: "4"' in blueprint
     assert "key: STATCAST_SEED_PATH" in blueprint
     assert "value: data/production_statcast_2026.csv.gz" in blueprint
@@ -75,11 +76,10 @@ def test_docker_image_uses_non_root_user_healthcheck_and_gunicorn():
     assert os.access(entrypoint, os.X_OK)
 
 
-def test_daily_sync_workflow_uses_a_secret_render_deploy_hook():
+def test_daily_sync_workflow_cannot_trigger_production_refresh():
     workflow = _read(".github/workflows/daily-data-sync.yml")
 
-    assert 'cron: "0 15 15-31 3 *"' in workflow
-    assert 'cron: "0 15 * 4-10 *"' in workflow
     assert "workflow_dispatch:" in workflow
-    assert "secrets.RENDER_DEPLOY_HOOK_URL" in workflow
-    assert 'curl --fail --show-error --silent --request POST "$RENDER_DEPLOY_HOOK_URL"' in workflow
+    assert "schedule:" not in workflow
+    assert "RENDER_DEPLOY_HOOK_URL" not in workflow
+    assert "curl " not in workflow
