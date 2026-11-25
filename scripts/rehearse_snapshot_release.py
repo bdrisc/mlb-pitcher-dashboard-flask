@@ -132,16 +132,16 @@ def reviewed_inputs(baseline_path, audit_path, backup_dir, local_recovery, publi
         local["baseline_sha256"] == public["baseline_sha256"] == baseline_hash,
         "Recovery reports do not match the baseline.",
     )
-    l = local["results"]["local"]
+    local_record = local["results"]["local"]
     p = public["public"]
-    for name, record in (("local", l), ("public", p)):
+    for name, record in (("local", local_record), ("public", p)):
         require(
             all(record[key] == baseline["snapshot"][name][key]
                 for key in ("tables", "coverage_2026")),
             f"{name} restored fingerprint does not match.",
         )
     require(
-        l["status"] == "PASS"
+        local_record["status"] == "PASS"
         and public["status"] == "BACKUP_RECOVERY_PASS"
         and public["archive_sha256"] == ARCHIVES["public_verified.dump"][1],
         "Both recovery tests must have passed.",
@@ -160,7 +160,7 @@ def reviewed_inputs(baseline_path, audit_path, backup_dir, local_recovery, publi
             if r["scope"] == "full" and r["endpoint"] == "profile") == 142141,
         "Unexpected reviewed cohort coverage.",
     )
-    return baseline, audit, cohort, l["database"]
+    return baseline, audit, cohort, local_record["database"]
 
 
 def recovery_url(original, database):
@@ -274,14 +274,16 @@ def audit_candidates(source, target, audit, cohort):
     ls, a = fetch(left, "/api/v1/pitchers?season=2026")
     rs, b = fetch(right, "/api/v1/pitchers?season=2026")
     require(ls == rs == 200, "Candidate index request failed.")
-    l = {row["mlb_id"]: row for row in a["pitchers"]}
+    local_index = {row["mlb_id"]: row for row in a["pitchers"]}
     r = {row["mlb_id"]: row for row in b["pitchers"]}
     require(
-        len(l) == 868 and len(r) == len(b["pitchers"]) == 50
+        len(local_index) == 868 and len(r) == len(b["pitchers"]) == 50
         and sorted(r) == cohort and sum(x["pitch_count"] for x in r.values()) == 142141,
         "Candidate index coverage mismatch.",
     )
-    index_diff = list(compare({str(k): l[k] for k in r}, {str(k): r[k] for k in r}))
+    index_diff = list(
+        compare({str(k): local_index[k] for k in r}, {str(k): r[k] for k in r})
+    )
     results = []
     for plan in audit["results"]:
         pid, endpoint, scope = (plan[k] for k in ("pitcher_id", "endpoint", "scope"))
