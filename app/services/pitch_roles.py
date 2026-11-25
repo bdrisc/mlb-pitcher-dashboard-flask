@@ -1,10 +1,11 @@
 """Descriptive arsenal roles; shared immutable full-league percentile reference."""
+
 from __future__ import annotations
 
+import json
 from bisect import bisect_left, bisect_right
 from functools import lru_cache
 from hashlib import sha256
-import json
 from math import isfinite
 from pathlib import Path
 
@@ -25,24 +26,46 @@ ROLES = (
 )
 COUNTS = tuple((b, s) for b in range(4) for s in range(3))
 ROLE_FIELDS = (
-    "physical_pitch_count", "role_regular_pitches", "first_pitch_opportunities",
-    "first_pitch_strikes", "swings", "whiffs", "out_of_zone", "chases",
-    "putaway_pitches", "putaway_strikeouts", "gb_count", "fb_count", "ld_count",
-    "pu_count", "run_value_denominator", "run_value_pitches", "run_value_against",
-    "xrv_scored_pitches", "xrv_paired_expected", "xrv_eligible_contact", "xrv_scored_contact",
+    "physical_pitch_count",
+    "role_regular_pitches",
+    "first_pitch_opportunities",
+    "first_pitch_strikes",
+    "swings",
+    "whiffs",
+    "out_of_zone",
+    "chases",
+    "putaway_pitches",
+    "putaway_strikeouts",
+    "gb_count",
+    "fb_count",
+    "ld_count",
+    "pu_count",
+    "run_value_denominator",
+    "run_value_pitches",
+    "run_value_against",
+    "xrv_scored_pitches",
+    "xrv_paired_expected",
+    "xrv_eligible_contact",
+    "xrv_scored_contact",
 )
 
 
 def role_values(row):
     """Use unrounded sufficient statistics from the existing SQL definitions."""
+
     def n(key):
         return int(row[key] or 0)
 
     def cell(num, den, minimum, coverage=True):
         value = 100 * float(num) / den if num is not None and den else None
-        return {"value": value, "sample": den, "minimum": minimum,
-                "qualified": bool(value is not None and isfinite(value)
-                                  and den >= minimum and coverage)}
+        return {
+            "value": value,
+            "sample": den,
+            "minimum": minimum,
+            "qualified": bool(
+                value is not None and isfinite(value) and den >= minimum and coverage
+            ),
+        }
 
     rv_n = n("run_value_denominator")
     rv_scored = n("run_value_pitches")
@@ -52,17 +75,26 @@ def role_values(row):
     rv = row["run_value_against"]
     regular = n("physical_pitch_count") == n("role_regular_pitches")
     result = {
-        "first_pitch_strike_pct": cell(n("first_pitch_strikes"), n("first_pitch_opportunities"), 60),
+        "first_pitch_strike_pct": cell(
+            n("first_pitch_strikes"), n("first_pitch_opportunities"), 60
+        ),
         "whiff_pct": cell(n("whiffs"), n("swings"), 80),
         "chase_pct": cell(n("chases"), n("out_of_zone"), 100),
         "putaway_pct": cell(n("putaway_strikeouts"), n("putaway_pitches"), 60),
         "gb_pct": cell(n("gb_count"), classified, 40),
-        "run_value_per_100": cell(-float(rv) if rv is not None and rv_n == rv_scored else None,
-                                  rv_n, 150),
+        "run_value_per_100": cell(
+            -float(rv) if rv is not None and rv_n == rv_scored else None, rv_n, 150
+        ),
         "expected_run_value_per_100": cell(
-            row["xrv_paired_expected"], x_n, 150,
-            coverage=bool(rv_n and x_n / rv_n >= .95
-                          and (not contact or n("xrv_scored_contact") / contact >= .95))),
+            row["xrv_paired_expected"],
+            x_n,
+            150,
+            coverage=bool(
+                rv_n
+                and x_n / rv_n >= 0.95
+                and (not contact or n("xrv_scored_contact") / contact >= 0.95)
+            ),
+        ),
     }
     if not regular:
         for metric in result.values():
@@ -84,10 +116,13 @@ def count_masks():
 
 
 def filter_count_key(filters):
-    pairs = [p for p in COUNTS
-             if (filters.balls is None or p[0] == filters.balls)
-             and (filters.strikes is None or p[1] == filters.strikes)
-             and (not filters.count_pairs or p in filters.count_pairs)]
+    pairs = [
+        p
+        for p in COUNTS
+        if (filters.balls is None or p[0] == filters.balls)
+        and (filters.strikes is None or p[1] == filters.strikes)
+        and (not filters.count_pairs or p in filters.count_pairs)
+    ]
     return count_key(pairs)
 
 
@@ -101,13 +136,21 @@ def _load(path, mtime_ns):
     payload = json.loads(data)
     if payload.get("version") != VERSION:
         raise ValueError("Incorrect pitch role reference version")
-    if payload.get("pitchers", 0) < 750 or payload.get("physical_pitches", 0) < 650000 or payload.get("games", 0) < 2400:
+    if (
+        payload.get("pitchers", 0) < 750
+        or payload.get("physical_pitches", 0) < 650000
+        or payload.get("games", 0) < 2400
+    ):
         raise ValueError("Incomplete MLB reference")
     distributions = payload.get("distributions")
     if not isinstance(distributions, dict) or not distributions:
         raise ValueError("Missing pitch role distributions")
     for values in distributions.values():
-        if not isinstance(values, list) or not all(isinstance(v, (int, float)) and isfinite(v) for v in values) or values != sorted(values):
+        if (
+            not isinstance(values, list)
+            or not all(isinstance(v, (int, float)) and isfinite(v) for v in values)
+            or values != sorted(values)
+        ):
             raise ValueError("Invalid pitch role distribution")
     return payload, sha256(data).hexdigest()
 
@@ -122,7 +165,12 @@ def percentile(value, peers):
         return None
     # SQL sums can differ at machine precision across aggregation orders.
     epsilon = 1e-10
-    return round(100 * (bisect_left(peers, value - epsilon) + bisect_right(peers, value + epsilon)) / (2 * len(peers)), 1)
+    return round(
+        100
+        * (bisect_left(peers, value - epsilon) + bisect_right(peers, value + epsilon))
+        / (2 * len(peers)),
+        1,
+    )
 
 
 def build_pitch_roles(arsenal, filters, hand):
@@ -143,28 +191,59 @@ def build_pitch_roles(arsenal, filters, hand):
         for pitch in arsenal:
             code = pitch["pitch_type"]
             raw = pitch["role_values"][metric]
-            peers = (reference["distributions"].get(peer_key(code, hand, side, counts, metric), [])
-                     if reference and hand in ("L", "R") and code not in ("", "UN", None) else [])
+            peers = (
+                reference["distributions"].get(peer_key(code, hand, side, counts, metric), [])
+                if reference and hand in ("L", "R") and code not in ("", "UN", None)
+                else []
+            )
             pctl = percentile(raw["value"], peers) if raw["qualified"] else None
-            cells.append({"pitch_type": code, **raw, "percentile": pctl,
-                          "peer_count": len(peers),
-                          "status": ("no_opportunities" if raw["value"] is None else
-                                     "not_qualified" if not raw["qualified"] else
-                                     "reference_unavailable" if not reference else
-                                     "insufficient_peers" if pctl is None else "qualified")})
+            cells.append(
+                {
+                    "pitch_type": code,
+                    **raw,
+                    "percentile": pctl,
+                    "peer_count": len(peers),
+                    "status": (
+                        "no_opportunities"
+                        if raw["value"] is None
+                        else "not_qualified"
+                        if not raw["qualified"]
+                        else "reference_unavailable"
+                        if not reference
+                        else "insufficient_peers"
+                        if pctl is None
+                        else "qualified"
+                    ),
+                }
+            )
         qualified = [c for c in cells if c["qualified"] and c["pitch_type"] not in ("", "UN", None)]
         ranked = [c for c in qualified if c["percentile"] is not None]
+
         # Preserve ties instead of arbitrary pitch-order tie breaking.
         def winners(items, key):
             if not items:
                 return []
             best = max(c[key] for c in items)
             return [c["pitch_type"] for c in items if c[key] == best]
-        rows.append({"metric": metric, "label": label, "minimum": minimum,
-                     "cells": cells, "most_effective": winners(qualified, "value"),
-                     "best_vs_peers": winners(ranked, "percentile")})
-    return {"season": filters.season, "pitcher_hand": hand, "batter_side": side,
-            "count_scope": counts, "reference_sha256": digest,
-            "reference_available": reference is not None,
-            "reference_through": reference.get("through") if reference else None,
-            "minimum_peers": MIN_PEERS, "rows": rows}
+
+        rows.append(
+            {
+                "metric": metric,
+                "label": label,
+                "minimum": minimum,
+                "cells": cells,
+                "most_effective": winners(qualified, "value"),
+                "best_vs_peers": winners(ranked, "percentile"),
+            }
+        )
+    return {
+        "season": filters.season,
+        "pitcher_hand": hand,
+        "batter_side": side,
+        "count_scope": counts,
+        "reference_sha256": digest,
+        "reference_available": reference is not None,
+        "reference_through": reference.get("through") if reference else None,
+        "minimum_peers": MIN_PEERS,
+        "rows": rows,
+    }

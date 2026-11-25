@@ -99,7 +99,7 @@ def test_full_league_export_refuses_public_cohort_and_empty_test_db(app, tmp_pat
     assert not (tmp_path / "reference.gz").exists()
 
 
-def test_packaged_2026_reference_matches_uploaded_full_league_source():
+def test_packaged_2026_reference_matches_uploaded_full_league_source(tmp_path, monkeypatch):
     path = reference.compact_reference_path(2026)
     assert path.is_file()
     bins, distinct = reference._load_compact_reference(str(path), path.stat().st_mtime_ns)
@@ -133,6 +133,11 @@ def test_packaged_2026_reference_matches_uploaded_full_league_source():
     assert left_changeup["movement_avg_pitches"] == 1648
     assert left_changeup["hb_vs_avg"] == -0.2
     assert left_changeup["ivb_vs_avg"] == 0.7
+
+    monkeypatch.setattr(reference, "reference_path", lambda season: tmp_path / "missing.gz")
+    monkeypatch.setattr(
+        reference, "compact_reference_path", lambda season: tmp_path / "missing.b85"
+    )
 
     assert (
         reference.movement_vs_average(
