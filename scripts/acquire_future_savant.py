@@ -321,8 +321,7 @@ def main():
             path = args.output / "evidence_bundle.json"
         require(sha(args.staging_report) == args.staging_sha, "Staging report changed.")
         print(
-            f"Pitchers: {plan['pitchers']}; pitches: {plan['pitches']}; "
-            f"PA: {plan['official_pa']}"
+            f"Pitchers: {plan['pitchers']}; pitches: {plan['pitches']}; PA: {plan['official_pa']}"
         )
         print(f"Archived responses: {len(bundle['acquisition']['responses'])}")
         print(f"Bundle SHA-256: {sha(path)}")

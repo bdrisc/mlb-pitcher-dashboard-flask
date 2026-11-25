@@ -114,9 +114,7 @@ def test_bad_aggregate_does_not_emit_approved_bundle(tmp_path):
     specs = query_specs(pitcher, 2027, "2027-04-01", "2027-04-02")
     from urllib.parse import urlencode
 
-    responses = {
-        path + "?" + urlencode(params): kind for kind, (path, params) in specs.items()
-    }
+    responses = {path + "?" + urlencode(params): kind for kind, (path, params) in specs.items()}
 
     def fetch(url):
         kind = responses[url.removeprefix("https://baseballsavant.mlb.com")]
