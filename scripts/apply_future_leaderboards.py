@@ -162,11 +162,13 @@ def verify_identity(cur, season, staged, rows):
     ]
     historical = list(cur)
     relevant_mlb = set(staged)
-    relevant_fg = {str(int(fg)) for _, fg in planned}
+    planned_mapping = mappings(planned)
+    relevant_fg = set(planned_mapping.values())
     relevant = [
         (pid, fg)
         for pid, fg in historical
-        if pid in relevant_mlb or (fg is not None and str(fg) in relevant_fg)
+        if pid in relevant_mlb
+        or (fg is not None and str(fg).isdigit() and str(int(fg)) in relevant_fg)
     ]
     mapping = mappings(relevant + planned)
     require(set(staged) <= set(mapping), "Synthetic FanGraphs identity missing.")
@@ -216,7 +218,10 @@ def insert_rows(cur, table, rows, now):
 
 def apply_transaction(conn, database, staged, report, before):
     season = report["season"]
-    require(report["synthetic"] is True and season >= 2027, "Synthetic future scope required.")
+    require(
+        report["synthetic"] is True and type(season) is int and season >= 2027,
+        "Synthetic future scope required.",
+    )
     rows = planned_rows(report, set(staged))
     with conn.cursor() as cur:
         cur.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
@@ -233,6 +238,7 @@ def apply_transaction(conn, database, staged, report, before):
             require(cur.fetchone()[0] == 0, "Target season already contains published metrics.")
         for table, values in rows.items():
             insert_rows(cur, table, values, now)
+        for table, values in rows.items():
             columns = ", ".join(COLUMNS[table])
             cur.execute(f"SELECT {columns} FROM {table} WHERE season = %s", (season,))
             actual = sorted(cur.fetchall(), key=lambda row: row[:3])
