@@ -30,13 +30,28 @@ ARCHIVES = {
     ),
 }
 PROFILE_KEYS = {
-    "pitcher", "query", "sample", "overall", "arsenal", "pitch_roles",
-    "platoon_splits", "pitch_separation", "pitch_tunneling", "fangraphs",
-    "pitch_transition_matrix", "pitch_pair_effectiveness", "times_through_order_splits",
+    "pitcher",
+    "query",
+    "sample",
+    "overall",
+    "arsenal",
+    "pitch_roles",
+    "platoon_splits",
+    "pitch_separation",
+    "pitch_tunneling",
+    "fangraphs",
+    "pitch_transition_matrix",
+    "pitch_pair_effectiveness",
+    "times_through_order_splits",
 }
 CHART_KEYS = {
-    "movement", "velocity_trend", "inning_progression", "release_point",
-    "location_heatmaps", "location_performance", "usage_by_count",
+    "movement",
+    "velocity_trend",
+    "inning_progression",
+    "release_point",
+    "location_heatmaps",
+    "location_performance",
+    "usage_by_count",
 }
 SKIP = {"reference_fangraphs_updated", "reference_savant_updated", "updated_at"}
 
@@ -99,13 +114,15 @@ def compare(a, b, path=""):
             yield from compare(left, right, f"{path}[{index}]")
     else:
         numeric = (
-            isinstance(a, (int, float)) and not isinstance(a, bool)
-            and isinstance(b, (int, float)) and not isinstance(b, bool)
+            isinstance(a, (int, float))
+            and not isinstance(a, bool)
+            and isinstance(b, (int, float))
+            and not isinstance(b, bool)
         )
         equal = (
-            math.isfinite(a) and math.isfinite(b)
-            and math.isclose(a, b, rel_tol=0, abs_tol=1e-7)
-            if numeric else type(a) is type(b) and a == b
+            math.isfinite(a) and math.isfinite(b) and math.isclose(a, b, rel_tol=0, abs_tol=1e-7)
+            if numeric
+            else type(a) is type(b) and a == b
         )
         if not equal:
             yield path
@@ -136,8 +153,10 @@ def reviewed_inputs(baseline_path, audit_path, backup_dir, local_recovery, publi
     p = public["public"]
     for name, record in (("local", local_record), ("public", p)):
         require(
-            all(record[key] == baseline["snapshot"][name][key]
-                for key in ("tables", "coverage_2026")),
+            all(
+                record[key] == baseline["snapshot"][name][key]
+                for key in ("tables", "coverage_2026")
+            ),
             f"{name} restored fingerprint does not match.",
         )
     require(
@@ -149,15 +168,16 @@ def reviewed_inputs(baseline_path, audit_path, backup_dir, local_recovery, publi
     audit = json.loads(audit_path.read_bytes())
     rows = audit["results"]
     keys = {(r["pitcher_id"], r["endpoint"], r["scope"]) for r in rows}
-    cohort = sorted(r["pitcher_id"] for r in rows
-                    if r["scope"] == "full" and r["endpoint"] == "profile")
+    cohort = sorted(
+        r["pitcher_id"] for r in rows if r["scope"] == "full" and r["endpoint"] == "profile"
+    )
     require(
         len(keys) == len(rows) == 660 and len(set(cohort)) == len(cohort) == 50,
         "Unexpected reviewed comparison plan.",
     )
     require(
-        sum(r["local_pitches"] for r in rows
-            if r["scope"] == "full" and r["endpoint"] == "profile") == 142141,
+        sum(r["local_pitches"] for r in rows if r["scope"] == "full" and r["endpoint"] == "profile")
+        == 142141,
         "Unexpected reviewed cohort coverage.",
     )
     return baseline, audit, cohort, local_record["database"]
@@ -170,7 +190,8 @@ def recovery_url(original, database):
     require(
         parsed.get_backend_name() == "postgresql"
         and parsed.host in {"localhost", "127.0.0.1", "::1"}
-        and parsed.database and parsed.username
+        and parsed.database
+        and parsed.username
         and not parsed.query,
         "Only an explicit loopback PostgreSQL URL without overrides is supported.",
     )
@@ -196,8 +217,10 @@ def assert_identity(conn, expected):
     with conn.cursor() as cur:
         cur.execute("SELECT host(inet_server_addr()), current_database()")
         host, name = cur.fetchone()
-    require(host in {"127.0.0.1", "::1"} and name == expected,
-            "Database identity or loopback check failed.")
+    require(
+        host in {"127.0.0.1", "::1"} and name == expected,
+        "Database identity or loopback check failed.",
+    )
 
 
 def clone_candidate(source, target):
@@ -230,8 +253,10 @@ def derive_cohort(target, cohort):
                 """,
                 (cohort,),
             )
-            cur.execute("DELETE FROM games g WHERE NOT EXISTS "
-                        "(SELECT 1 FROM pitches p WHERE p.game_pk = g.game_pk)")
+            cur.execute(
+                "DELETE FROM games g WHERE NOT EXISTS "
+                "(SELECT 1 FROM pitches p WHERE p.game_pk = g.game_pk)"
+            )
             cur.execute(
                 """
                 DELETE FROM players WHERE mlb_id NOT IN (
@@ -254,14 +279,16 @@ def app_for(url):
     from app import create_app
 
     # Explicit factory config overrides DATABASE_URL loaded from .env.
-    return create_app({
-        "TESTING": True,
-        "APP_ENV": "test",
-        "SQLALCHEMY_DATABASE_URI": url.render_as_string(hide_password=False),
-        "SQLALCHEMY_ENGINE_OPTIONS": {
-            "connect_args": {"options": "-c default_transaction_read_only=on"},
-        },
-    })
+    return create_app(
+        {
+            "TESTING": True,
+            "APP_ENV": "test",
+            "SQLALCHEMY_DATABASE_URI": url.render_as_string(hide_password=False),
+            "SQLALCHEMY_ENGINE_OPTIONS": {
+                "connect_args": {"options": "-c default_transaction_read_only=on"},
+            },
+        }
+    )
 
 
 def fetch(app, path):
@@ -277,13 +304,13 @@ def audit_candidates(source, target, audit, cohort):
     local_index = {row["mlb_id"]: row for row in a["pitchers"]}
     r = {row["mlb_id"]: row for row in b["pitchers"]}
     require(
-        len(local_index) == 868 and len(r) == len(b["pitchers"]) == 50
-        and sorted(r) == cohort and sum(x["pitch_count"] for x in r.values()) == 142141,
+        len(local_index) == 868
+        and len(r) == len(b["pitchers"]) == 50
+        and sorted(r) == cohort
+        and sum(x["pitch_count"] for x in r.values()) == 142141,
         "Candidate index coverage mismatch.",
     )
-    index_diff = list(
-        compare({str(k): local_index[k] for k in r}, {str(k): r[k] for k in r})
-    )
+    index_diff = list(compare({str(k): local_index[k] for k in r}, {str(k): r[k] for k in r}))
     results = []
     for plan in audit["results"]:
         pid, endpoint, scope = (plan[k] for k in ("pitcher_id", "endpoint", "scope"))
@@ -299,31 +326,45 @@ def audit_candidates(source, target, audit, cohort):
             for payload in (a, b):
                 valid = valid and (
                     payload.get("sample", {}).get("pitches") == plan["local_pitches"]
-                    and (PROFILE_KEYS <= payload.keys() if endpoint == "profile"
-                         else CHART_KEYS <= payload.get("charts", {}).keys())
+                    and (
+                        PROFILE_KEYS <= payload.keys()
+                        if endpoint == "profile"
+                        else CHART_KEYS <= payload.get("charts", {}).keys()
+                    )
                 )
                 if endpoint == "profile" and scope == "full":
                     valid = valid and (
                         payload["pitch_roles"]["reference_sha256"] == integrity.ROLE_2026_SHA
                     )
         elif expected_status == 404:
-            valid = valid and scope == "empty_date" and all(
-                p.get("error") == "not_found" and p.get("pitcher_id") == pid for p in (a, b)
+            valid = (
+                valid
+                and scope == "empty_date"
+                and all(
+                    p.get("error") == "not_found" and p.get("pitcher_id") == pid for p in (a, b)
+                )
             )
         else:
             valid = False
         result = {
-            "pitcher_id": pid, "endpoint": endpoint, "scope": scope,
+            "pitcher_id": pid,
+            "endpoint": endpoint,
+            "scope": scope,
             "status": "PASS" if valid and not diff else "FAIL",
-            "http": [ls, rs], "different_fields": len(diff), "examples": diff[:100],
+            "http": [ls, rs],
+            "different_fields": len(diff),
+            "examples": diff[:100],
         }
         results.append(result)
         print(f"{pid} {endpoint} {scope}: {result['status']}", flush=True)
     return {
         "index_differences": index_diff,
         "results": results,
-        "status": "PASS" if not index_diff and len(results) == 660
-        and all(row["status"] == "PASS" for row in results) else "FAIL",
+        "status": "PASS"
+        if not index_diff
+        and len(results) == 660
+        and all(row["status"] == "PASS" for row in results)
+        else "FAIL",
     }
 
 
@@ -338,13 +379,26 @@ def export_candidate(target, output):
     if target.password:
         env["PGPASSWORD"] = target.password
     dsn = make_conninfo(
-        host=target.host, port=target.port or 5432, dbname=target.database,
-        user=target.username, connect_timeout=10,
+        host=target.host,
+        port=target.port or 5432,
+        dbname=target.database,
+        user=target.username,
+        connect_timeout=10,
     )
     subprocess.run(
-        [exe, "--format=custom", "--no-password", "--no-owner", "--no-privileges",
-         "--file", str(output), "--dbname", dsn],
-        env=env, check=True,
+        [
+            exe,
+            "--format=custom",
+            "--no-password",
+            "--no-owner",
+            "--no-privileges",
+            "--file",
+            str(output),
+            "--dbname",
+            dsn,
+        ],
+        env=env,
+        check=True,
     )
     subprocess.run([restore, "--list", str(output)], stdout=subprocess.DEVNULL, check=True)
 
@@ -367,14 +421,18 @@ def rehearse(args):
     source = recovery_url(original, source_name)
     target = recovery_url(original, "mlb_release_candidate_" + uuid4().hex[:12])
     expected = baseline["snapshot"]["local"]
-    require(integrity.fingerprint(source.render_as_string(hide_password=False), "local")
-            == expected, "Recovered full-league source has drifted.")
+    require(
+        integrity.fingerprint(source.render_as_string(hide_password=False), "local") == expected,
+        "Recovered full-league source has drifted.",
+    )
     args.output.mkdir(parents=True, exist_ok=False)
     print("SOURCE_FINGERPRINT_PASS", flush=True)
     clone_candidate(source, target)
     print(f"Created isolated candidate: {target.database}", flush=True)
-    require(integrity.fingerprint(target.render_as_string(hide_password=False), "local")
-            == expected, "Clone does not match full-league source.")
+    require(
+        integrity.fingerprint(target.render_as_string(hide_password=False), "local") == expected,
+        "Clone does not match full-league source.",
+    )
     derive_cohort(target, cohort)
     candidate_url = target.render_as_string(hide_password=False)
     candidate = integrity.fingerprint(candidate_url, "public")
@@ -382,32 +440,48 @@ def rehearse(args):
     report = audit_candidates(source, target, audit, cohort)
     save(args.output / "candidate_parity.json", report)
     require(report["status"] == "PASS", "Candidate failed parity; no release archive created.")
-    require(integrity.fingerprint(source.render_as_string(hide_password=False), "local")
-            == expected, "Recovered source changed during rehearsal.")
-    require(integrity.fingerprint(candidate_url, "public") == candidate,
-            "Candidate changed during validation.")
-    require(integrity.reference_hashes() == baseline["snapshot"]["references"],
-            "Historical reference changed during rehearsal.")
+    require(
+        integrity.fingerprint(source.render_as_string(hide_password=False), "local") == expected,
+        "Recovered source changed during rehearsal.",
+    )
+    require(
+        integrity.fingerprint(candidate_url, "public") == candidate,
+        "Candidate changed during validation.",
+    )
+    require(
+        integrity.reference_hashes() == baseline["snapshot"]["references"],
+        "Historical reference changed during rehearsal.",
+    )
     require(commit() == code, "Code changed during rehearsal.")
     clean_checkout()
     archive = args.output / "candidate_public_2026.dump"
     export_candidate(target, archive)
-    require(integrity.fingerprint(candidate_url, "public") == candidate,
-            "Candidate changed during export.")
+    require(
+        integrity.fingerprint(candidate_url, "public") == candidate,
+        "Candidate changed during export.",
+    )
     manifest = {
-        "schema": 1, "status": "REHEARSAL_PASS_NOT_PUBLISHED", "season": 2026,
-        "commit": code, "source_database": source.database,
-        "candidate_database": target.database, "cohort": cohort,
-        "source_fingerprint": expected, "candidate_fingerprint": candidate,
+        "schema": 1,
+        "status": "REHEARSAL_PASS_NOT_PUBLISHED",
+        "season": 2026,
+        "commit": code,
+        "source_database": source.database,
+        "candidate_database": target.database,
+        "cohort": cohort,
+        "source_fingerprint": expected,
+        "candidate_fingerprint": candidate,
         "reference_hashes": baseline["snapshot"]["references"],
         "inputs": {
-            "baseline": evidence(args.baseline), "audit": evidence(args.audit),
+            "baseline": evidence(args.baseline),
+            "audit": evidence(args.audit),
             "local_recovery": evidence(args.local_recovery),
             "public_recovery": evidence(args.public_recovery),
             "source_archives": {name: evidence(args.backups / name) for name in ARCHIVES},
         },
-        "artifacts": {name: evidence(args.output / name) for name in
-                      ("candidate_parity.json", "candidate_public_2026.dump")},
+        "artifacts": {
+            name: evidence(args.output / name)
+            for name in ("candidate_parity.json", "candidate_public_2026.dump")
+        },
         "production_write_allowed": False,
     }
     save(args.output / "release_manifest.json", manifest)
@@ -420,7 +494,8 @@ def review(args):
     require(sha(path) == args.manifest_sha, "Manifest checksum mismatch.")
     data = json.loads(path.read_bytes())
     require(
-        data["schema"] == 1 and data["season"] == 2026
+        data["schema"] == 1
+        and data["season"] == 2026
         and data["status"] == "REHEARSAL_PASS_NOT_PUBLISHED"
         and data["production_write_allowed"] is False,
         "Not a passing historical rehearsal.",
@@ -428,16 +503,18 @@ def review(args):
     clean_checkout()
     require(data["commit"] == commit(), "Code differs from the reviewed candidate.")
     require(data["reference_hashes"] == integrity.reference_hashes(), "References changed.")
-    require(set(data["artifacts"]) == {"candidate_parity.json", "candidate_public_2026.dump"},
-            "Missing or unexpected release artifacts.")
+    require(
+        set(data["artifacts"]) == {"candidate_parity.json", "candidate_public_2026.dump"},
+        "Missing or unexpected release artifacts.",
+    )
     for name, expected in data["artifacts"].items():
         require(evidence(args.output / name) == expected, f"Artifact changed: {name}")
     audit = json.loads((args.output / "candidate_parity.json").read_bytes())
     require(
-        audit["status"] == "PASS" and not audit["index_differences"]
+        audit["status"] == "PASS"
+        and not audit["index_differences"]
         and len(audit["results"]) == 660
-        and len({(r["pitcher_id"], r["endpoint"], r["scope"])
-                 for r in audit["results"]}) == 660
+        and len({(r["pitcher_id"], r["endpoint"], r["scope"]) for r in audit["results"]}) == 660
         and all(r["status"] == "PASS" and r["different_fields"] == 0 for r in audit["results"]),
         "Rehearsal parity evidence failed.",
     )
@@ -458,8 +535,10 @@ def main():
     try:
         (rehearse if args.mode == "rehearse" else review)(args)
     except Exception as exc:
-        print("RELEASE_CHECK_FAILED:", str(exc) if isinstance(exc, ReleaseError)
-              else type(exc).__name__)
+        print(
+            "RELEASE_CHECK_FAILED:",
+            str(exc) if isinstance(exc, ReleaseError) else type(exc).__name__,
+        )
         print("No live publication was attempted. Isolated candidates are retained.")
         return 1
     return 0

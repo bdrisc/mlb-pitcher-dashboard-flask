@@ -31,13 +31,27 @@ def fixture_csv(path, year=2027):
     with path.open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=sorted(REQUIRED))
         writer.writeheader()
-        writer.writerow({
-            "game_date": f"{year}-04-01", "game_pk": 123, "at_bat_number": 1,
-            "pitch_number": 1, "pitch_type": "FF", "player_name": "Pitcher",
-            "pitcher": 10, "batter": 11, "stand": "R", "p_throws": "R",
-            "balls": 0, "strikes": 0, "description": "called_strike", "type": "S",
-            "home_team": "BOS", "away_team": "NYY", "game_type": "R",
-        })
+        writer.writerow(
+            {
+                "game_date": f"{year}-04-01",
+                "game_pk": 123,
+                "at_bat_number": 1,
+                "pitch_number": 1,
+                "pitch_type": "FF",
+                "player_name": "Pitcher",
+                "pitcher": 10,
+                "batter": 11,
+                "stand": "R",
+                "p_throws": "R",
+                "balls": 0,
+                "strikes": 0,
+                "description": "called_strike",
+                "type": "S",
+                "home_team": "BOS",
+                "away_team": "NYY",
+                "game_type": "R",
+            }
+        )
 
 
 def test_future_source_manifest_and_cross_file_duplicates(tmp_path):
