@@ -49,7 +49,7 @@ jobs:
       - name: Check lint
         run: python -m ruff check .
       - name: Check formatting
-        run: python -m ruff format --check .
+        run: python -m ruff format --check . || (python -m ruff format --diff .; exit 1)
       - name: Run test suite
         run: python -m pytest
       - name: Apply PostgreSQL migrations
