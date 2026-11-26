@@ -88,7 +88,8 @@ def parse_feed(payload, game, day, season):
             )
             if count:
                 require(
-                    details.get("eventType") not in ("pitching_substitution", "offensive_substitution")
+                    details.get("eventType")
+                    not in ("pitching_substitution", "offensive_substitution")
                     and "pitching substitution" not in text
                     and "offensive substitution" not in text,
                     "Mid-PA substitution requires pitch-level ownership review.",
@@ -112,7 +113,8 @@ def compare_game(staged, payload, game, day, season):
     require(
         set(pitches) == set(staged),
         f"Pitch key coverage mismatch for game {game}: "
-        f"missing={len(pitches.keys() - staged.keys())}, extra={len(staged.keys() - pitches.keys())}.",
+        f"missing={len(pitches.keys() - staged.keys())}, "
+        f"extra={len(staged.keys() - pitches.keys())}.",
     )
     for key, row in staged.items():
         require(

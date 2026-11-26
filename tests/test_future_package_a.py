@@ -4,9 +4,21 @@ from copy import deepcopy
 
 import pytest
 
+from scripts import acquire_future_leaderboards as leaderboards
+from scripts import acquire_future_mlb_scope as mlb_scope
+from scripts import acquire_future_savant as savant
 from scripts import future_game_feed as feed
-from scripts.rehearse_snapshot_release import ReleaseError
-from scripts.validate_future_release_evidence import clean_coverage, finish
+from scripts import snapshot_integrity as integrity
+from scripts.reconcile_future_sources import read_json, read_staged_sources
+from scripts.rehearse_snapshot_release import ReleaseError, save, sha
+from scripts.stage_future_ingestion import synthetic_sources
+from scripts.validate_future_release_evidence import (
+    SYNTHETIC_FILES,
+    clean_coverage,
+    finish,
+    run,
+    synthetic_inputs,
+)
 
 GAME = 2000000001
 DAY = "2027-04-01"
@@ -119,3 +131,97 @@ def test_coverage_and_final_gate():
     result = finish(reviewed, cross, feeds, {}, "a" * 64)
     assert result["status"] == "PACKAGE_A_EVIDENCE_REVIEW_REQUIRED"
     assert not clean_coverage(result["leaderboard_coverage"])
+
+
+def test_complete_package_a_fixture(tmp_path):
+    paths = {name: tmp_path / path for name, path in SYNTHETIC_FILES.items()}
+    sources = paths["staging"].parent / "sources"
+    sources.mkdir(parents=True)
+    _, _, manifest_path, _ = synthetic_sources(sources)
+    manifest = read_json(manifest_path)
+    historical = {"tables": {"fixture": {"rows": 1, "sha256": "sealed"}}}
+    stage = {
+        "schema": 1,
+        "status": "STAGING_PASS_QUARANTINED",
+        "synthetic": True,
+        "season": 2027,
+        "source_manifest": manifest,
+        "source_values_matched": manifest["rows"],
+        "historical_fingerprint": historical,
+        "production_write_allowed": False,
+    }
+    save(paths["staging"], stage)
+    stage_sha = sha(paths["staging"])
+    _, staged_rows = read_staged_sources(paths["staging"], stage_sha)
+    _, plan = savant.acquire(stage, staged_rows, paths["savant"].parent, stage_sha)
+    save(
+        paths["plan"],
+        {**plan, "staging_report_sha256": stage_sha, "bundle_evidence": None},
+    )
+    before = {t: {"rows": 1, "sha256": "before"} for t in integrity.TABLES}
+    correction = {
+        "schema": 1,
+        "status": "CORRECTIONS_PASS_QUARANTINED",
+        "synthetic": True,
+        "season": 2027,
+        "production_write_allowed": False,
+        "staging_report_sha256": stage_sha,
+        "plan_sha256": sha(paths["plan"]),
+        "historical_fingerprint": historical,
+        "patched_pitches": plan["pitches"],
+        "official_pa": plan["official_pa"],
+        "pitcher_results": plan["pitcher_results"],
+        "candidate_database": "mlb_release_candidate_fixture",
+        "candidate_fingerprint": before,
+    }
+    paths["correction"].parent.mkdir()
+    save(paths["correction"], correction)
+    correction_sha = sha(paths["correction"])
+    leaderboard = leaderboards.acquire(
+        stage, staged_rows, paths["leaderboard"].parent, stage_sha, correction_sha
+    )
+    mlb_scope.acquire(
+        stage, staged_rows, paths["scope"].parent, stage_sha, "2027-04-01", "2027-04-02"
+    )
+    counts = {
+        t: len(leaderboard[t])
+        for t in ("fangraphs_stuff", "published_pitching_metrics", "savant_active_spin")
+    }
+    after = {
+        t: {"rows": v["rows"] + counts[t], "sha256": "after"} if t in counts else v
+        for t, v in before.items()
+    }
+    paths["import"].parent.mkdir()
+    save(
+        paths["import"],
+        {
+            "schema": 1,
+            "status": "LEADERBOARD_IMPORT_PASS_QUARANTINED",
+            "synthetic": True,
+            "season": 2027,
+            "production_write_allowed": False,
+            "staging_report_sha256": stage_sha,
+            "correction_report_sha256": correction_sha,
+            "leaderboard_report_sha256": sha(paths["leaderboard"]),
+            "source_database": correction["candidate_database"],
+            "source_fingerprint": before,
+            "candidate_fingerprint": after,
+            "historical_fingerprint": historical,
+            "inserted_rows": counts,
+        },
+    )
+    inputs = synthetic_inputs(tmp_path)
+    out = tmp_path / "package_a"
+    result = run(inputs, True, "synthetic", output=out)
+    assert result["physical_pitches"] == 6
+    assert result["completed_games"] == 2
+    assert result["crosswalk_mappings"] == 1
+    assert result["status"] == "PACKAGE_A_SYNTHETIC_PASS_NOT_APPLIED"
+    report = out / "package_a_report.json"
+    assert (
+        run(inputs, True, "synthetic", verify_report=report, report_sha=sha(report))
+        == result
+    )
+    paths["scope"].write_text("changed", encoding="utf-8")
+    with pytest.raises(ReleaseError, match="Input checksum mismatch"):
+        run(inputs, True, "synthetic", verify_report=report, report_sha=sha(report))
