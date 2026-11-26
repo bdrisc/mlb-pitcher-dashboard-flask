@@ -10,6 +10,7 @@ from math import isfinite
 from pathlib import Path
 
 from app.services.filters import COUNT_GROUPS
+from app.services.future_season_references import artifact
 
 VERSION = 1
 REFERENCE_DIR = Path(__file__).resolve().parents[2] / "data"
@@ -131,15 +132,16 @@ def reference_path(season):
 
 
 @lru_cache(maxsize=8)
-def _load(path, mtime_ns):
+def _load(path, mtime_ns, future=False):
     data = Path(path).read_bytes()
     payload = json.loads(data)
     if payload.get("version") != VERSION:
         raise ValueError("Incorrect pitch role reference version")
+    minimum = (300, 200000, 600) if future else (750, 650000, 2400)
     if (
-        payload.get("pitchers", 0) < 750
-        or payload.get("physical_pitches", 0) < 650000
-        or payload.get("games", 0) < 2400
+        payload.get("pitchers", 0) < minimum[0]
+        or payload.get("physical_pitches", 0) < minimum[1]
+        or payload.get("games", 0) < minimum[2]
     ):
         raise ValueError("Incomplete MLB reference")
     distributions = payload.get("distributions")
@@ -180,11 +182,30 @@ def build_pitch_roles(arsenal, filters, hand):
     counts = filter_count_key(filters)
     reference, digest = None, None
     if filters.season is not None:
-        path = reference_path(filters.season)
+        future = filters.season >= 2027
+        approved = artifact(filters.season, "roles") if future else None
+        path = approved[0] if approved else reference_path(filters.season)
         try:
-            reference, digest = _load(str(path), path.stat().st_mtime_ns)
+            if future and approved is None:
+                raise ValueError("No approved season reference.")
+            reference, digest = _load(str(path), path.stat().st_mtime_ns, future)
             if reference["season"] != filters.season:
                 reference, digest = None, None
+            elif future:
+                entry = approved[1]
+                if (
+                    reference["through"] != entry["through"]
+                    or [
+                        reference["pitchers"],
+                        reference["physical_pitches"],
+                        reference["physical_pitches"],
+                        reference["games"],
+                    ]
+                    != entry["coverage"]
+                    or (filters.date_to and filters.date_to.isoformat() > entry["through"])
+                    or (filters.date_from and filters.date_from.isoformat() < entry["start"])
+                ):
+                    reference, digest = None, None
         except (OSError, ValueError, KeyError, TypeError):
             pass
     rows = []

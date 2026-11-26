@@ -21,6 +21,7 @@ from app import create_app
 from app.extensions import db
 from app.models import Game, Pitch
 from app.services.expected_run_value import WOBA_SCALES, expected_run_value_columns
+from app.services.future_season_references import approved_weights
 
 
 def _corr(left, right):
@@ -68,6 +69,7 @@ def audit_season(season, min_half_pitches=300):
     expected = sum(float(row["xrv_contact_expected_woba_sum"] or 0) for row in rows)
     physical_total = sum(int(row["physical"]) for row in rows)
     paired_total = sum(int(row["xrv_scored_pitches"]) for row in rows)
+    scales = {**WOBA_SCALES, **{year: weights[0] for year, weights in approved_weights().items()}}
     output = {
         "season": season,
         "scope": "pitchers actually present in the connected database",
@@ -84,7 +86,7 @@ def audit_season(season, min_half_pitches=300):
         "expected_contact_woba": _round(expected / observed, 5) if observed else None,
         "contact_woba_residual": _round((weighted - expected) / observed, 5) if observed else None,
         "source": "Savant context-neutral RV + Statcast EV/LA xwOBA + FanGraphs Guts",
-        "woba_scale": WOBA_SCALES.get(season),
+        "woba_scale": scales.get(season),
         "comparison": "Paired RV/100 and xRV/100; full Savant RV/100 has a different denominator",
     }
     halves = {}

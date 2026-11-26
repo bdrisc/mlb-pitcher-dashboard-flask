@@ -17,7 +17,11 @@ from app.extensions import db
 from app.models import Game, Pitch, Player
 from app.services.database_queries import pitch_filter_conditions
 from app.services.filters import PitchFilters
-from app.services.location_reference import REFERENCE_SEASON, shared_league_bins
+from app.services.location_reference import (
+    REFERENCE_SEASON,
+    future_league_bins,
+    shared_league_bins,
+)
 from app.services.pitch_data import PITCH_NAME_MAP
 
 # Matches the fixed horizontal strike zone shown in the location KDE charts.
@@ -122,7 +126,24 @@ def build_location_performance(
     pitcher_rows = _aggregate(pitch_filter_conditions(filters, pitcher_id=pitcher_id))
     league_filters = replace(filters, pitcher=None, team=None)
     shared = filters.season == REFERENCE_SEASON
-    if hand not in ("R", "L"):
+    scope = (
+        "Verified full 2026 MLB regular season, same throwing hand"
+        if shared
+        else "All loaded MLB pitchers of the same throwing hand"
+    )
+    future = filters.season is not None and filters.season >= 2027
+    if filters.season is None:
+        # Preserve historical behavior unless the loaded database includes a future season.
+        future = (db.session.scalar(select(func.max(Game.season))) or 0) >= 2027
+    if future:
+        approved = future_league_bins(league_filters, hand) if hand in ("R", "L") else None
+        if approved is None:
+            league_rows = []
+            scope = "Approved full-league reference unavailable"
+        else:
+            league_rows, through = approved
+            scope = f"Verified MLB regular season through {through}, same throwing hand"
+    elif hand not in ("R", "L"):
         league_rows = []
     elif shared:
         league_rows = shared_league_bins(league_filters, hand)
@@ -149,9 +170,5 @@ def build_location_performance(
         "min_league_contacts": MIN_LEAGUE_CONTACTS,
         "strike_zone": {"left": -STRIKE_HALF_WIDTH_FT, "right": STRIKE_HALF_WIDTH_FT},
         "league_ignores_team_filter": bool(filters.team),
-        "reference_scope": (
-            "Verified full 2026 MLB regular season, same throwing hand"
-            if shared
-            else "All loaded MLB pitchers of the same throwing hand"
-        ),
+        "reference_scope": scope,
     }

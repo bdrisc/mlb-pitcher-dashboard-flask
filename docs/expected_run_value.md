@@ -53,9 +53,11 @@ consistent with a November 4, 2026 baseballr Guts extraction, has:
 | wHR | **2.049** | 2.079 |
 
 The constants for **every Statcast season from 2015 to 2026** are now stored
-in `WOBA_CONSTANTS`. For an unsupported season (such as 2027 before its
-constants are published), contact is left unscored rather than silently
-borrowing another year's conversion factor.
+in `WOBA_CONSTANTS`. For 2027 onward, the dashboard requires a reviewed
+season-specific coefficient registry. If a selected future season lacks
+approved constants, paired xRV and RV-minus-xRV are withheld for the entire
+selection, including mixed-season aggregates and non-contact pitches. Actual
+RV remains independently available. No historical coefficient is borrowed.
 
 The original approach mixed the current scale with whichever
 `savant_woba_numerator` or `woba_value` had been stored when the data was
