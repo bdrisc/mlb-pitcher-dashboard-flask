@@ -157,7 +157,7 @@ def test_year_specific_scale_verified_weight_and_pitch_type_grouping(app):
         )
 
 
-def test_missing_season_scale_excludes_only_contact(app):
+def test_missing_future_season_scale_withholds_all_paired_xrv(app):
     with app.app_context():
         db.session.add(Player(mlb_id=801, player_name="Independent Audit"))
         db.session.add(
@@ -188,8 +188,8 @@ def test_missing_season_scale_excludes_only_contact(app):
         db.session.commit()
 
         scored = _snapshot()
-        assert scored["xrv_scored_pitches"] == 1
+        assert scored["xrv_scored_pitches"] == 0
         assert scored["xrv_unknown_scale"] == 1
         assert scored["xrv_missing_contact"] == 1
-        assert scored["xrv_paired_actual"] == pytest.approx(0.1)
-        assert scored["xrv_paired_expected"] == pytest.approx(0.1)
+        assert scored["xrv_paired_actual"] is None
+        assert scored["xrv_paired_expected"] is None
