@@ -74,8 +74,7 @@ def validate_entry(season, entry):
         raise ValueError("Invalid season-specific coefficient vintage.")
     for kind, record in entry["artifacts"].items():
         if kind not in KINDS or (
-            record["file"] != KINDS[kind].format(season=season)
-            or not is_digest(record["sha256"])
+            record["file"] != KINDS[kind].format(season=season) or not is_digest(record["sha256"])
         ):
             raise ValueError("Invalid reference artifact identity.")
     return entry

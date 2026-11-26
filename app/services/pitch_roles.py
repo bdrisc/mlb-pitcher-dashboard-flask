@@ -200,7 +200,8 @@ def build_pitch_roles(arsenal, filters, hand):
                         reference["physical_pitches"],
                         reference["physical_pitches"],
                         reference["games"],
-                    ] != entry["coverage"]
+                    ]
+                    != entry["coverage"]
                     or (filters.date_to and filters.date_to.isoformat() > entry["through"])
                     or (filters.date_from and filters.date_from.isoformat() < entry["start"])
                 ):

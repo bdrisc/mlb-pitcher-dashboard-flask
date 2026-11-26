@@ -99,9 +99,7 @@ def verify_game_counts(season, approved):
     rows = db.session.execute(stmt).all()
     require(all(kind == "R" for _, kind, _ in rows), "Unexpected nonregular games.")
     actual = {str(game): count for game, _, count in rows}
-    expected = {
-        game: info["physical_pitches"] for game, info in approved["game_results"].items()
-    }
+    expected = {game: info["physical_pitches"] for game, info in approved["game_results"].items()}
     require(actual == expected, "Candidate game pitch counts differ from Package A.")
 
 
@@ -143,9 +141,23 @@ def location_payload(season, coverage, start, through):
         .order_by(*dimensions)
     )
     rows = []
-    for day, balls, strikes, home, hand, code, side, bx, by, n, wn, ws, en, es, hh in (
-        db.session.execute(stmt)
-    ):
+    for (
+        day,
+        balls,
+        strikes,
+        home,
+        hand,
+        code,
+        side,
+        bx,
+        by,
+        n,
+        wn,
+        ws,
+        en,
+        es,
+        hh,
+    ) in db.session.execute(stmt):
         rows.append(
             [
                 day.isoformat(),
@@ -209,17 +221,17 @@ def build(args):
         revision = "synthetic"
     else:
         require(
-            args.inputs and sha(args.inputs) == args.inputs_sha
-            and args.package_a and args.register_commit,
+            args.inputs
+            and sha(args.inputs) == args.inputs_sha
+            and args.package_a
+            and args.register_commit,
             "Real mode requires reviewed Package A inputs and pinned checksums.",
         )
         inputs = json.loads(args.inputs.read_bytes())
         package = args.package_a
         package_sha = args.package_a_sha
         revision = args.register_commit
-    approved = run(
-        inputs, synthetic, revision, verify_report=package, report_sha=package_sha
-    )
+    approved = run(inputs, synthetic, revision, verify_report=package, report_sha=package_sha)
     paths = input_paths(inputs, synthetic)
     correction = json.loads(paths["correction"].read_bytes())
     season = approved["season"]
@@ -247,10 +259,7 @@ def build(args):
                 "Reference coverage differs from independently replayed evidence.",
             )
             if synthetic:
-                raw = (
-                    b"Season,wOBAScale,w1B,w2B,w3B,wHR\n"
-                    b"2027,1.20,0.80,1.20,1.60,2.00\n"
-                )
+                raw = b"Season,wOBAScale,w1B,w2B,w3B,wHR\n2027,1.20,0.80,1.20,1.60,2.00\n"
             elif args.guts_csv:
                 require(sha(args.guts_csv) == args.guts_sha, "Guts archive checksum differs.")
                 require(args.guts_as_of == through, "Coefficient vintage must match candidate.")

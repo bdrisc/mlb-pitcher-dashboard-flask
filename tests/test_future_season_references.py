@@ -98,9 +98,7 @@ def test_future_location_checksum_and_date_scope(registry):
     rows, through = future_league_bins(PitchFilters(season=2027), "R")
     assert rows[0]["xwoba_sum"] == 0.5
     assert through == "2027-04-02"
-    assert future_league_bins(
-        PitchFilters(season=2027, date_to=date(2027, 4, 3)), "R"
-    ) is None
+    assert future_league_bins(PitchFilters(season=2027, date_to=date(2027, 4, 3)), "R") is None
     path.write_bytes(b"tampered")
     assert future_league_bins(PitchFilters(season=2027), "R") is None
 
@@ -111,8 +109,12 @@ def test_unapproved_future_reference_never_reads_unpinned_files(registry):
     path.write_bytes(b"unapproved")
     assert future.artifact(2027, "movement") is None
     result = movement_vs_average(
-        season=2027, pitch_type="FF", throwing_hand="R", arm_angle=40,
-        horizontal_break=-8, vertical_break=16,
+        season=2027,
+        pitch_type="FF",
+        throwing_hand="R",
+        arm_angle=40,
+        horizontal_break=-8,
+        vertical_break=16,
     )
     assert result["hb_vs_avg"] is None
     assert result["ivb_vs_avg"] is None
@@ -122,8 +124,14 @@ def test_xrv_future_without_and_with_approved_weights(app, registry):
     with app.app_context():
         db.session.add(Player(mlb_id=101, player_name="Future Fixture"))
         db.session.add(
-            Game(game_pk=12, season=2027, game_date=date(2027, 4, 1),
-                 home_team="BOS", away_team="NYY", game_type="R")
+            Game(
+                game_pk=12,
+                season=2027,
+                game_date=date(2027, 4, 1),
+                home_team="BOS",
+                away_team="NYY",
+                game_type="R",
+            )
         )
         db.session.flush()
         for number, description, event, rv, xwoba in (
@@ -132,10 +140,19 @@ def test_xrv_future_without_and_with_approved_weights(app, registry):
         ):
             db.session.add(
                 Pitch(
-                    pitch_id=f"12_1_{number}", game_pk=12, pitcher_id=101, batter_id=101,
-                    at_bat_number=1, pitch_number=number, pitch_type="FF", balls=0,
-                    strikes=0, description=description, events=event,
-                    delta_run_expectancy=rv, estimated_woba=xwoba,
+                    pitch_id=f"12_1_{number}",
+                    game_pk=12,
+                    pitcher_id=101,
+                    batter_id=101,
+                    at_bat_number=1,
+                    pitch_number=number,
+                    pitch_type="FF",
+                    balls=0,
+                    strikes=0,
+                    description=description,
+                    events=event,
+                    delta_run_expectancy=rv,
+                    estimated_woba=xwoba,
                 )
             )
         db.session.commit()
