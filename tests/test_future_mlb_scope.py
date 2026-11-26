@@ -46,9 +46,10 @@ def test_acquire_replay(tmp_path):
     assert len(result["completed_games"]) == 2
     assert len(result["people"]) == 2
     assert result["pitchers"] == result["batters"] == 1
-    assert rebuild(
-        stage, staged(), out / "raw", result["responses"], "a" * 64, FIRST, LAST
-    ) == result
+    assert (
+        rebuild(stage, staged(), out / "raw", result["responses"], "a" * 64, FIRST, LAST)
+        == result
+    )
     (out / "raw" / "schedule.json").write_bytes(b"changed")
     with pytest.raises(ReleaseError, match="checksum"):
         rebuild(stage, staged(), out / "raw", result["responses"], "a" * 64, FIRST, LAST)
@@ -94,3 +95,21 @@ def test_missing_person():
     data["people"].pop()
     with pytest.raises(ReleaseError, match="Missing MLB"):
         parse_people(data, {PID, BID})
+
+
+def test_postponed_game_excluded_and_switch_hitter_allowed():
+    data = fixtures()
+    day = data["schedule"]["dates"][0]
+    game = dict(day["games"][0])
+    game["gamePk"] = 2000000003
+    game["status"] = {"abstractGameState": "Preview", "detailedState": "Postponed"}
+    day["games"].append(game)
+    day["totalGames"] += 1
+    data["schedule"]["totalGames"] += 1
+    games, excluded = parse_schedule(data["schedule"], 2027, FIRST, LAST)
+    assert excluded == {"2000000003": {"date": FIRST, "status": "Postponed"}}
+    people = parse_people(data["people_0000"], {PID, BID})
+    people[BID]["bats"] = "S"
+    records = staged()
+    records[PID]["1"]["stand"] = "L"
+    verify(records, games, people)

@@ -21,7 +21,11 @@ BATCH = 100
 def window(season, first, last, synthetic):
     start, end = date.fromisoformat(first), date.fromisoformat(last)
     require(
-        start.year == end.year == season and season >= 2027 and start <= end,
+        start.isoformat() == first
+        and end.isoformat() == last
+        and start.year == end.year == season
+        and season >= 2027
+        and start <= end,
         "Invalid future-season date window.",
     )
     if synthetic:
@@ -77,7 +81,8 @@ def parse_schedule(payload, season, first, last):
             seen.add(pid)
             count += 1
             require(
-                game["gameType"] == "R" and str(game["season"]) == str(season)
+                game["gameType"] == "R"
+                and str(game["season"]) == str(season)
                 and game["officialDate"] == day_date,
                 "Schedule season, game type or official date differs.",
             )
@@ -159,10 +164,18 @@ def fixtures():
         }
         days.append({"date": day, "totalGames": 1, "games": [game]})
     people = [
-        {"id": 2000000010, "fullName": "Pitcher Fixture", "pitchHand": {"code": "R"},
-         "batSide": {"code": "R"}},
-        {"id": 2000000011, "fullName": "Batter Fixture", "pitchHand": {"code": "R"},
-         "batSide": {"code": "R"}},
+        {
+            "id": 2000000010,
+            "fullName": "Pitcher Fixture",
+            "pitchHand": {"code": "R"},
+            "batSide": {"code": "R"},
+        },
+        {
+            "id": 2000000011,
+            "fullName": "Batter Fixture",
+            "pitchHand": {"code": "R"},
+            "batSide": {"code": "R"},
+        },
     ]
     return {
         "schedule": {"totalGames": 2, "dates": days},
@@ -235,16 +248,24 @@ def acquire(stage, staged, output, staging_sha, first, last, fetch=download):
         started = timestamp()
         data, status, content_type = (
             (json.dumps(fixture[kind]).encode(), 200, "application/json")
-            if fixture is not None else fetch(url)
+            if fixture is not None
+            else fetch(url)
         )
         require(status == 200 and 0 < len(data) <= MAX_BYTES, "Invalid MLB HTTP response.")
         name = f"{kind}.json"
         with (raw / name).open("xb") as handle:
             handle.write(data)
         record = dict(
-            file=name, url=url, parameters=params, started_utc=started,
-            received_utc=timestamp(), http_status=status, content_type=content_type,
-            synthetic=stage["synthetic"], bytes=len(data), sha256=digest(data),
+            file=name,
+            url=url,
+            parameters=params,
+            started_utc=started,
+            received_utc=timestamp(),
+            http_status=status,
+            content_type=content_type,
+            synthetic=stage["synthetic"],
+            bytes=len(data),
+            sha256=digest(data),
         )
         save(raw / f"{name}.meta.json", record)
         records[kind] = record
@@ -274,8 +295,13 @@ def main():
             require(sha(path) == args.report_sha, "Report checksum mismatch.")
             result = json.loads(path.read_bytes())
             rebuilt = rebuild(
-                stage, staged, path.parent / "raw", result["responses"],
-                args.staging_sha, args.start, args.end,
+                stage,
+                staged,
+                path.parent / "raw",
+                result["responses"],
+                args.staging_sha,
+                args.start,
+                args.end,
             )
             require(result == rebuilt and sha(path) == args.report_sha, "Replay differs.")
         else:
@@ -293,7 +319,9 @@ def main():
         print("No database writes or publication performed.")
         return 0
     except Exception as exc:
-        print("MLB_SCOPE_FAILED:", str(exc) if isinstance(exc, ValueError) else type(exc).__name__)
+        print(
+            "MLB_SCOPE_FAILED:", str(exc) if isinstance(exc, ValueError) else type(exc).__name__
+        )
         return 1
 
 
