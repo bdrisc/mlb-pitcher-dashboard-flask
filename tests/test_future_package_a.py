@@ -218,10 +218,7 @@ def test_complete_package_a_fixture(tmp_path):
     assert result["crosswalk_mappings"] == 1
     assert result["status"] == "PACKAGE_A_SYNTHETIC_PASS_NOT_APPLIED"
     report = out / "package_a_report.json"
-    assert (
-        run(inputs, True, "synthetic", verify_report=report, report_sha=sha(report))
-        == result
-    )
+    assert run(inputs, True, "synthetic", verify_report=report, report_sha=sha(report)) == result
     paths["scope"].write_text("changed", encoding="utf-8")
     with pytest.raises(ReleaseError, match="Input checksum mismatch"):
         run(inputs, True, "synthetic", verify_report=report, report_sha=sha(report))

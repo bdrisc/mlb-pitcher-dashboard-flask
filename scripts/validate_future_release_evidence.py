@@ -85,9 +85,7 @@ def review(inputs, synthetic):
     hashes = {name: record["sha256"] for name, record in inputs.items()}
     stage, staged = read_staged_sources(paths["staging"], hashes["staging"])
     require(stage["synthetic"] is synthetic, "Synthetic/real mode mismatch.")
-    validate_correction(
-        paths["correction"], hashes["correction"], stage, staged, hashes["staging"]
-    )
+    validate_correction(paths["correction"], hashes["correction"], stage, staged, hashes["staging"])
     correction = json.loads(paths["correction"].read_bytes())
     require(correction["plan_sha256"] == hashes["plan"], "Correction plan binding differs.")
     args = SimpleNamespace(
@@ -103,11 +101,7 @@ def review(inputs, synthetic):
     replayed = replay_bundle(stage, staged, paths["savant"], hashes["staging"], bundle)
     require(
         replayed
-        == {
-            k: v
-            for k, v in plan.items()
-            if k not in ("staging_report_sha256", "bundle_evidence")
-        }
+        == {k: v for k, v in plan.items() if k not in ("staging_report_sha256", "bundle_evidence")}
         and correction["official_pa"] == plan["official_pa"]
         and correction["pitcher_results"] == plan["pitcher_results"],
         "Archived Savant evidence differs from corrected plan.",
@@ -140,9 +134,7 @@ def review(inputs, synthetic):
         "MLB scope evidence replay differs.",
     )
     if synthetic:
-        check_import(
-            json.loads(paths["import"].read_bytes()), correction, leaderboard, hashes
-        )
+        check_import(json.loads(paths["import"].read_bytes()), correction, leaderboard, hashes)
     return stage, staged, leaderboard, scope, hashes
 
 
@@ -219,9 +211,7 @@ def run(inputs, synthetic, revision, output=None, verify_report=None, report_sha
         crosswalk.acquire(
             root / "crosswalk", revision, synthetic, expected, stage["season"], bindings
         )
-        records = game_feed.acquire(
-            root / "games", game_feed.group_games(staged), synthetic
-        )
+        records = game_feed.acquire(root / "games", game_feed.group_games(staged), synthetic)
     cross_path = root / "crosswalk" / "crosswalk_evidence.json"
     cross = json.loads(cross_path.read_bytes())
     cross_sha = sha(cross_path)
@@ -282,9 +272,7 @@ def main():
             )
             inputs = json.loads(args.inputs.read_bytes())
             revision = args.register_commit
-        result = run(
-            inputs, synthetic, revision, args.output, args.verify_report, args.report_sha
-        )
+        result = run(inputs, synthetic, revision, args.output, args.verify_report, args.report_sha)
         if not synthetic:
             require(sha(args.inputs) == args.inputs_sha, "Input manifest changed.")
         print(f"Crosswalk mappings: {result['crosswalk_mappings']}")
