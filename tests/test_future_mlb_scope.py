@@ -47,8 +47,7 @@ def test_acquire_replay(tmp_path):
     assert len(result["people"]) == 2
     assert result["pitchers"] == result["batters"] == 1
     assert (
-        rebuild(stage, staged(), out / "raw", result["responses"], "a" * 64, FIRST, LAST)
-        == result
+        rebuild(stage, staged(), out / "raw", result["responses"], "a" * 64, FIRST, LAST) == result
     )
     (out / "raw" / "schedule.json").write_bytes(b"changed")
     with pytest.raises(ReleaseError, match="checksum"):

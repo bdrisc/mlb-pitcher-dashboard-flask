@@ -306,9 +306,7 @@ def main():
             require(result == rebuilt and sha(path) == args.report_sha, "Replay differs.")
         else:
             require(not args.report_sha, "Report checksum applies only to replay.")
-            result = acquire(
-                stage, staged, args.output, args.staging_sha, args.start, args.end
-            )
+            result = acquire(stage, staged, args.output, args.staging_sha, args.start, args.end)
             path = args.output / "mlb_scope_evidence.json"
         require(sha(args.staging_report) == args.staging_sha, "Staging report changed.")
         print(f"Completed games: {len(result['completed_games'])}")
@@ -319,9 +317,7 @@ def main():
         print("No database writes or publication performed.")
         return 0
     except Exception as exc:
-        print(
-            "MLB_SCOPE_FAILED:", str(exc) if isinstance(exc, ValueError) else type(exc).__name__
-        )
+        print("MLB_SCOPE_FAILED:", str(exc) if isinstance(exc, ValueError) else type(exc).__name__)
         return 1
 
 
