@@ -47,6 +47,7 @@ def validate_entry(season, entry):
     coverage = entry["coverage"]
     if (
         entry["season"] != season
+        or entry["synthetic"] is not False
         or first.year != season
         or last.year != season
         or first > last

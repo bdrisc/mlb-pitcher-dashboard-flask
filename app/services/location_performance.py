@@ -17,7 +17,11 @@ from app.extensions import db
 from app.models import Game, Pitch, Player
 from app.services.database_queries import pitch_filter_conditions
 from app.services.filters import PitchFilters
-from app.services.location_reference import REFERENCE_SEASON, future_league_bins, shared_league_bins
+from app.services.location_reference import (
+    REFERENCE_SEASON,
+    future_league_bins,
+    shared_league_bins,
+)
 from app.services.pitch_data import PITCH_NAME_MAP
 
 # Matches the fixed horizontal strike zone shown in the location KDE charts.
