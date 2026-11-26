@@ -8,10 +8,12 @@ from collections import defaultdict
 from decimal import Decimal
 from functools import lru_cache
 from hashlib import sha256
+from math import isfinite
 from pathlib import Path
 from typing import Any
 
 from app.services.filters import PitchFilters
+from app.services.future_season_references import artifact
 
 REFERENCE_SEASON = 2026
 REFERENCE_SHA256 = "eb09bc3ce164730186ce699c7c3443150a8339626dff1775ec6639b8a9d3ec99"
@@ -65,16 +67,13 @@ def _load_reference() -> dict[str, tuple[tuple[Any, ...], ...]]:
     return {hand: tuple(rows) for hand, rows in grouped.items()}
 
 
-@lru_cache(maxsize=64)
-def shared_league_bins(filters: PitchFilters, hand: str) -> list[dict[str, Any]]:
+def _rollup(filters, rows):
     """Roll up unrounded counts and sums, matching the existing SQL filters."""
-    if filters.season != REFERENCE_SEASON:
-        raise ValueError("Unsupported shared location reference season")
     start = filters.date_from.isoformat() if filters.date_from else None
     end = filters.date_to.isoformat() if filters.date_to else None
     pairs = filters.count_pairs
     totals = defaultdict(lambda: [0, 0, Decimal(0), 0, Decimal(0), 0])
-    for day, balls, strikes, venue, _, code, side, x, y, *values in _load_reference()[hand]:
+    for day, balls, strikes, venue, _, code, side, x, y, *values in rows:
         if (start and day < start) or (end and day > end):
             continue
         if filters.home_away and venue != filters.home_away:
@@ -109,3 +108,78 @@ def shared_league_bins(filters: PitchFilters, hand: str) -> list[dict[str, Any]]
             totals.items(), key=lambda item: (item[0][0], item[0][1], item[0][3], item[0][2])
         )
     ]
+
+
+@lru_cache(maxsize=64)
+def shared_league_bins(filters: PitchFilters, hand: str) -> list[dict[str, Any]]:
+    if filters.season != REFERENCE_SEASON:
+        raise ValueError("Unsupported shared location reference season")
+    return _rollup(filters, _load_reference()[hand])
+
+
+@lru_cache(maxsize=4)
+def _load_future(path, checksum, season, start, through, coverage):
+    payload = json.loads(gzip.decompress(Path(path).read_bytes()))
+    if (
+        payload["version"] != 1
+        or payload["season"] != season
+        or tuple(payload["fields"]) != FIELDS
+        or tuple(payload["physical_coverage"]) != coverage
+        or payload["start"] != start
+        or payload["through"] != through
+        or payload["game_types"] != {"R": coverage[1]}
+    ):
+        raise ValueError("Future location reference metadata mismatch.")
+    grouped = {"L": [], "R": []}
+    keys = set()
+    for row in payload["rows"]:
+        day, balls, strikes, venue, hand, code, side, x, y, n, wn, ws, en, es, hh = row
+        key = tuple(row[:9])
+        ws, es = Decimal(ws), Decimal(es)
+        if (
+            key in keys
+            or not start <= day <= through
+            or balls not in range(4)
+            or strikes not in range(3)
+            or venue not in ("home", "away")
+            or hand not in grouped
+            or side not in ("L", "R")
+            or not code
+            or x not in range(3)
+            or y not in range(3)
+            or any(type(v) is not int for v in (n, wn, en, hh))
+            or not 0 <= wn <= n
+            or not 0 <= hh <= en <= n
+            or n <= 0
+            or not all(isfinite(v) and v >= 0 for v in (ws, es))
+        ):
+            raise ValueError("Invalid future location reference row.")
+        keys.add(key)
+        grouped[hand].append((*key, n, wn, ws, en, es, hh))
+    if not keys or sum(row[9] for rows in grouped.values() for row in rows) > coverage[1]:
+        raise ValueError("Invalid location contact coverage.")
+    return grouped
+
+
+def future_league_bins(filters, hand):
+    approved = artifact(filters.season, "location")
+    if approved is None:
+        return None
+    path, entry = approved
+    start, through = entry["start"], entry["through"]
+    if filters.date_to and filters.date_to.isoformat() > through:
+        return None
+    if filters.date_from and filters.date_from.isoformat() < start:
+        return None
+    try:
+        rows = _load_future(
+            str(path),
+            entry["artifacts"]["location"]["sha256"],
+            filters.season,
+            start,
+            through,
+            tuple(entry["coverage"]),
+        )
+        return _rollup(filters, rows[hand]), through
+    except (OSError, ValueError, TypeError, KeyError, ArithmeticError, EOFError):
+        return None

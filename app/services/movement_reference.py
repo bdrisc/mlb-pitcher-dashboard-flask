@@ -22,6 +22,7 @@ from sqlalchemy import func, select
 
 from app.extensions import db
 from app.models import Game, Pitch, Player
+from app.services.future_season_references import artifact
 
 REFERENCE_DIR = Path(__file__).resolve().parents[2] / "data"
 REFERENCE_FIELDS = (
@@ -157,8 +158,11 @@ def movement_vs_average(
     ):
         return result
     normalized_angle = round(float(arm_angle), 9)
+    approved = artifact(season, "movement") if season >= 2027 else None
+    if season >= 2027 and approved is None:
+        return result
     compact = compact_reference_path(season)
-    if compact.is_file():
+    if season < 2027 and compact.is_file():
         try:
             bins, distinct = _load_compact_reference(str(compact), compact.stat().st_mtime_ns)
         except (OSError, ValueError, EOFError, struct.error, lzma.LZMAError):
@@ -179,12 +183,14 @@ def movement_vs_average(
         hb_sum = sum(row[2] for row in eligible)
         ivb_sum = sum(row[3] for row in eligible)
     else:
-        path = reference_path(season)
+        path = approved[0] if approved else reference_path(season)
         if not path.is_file():
             return result
-        rows = _load_reference(str(path), path.stat().st_mtime_ns).get(
-            (throwing_hand, pitch_type), ()
-        )
+        try:
+            groups = _load_reference(str(path), path.stat().st_mtime_ns)
+        except (OSError, ValueError, KeyError, TypeError, EOFError):
+            return result
+        rows = groups.get((throwing_hand, pitch_type), ())
         eligible = [
             row for row in rows if abs(row[0] + 0.5 - normalized_angle) <= ARM_ANGLE_WINDOW_DEGREES
         ]

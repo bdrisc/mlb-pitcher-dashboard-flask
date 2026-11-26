@@ -27,7 +27,7 @@ from app.services.pitch_roles import (
 from app.services.pitcher_profiles import _metric_columns
 
 
-def export(season):
+def export(season, destination=None, future_constants=None):
     physical = func.coalesce(func.lower(Pitch.description), "").notin_(
         ("automatic_ball", "automatic_strike")
     )
@@ -44,7 +44,8 @@ def export(season):
         .where(*base, physical)
     ).one()
     pitchers, physical_pitches, games, through = totals
-    if pitchers < 750 or physical_pitches < 650000 or games < 2400:
+    minimum = (300, 200000, 600) if season >= 2027 else (750, 650000, 2400)
+    if pitchers < minimum[0] or physical_pitches < minimum[1] or games < minimum[2]:
         raise ValueError(
             f"Incomplete MLB season: {pitchers} pitchers, {physical_pitches} pitches, {games} games"
         )
@@ -58,7 +59,7 @@ def export(season):
     ).first()
     if duplicate:
         raise ValueError("Duplicate natural pitch key; reference not written")
-    metrics = [c for c in _metric_columns() if c.key in ROLE_FIELDS]
+    metrics = [c for c in _metric_columns(future_constants) if c.key in ROLE_FIELDS]
     if {c.key for c in metrics} != set(ROLE_FIELDS):
         raise ValueError("Shared metric definition missing")
     dimensions = (
@@ -108,7 +109,11 @@ def export(season):
     }
     if not any(len(v) >= MIN_PEERS for v in payload["distributions"].values()):
         raise ValueError("No qualifying peer groups")
-    path = reference_path(season)
+    if season >= 2027 and destination is None:
+        raise ValueError("Future role exports require an explicit isolated output path.")
+    path = destination or reference_path(season)
+    if season >= 2027 and path.exists():
+        raise ValueError("Future reference already exists.")
     tmp = path.with_suffix(".tmp")
     try:
         tmp.write_text(

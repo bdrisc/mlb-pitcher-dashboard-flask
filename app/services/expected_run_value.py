@@ -11,6 +11,7 @@ from __future__ import annotations
 from sqlalchemy import and_, case, func, or_
 
 from app.models import Game, Pitch
+from app.services.future_season_references import approved_weights
 
 # FanGraphs Guts! wOBA constants, refreshed against the live page on 2026-11-16.
 # https://www.fangraphs.com/tools/guts?type=cn
@@ -66,15 +67,15 @@ def xrv_quality_status(*, scored, physical, contact_total, contact_scored):
     return "descriptive"
 
 
-def _season_constant(column):
+def _season_constant(column, constants):
     """Produce a SQL expression returning a Guts constant for Game.season."""
     return case(
-        *((Game.season == season, values[column]) for season, values in WOBA_CONSTANTS.items()),
+        *((Game.season == season, values[column]) for season, values in constants.items()),
         else_=None,
     )
 
 
-def expected_run_value_columns():
+def expected_run_value_columns(future_constants=None):
     """Return paired run-value sums with strict contact and source coverage counts.
 
     Pitcher xRV = pitcher RV + (observed wOBA weight - contact xwOBA) / wOBAScale.
@@ -89,12 +90,14 @@ def expected_run_value_columns():
     )
     has_actual_rv = and_(physical, Pitch.delta_run_expectancy.is_not(None))
     is_batted_ball = description.in_(CONTACT_DESCRIPTIONS)
-    scale = _season_constant(0)
+    future = approved_weights() if future_constants is None else future_constants
+    constants = {**WOBA_CONSTANTS, **{k: v for k, v in future.items() if k >= 2027}}
+    scale = _season_constant(0, constants)
     observed_weight = case(
-        (event == "single", _season_constant(1)),
-        (event == "double", _season_constant(2)),
-        (event == "triple", _season_constant(3)),
-        (event == "home_run", _season_constant(4)),
+        (event == "single", _season_constant(1, constants)),
+        (event == "double", _season_constant(2, constants)),
+        (event == "triple", _season_constant(3, constants)),
+        (event == "home_run", _season_constant(4, constants)),
         else_=0.0,
     )
     source_weight = func.coalesce(Pitch.savant_woba_numerator, Pitch.woba_value)
@@ -104,7 +107,10 @@ def expected_run_value_columns():
         Pitch.estimated_woba.between(0, 3),
         scale.is_not(None),
     )
-    matched = and_(has_actual_rv, or_(~is_batted_ball, usable_contact))
+    # A future season without its own approved coefficients cannot present
+    # non-contact actual RV as if it were contact-adjusted expected RV.
+    future_ready = or_(Game.season < 2027, scale.is_not(None))
+    matched = and_(has_actual_rv, future_ready, or_(~is_batted_ball, usable_contact))
     actual_pitcher_rv = -Pitch.delta_run_expectancy
     paired_actual = case((matched, actual_pitcher_rv), else_=None)
     paired_expected = case(

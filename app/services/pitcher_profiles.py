@@ -61,7 +61,7 @@ def _location_known():
     )
 
 
-def _metric_columns() -> list[Any]:
+def _metric_columns(future_constants=None) -> list[Any]:
     location_known = _location_known()
     in_zone = and_(location_known, Pitch.is_in_zone.is_(True))
     out_of_zone = and_(location_known, Pitch.is_in_zone.is_(False))
@@ -218,7 +218,7 @@ def _metric_columns() -> list[Any]:
         _count_where(physical_rv_pitch).label("run_value_denominator"),
         func.sum(Pitch.delta_run_expectancy).filter(physical_rv_pitch).label("run_value_against"),
         func.count(Pitch.delta_run_expectancy).filter(physical_rv_pitch).label("run_value_pitches"),
-        *expected_run_value_columns(),
+        *expected_run_value_columns(future_constants),
         func.avg(Pitch.velocity).label("avg_velocity"),
         # Official Statcast effective_speed: perceived mph adjusted for release
         # extension only, not location or sequencing. Exclude automatic calls.
