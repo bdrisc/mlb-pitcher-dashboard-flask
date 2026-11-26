@@ -25,16 +25,12 @@ def test_acquire_and_replay(tmp_path):
     assert result["identities"][str(PID)]["fangraphs_id"] == "9000001"
     assert len(result["responses"]) == 16
     assert (
-        build_evidence(
-            output / "raw", result["responses"], "synthetic", True, EXPECTED, 2027, {}
-        )
+        build_evidence(output / "raw", result["responses"], "synthetic", True, EXPECTED, 2027, {})
         == result
     )
     (output / "raw" / "people-f.csv").write_bytes(b"changed")
     with pytest.raises(ReleaseError, match="checksum"):
-        build_evidence(
-            output / "raw", result["responses"], "synthetic", True, EXPECTED, 2027, {}
-        )
+        build_evidence(output / "raw", result["responses"], "synthetic", True, EXPECTED, 2027, {})
 
 
 @pytest.mark.parametrize(
