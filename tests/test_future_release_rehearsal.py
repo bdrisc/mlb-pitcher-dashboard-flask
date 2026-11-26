@@ -1,12 +1,18 @@
 """A synthetic release is never a production authorization."""
 
 import json
+from datetime import datetime, timezone
 
 import pytest
 
+from app.extensions import db
+from app.models import FanGraphsStuff, Pitch, PublishedPitchingMetric, SavantActiveSpin
+from app.services.statcast_ingestion import ingest_statcast_file
+from scripts.acquire_future_leaderboards import normalize, synthetic_bodies
 from scripts.apply_reviewed_future_leaderboards import expected_approval, validate_approval
-from scripts.rehearse_future_release import BLOCKERS, future_plan, verify_manifest
+from scripts.rehearse_future_release import BLOCKERS, audit_future, future_plan, verify_manifest
 from scripts.rehearse_snapshot_release import ReleaseError, evidence, sha
+from scripts.stage_future_ingestion import synthetic_sources
 
 
 def fixture_manifest(path):
@@ -108,3 +114,34 @@ def test_real_approval_binds_exact_review():
     package["synthetic"] = True
     with pytest.raises(ReleaseError, match="Not real"):
         expected_approval(2027, "a" * 64, "b" * 64, package)
+
+
+def test_future_api_fixture_exercises_full_rehearsal(app, tmp_path, monkeypatch):
+    folder = tmp_path / "fixture_sources"
+    folder.mkdir()
+    paths, _, _, _ = synthetic_sources(folder)
+    pid = 2000000010
+    with app.app_context():
+        for path in paths:
+            report = ingest_statcast_file(path, insert_only_season=2027)
+            assert report.inserted_rows == 3
+        for pitch in db.session.query(Pitch).all():
+            pitch.delta_run_expectancy = {1: -0.06, 2: -0.07, 3: 0.43}[pitch.pitch_number]
+            if pitch.pitch_number == 3:
+                pitch.savant_woba_numerator = 0.89
+                pitch.savant_woba_denominator = 1
+        report = normalize(synthetic_bodies(2027), 2027, {pid: {"fixture": {"pitch_type": "FF"}}})
+        now = datetime.now(timezone.utc)
+        for row in report["fangraphs_stuff"]:
+            db.session.add(FanGraphsStuff(**row, updated_at=now))
+        for row in report["published_pitching_metrics"]:
+            db.session.add(
+                PublishedPitchingMetric(**row, fangraphs_updated_at=now, savant_updated_at=now)
+            )
+        for row in report["savant_active_spin"]:
+            db.session.add(SavantActiveSpin(**row, updated_at=now))
+        db.session.commit()
+    monkeypatch.setattr("scripts.rehearse_future_release.app_for", lambda _: app)
+    result = audit_future(None, None)
+    assert result["status"] == "PASS"
+    assert len(result["results"]) == 26

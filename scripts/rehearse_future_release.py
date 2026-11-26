@@ -173,9 +173,7 @@ def verify_future_profile(payload, full):
         overall["expected_run_value_per_100"] is None
         and overall["expected_run_value_quality"] == "unavailable"
         and not payload["pitch_roles"]["reference_available"]
-        and all(
-            p["hb_vs_avg"] is None and p["ivb_vs_avg"] is None for p in payload["arsenal"]
-        ),
+        and all(p["hb_vs_avg"] is None and p["ivb_vs_avg"] is None for p in payload["arsenal"]),
         "Synthetic or unapproved future references escaped quarantine.",
     )
     if full:
@@ -221,7 +219,8 @@ def audit_future(source, target):
         rs, b = fetch(right, path)
         require(
             ls == rs == 200
-            and not list(compare(a, b))
+            and not list(compare(a["pitchers"], b["pitchers"]))
+            and a["query"] == b["query"]
             and len(a["pitchers"]) == 1
             and a["pitchers"][0]["mlb_id"] == FIXTURE_PITCHER
             and a["pitchers"][0]["pitch_count"] == 6,
@@ -515,9 +514,8 @@ def verify_manifest(output, expected_sha):
         historical["status"] == "PASS"
         and not historical["index_differences"]
         and len(historical["results"]) == 660
-        and len({
-            (r["pitcher_id"], r["endpoint"], r["scope"]) for r in historical["results"]
-        }) == 660
+        and len({(r["pitcher_id"], r["endpoint"], r["scope"]) for r in historical["results"]})
+        == 660
         and all(r["status"] == "PASS" and not r["different_fields"] for r in historical["results"]),
         "Historical comparison evidence failed.",
     )

@@ -74,7 +74,10 @@ def load_approved(args):
     )
     inputs = json.loads(args.inputs.read_bytes())
     package = run(
-        inputs, False, args.register_commit, verify_report=args.package_a,
+        inputs,
+        False,
+        args.register_commit,
+        verify_report=args.package_a,
         report_sha=args.package_a_sha,
     )
     stage, staged, leaderboard, scope, _ = review(inputs, False)
@@ -159,7 +162,8 @@ def main():
         apply(args)
         return 0
     except Exception as exc:
-        print("REAL_IMPORT_FAILED:", str(exc) if isinstance(exc, ValueError) else type(exc).__name__)
+        message = str(exc) if isinstance(exc, ValueError) else type(exc).__name__
+        print("REAL_IMPORT_FAILED:", message)
         print("No publication attempted. Isolated artifacts retained.")
         return 1
 
