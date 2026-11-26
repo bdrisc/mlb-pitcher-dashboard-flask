@@ -12,7 +12,7 @@ from urllib.parse import urlencode
 from scripts.acquire_future_leaderboards import digest, strict_json
 from scripts.acquire_future_savant import MAX_BYTES, download, timestamp
 from scripts.reconcile_future_sources import read_staged_sources
-from scripts.rehearse_snapshot_release import ReleaseError, require, save, sha
+from scripts.rehearse_snapshot_release import require, save, sha
 
 ORIGIN = "https://statsapi.mlb.com/api/v1"
 BATCH = 100
