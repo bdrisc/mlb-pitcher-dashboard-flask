@@ -234,8 +234,7 @@ def audit_future(source, target):
                 ls, a = fetch(left, path)
                 rs, b = fetch(right, path)
                 require(
-                    ls == rs == (200 if count else 404)
-                    and not list(compare(a, b)),
+                    ls == rs == (200 if count else 404) and not list(compare(a, b)),
                     f"Future API mismatch: {name}/{endpoint}",
                 )
                 if count:
@@ -256,9 +255,7 @@ def audit_future(source, target):
                         a["error"] == "not_found" and a["pitcher_id"] == FIXTURE_PITCHER,
                         "Unexpected empty filter response.",
                     )
-                results.append(
-                    {"scope": name, "endpoint": endpoint, "pitches": count, "http": ls}
-                )
+                results.append({"scope": name, "endpoint": endpoint, "pitches": count, "http": ls})
         return {"status": "PASS", "results": results}
     finally:
         dispose(left)
@@ -437,9 +434,8 @@ def rehearse(backup, output):
     )
     require(
         integrity.fingerprint(source.render_as_string(hide_password=False), "local") == expected
-        and integrity.fingerprint(
-            previous_public.render_as_string(hide_password=False), "public"
-        ) == previous["candidate_fingerprint"]
+        and integrity.fingerprint(previous_public.render_as_string(hide_password=False), "public")
+        == previous["candidate_fingerprint"]
         and integrity.reference_hashes() == references
         and sha(REGISTRY) == registry_sha
         and sha(a_path) == a_sha
