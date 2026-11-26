@@ -122,12 +122,13 @@ def planned_rows(report, pitcher_ids):
             if table == "published_pitching_metrics":
                 require(row["batter_side"] == "ALL", "Only overall rates are allowed.")
             rows.append(values)
-        require(bool(rows), "Expected nonempty synthetic metric rows.")
+        if report["synthetic"]:
+            require(bool(rows), "Expected nonempty synthetic metric rows.")
         result[table] = sorted(rows, key=lambda row: row[:3])
     return result
 
 
-def verify_identity(cur, season, staged, rows):
+def verify_identity(cur, season, staged, rows, reviewed_mapping=None):
     cur.execute(
         """
         SELECT p.pitch_id, p.pitcher_id, g.game_type
@@ -171,8 +172,11 @@ def verify_identity(cur, season, staged, rows):
         or (fg is not None and str(fg).isdigit() and str(int(fg)) in relevant_fg)
     ]
     mapping = mappings(relevant + planned)
-    require(set(staged) <= set(mapping), "Synthetic FanGraphs identity missing.")
-    return {str(pid): mapping[pid] for pid in sorted(staged)}
+    if reviewed_mapping is None:
+        require(set(staged) <= set(mapping), "Synthetic FanGraphs identity missing.")
+        return {str(pid): mapping[pid] for pid in sorted(staged)}
+    require(planned_mapping == reviewed_mapping, "Independent real identity mapping differs.")
+    return {str(pid): mapping[pid] for pid in sorted(planned_mapping)}
 
 
 def outside_fingerprint(conn, season):
@@ -197,6 +201,8 @@ def outside_fingerprint(conn, season):
 
 
 def insert_rows(cur, table, rows, now):
+    if not rows:
+        return
     columns = COLUMNS[table]
     if table == "published_pitching_metrics":
         columns += ("fangraphs_updated_at", "savant_updated_at")
@@ -216,11 +222,20 @@ def insert_rows(cur, table, rows, now):
     require(cur.rowcount == len(rows), "Unexpected inserted row count.")
 
 
-def apply_transaction(conn, database, staged, report, before):
+def apply_transaction(conn, database, staged, report, before, reviewed_mapping=None):
     season = report["season"]
     require(
-        report["synthetic"] is True and type(season) is int and season >= 2027,
-        "Synthetic future scope required.",
+        type(season) is int
+        and season >= 2027
+        and (
+            (report["synthetic"] is True and reviewed_mapping is None)
+            or (
+                report["synthetic"] is False
+                and bool(reviewed_mapping)
+                and database.startswith("mlb_release_candidate_")
+            )
+        ),
+        "Synthetic future scope or independently reviewed real scope required.",
     )
     rows = planned_rows(report, set(staged))
     with conn.cursor() as cur:
@@ -232,7 +247,7 @@ def apply_transaction(conn, database, staged, report, before):
     untouched = outside_fingerprint(conn, season)
     now = datetime.now(timezone.utc)
     with conn.cursor() as cur:
-        identities = verify_identity(cur, season, staged, rows)
+        identities = verify_identity(cur, season, staged, rows, reviewed_mapping)
         for table in COLUMNS:
             cur.execute(f"SELECT count(*) FROM {table} WHERE season = %s", (season,))
             require(cur.fetchone()[0] == 0, "Target season already contains published metrics.")
