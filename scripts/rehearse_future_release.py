@@ -351,7 +351,12 @@ def rehearse(backup, output):
     source = recovery_url(original, recovery_name)
     corrected = recovery_url(original, correction["candidate_database"])
     full = recovery_url(original, imported["candidate_database"])
-    previous = read(backup / "release_rehearsal_01" / "release_manifest.json")
+    previous_path = backup / "release_rehearsal_01" / "release_manifest.json"
+    require(
+        sha(previous_path) == "907037191f5922b5021a45516f6350dc6a5233833f70eb3379e1ef5e1b6cae12",
+        "Prior historical rehearsal manifest checksum differs.",
+    )
+    previous = read(previous_path)
     previous_public = recovery_url(original, previous["candidate_database"])
     expected = baseline["snapshot"]["local"]
     previous_tables = previous["candidate_fingerprint"]["tables"]

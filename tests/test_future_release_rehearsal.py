@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from scripts.apply_reviewed_future_leaderboards import expected_approval, validate_approval
 from scripts.rehearse_future_release import BLOCKERS, future_plan, verify_manifest
 from scripts.rehearse_snapshot_release import ReleaseError, evidence, sha
 
@@ -86,3 +87,24 @@ def test_manifest_rejects_wrong_future_cases_even_with_updated_digest(tmp_path):
     manifest.write_text(json.dumps(report), encoding="utf-8")
     with pytest.raises(ReleaseError, match="Future comparison evidence failed"):
         verify_manifest(tmp_path, sha(manifest))
+
+
+def test_real_approval_binds_exact_review():
+    package = {
+        "synthetic": False,
+        "status": "PACKAGE_A_EVIDENCE_REVIEW_REQUIRED",
+        "production_write_allowed": False,
+        "season": 2027,
+        "leaderboard_coverage": {"missing_values": [[1, "xera"]]},
+        "game_results": {"2": {"physical_pitches": 6}},
+        "crosswalk_report_sha256": "c" * 64,
+    }
+    approval = expected_approval(2027, "a" * 64, "b" * 64, package)
+    approval["review_notes"] = "Reviewed exact fixture coverage."
+    validate_approval(approval, 2027, "a" * 64, "b" * 64, package)
+    approval["production_write_allowed"] = True
+    with pytest.raises(ReleaseError, match="operator approval"):
+        validate_approval(approval, 2027, "a" * 64, "b" * 64, package)
+    package["synthetic"] = True
+    with pytest.raises(ReleaseError, match="Not real"):
+        expected_approval(2027, "a" * 64, "b" * 64, package)

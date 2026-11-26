@@ -42,9 +42,8 @@ python -m scripts.rehearse_future_release --output "$backup\package_c_synthetic_
    events, revised classifications and unknown identities must be
    explicitly resolved rather than silently discarded.
 3. Replay Package A against real evidence, independently review source
-   coverage, crosswalk and nonpitch events. Real leaderboard import is
-   currently blocked by its synthetic-only guard; validate and implement
-   the approved real import before publication. Do not bypass that guard.
+   coverage, crosswalk and nonpitch events. Use the separate reviewed-real
+   leaderboard import command below; the original synthetic importer remains guarded.
 4. Generate Package B reference proposals against the corrected complete
    league snapshot. Independently review the actual source coefficient
    vintage and artifact checksums. Missing references remain unavailable.
@@ -73,3 +72,23 @@ No live switch, real source approval or production rollback is automated
 by this synthetic command. These require actual 2027 data, real-season
 validation and explicit operator approval. A synthetic success is not
 proof of compatibility with future live provider schemas.
+
+## Reviewed real leaderboard import
+
+The separate `scripts.apply_reviewed_future_leaderboards` command requires
+`--inputs --inputs-sha --package-a --package-a-sha --register-commit
+--approval --approval-sha --output`. All digests refer to independently
+reviewed original bytes. The approval JSON must contain schema 1,
+decision APPROVE_QUARANTINED_REAL_LEADERBOARD_IMPORT, synthetic false,
+season, inputs_sha256, package_a_sha256, coverage (the exact Package A
+leaderboard_coverage), reviewed_game_results (exact game_results),
+crosswalk_report_sha256, full_regular_season_to_date_reviewed true,
+source_compatibility_reviewed true, nonpitch_events_reviewed true,
+missing_values_accepted_as_unavailable true, production_write_allowed false,
+and nonempty review_notes documenting the actual review. Do not manufacture
+an approval merely to pass the gate. The command replays the source archives,
+checks every planned FanGraphs identity against the independent crosswalk
+and historical mappings, clones the corrected candidate, inserts only
+reviewed future-season rows, and checks unchanged historical fingerprints.
+Missing provider values are not imputed. This import remains quarantined.
+Actual real-season provider behavior remains untested until genuine evidence exists.
