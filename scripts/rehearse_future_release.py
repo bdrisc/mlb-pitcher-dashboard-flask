@@ -8,7 +8,9 @@ import json
 import os
 import shutil
 import subprocess
+from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -211,7 +213,20 @@ def dispose(app):
         db.engine.dispose()
 
 
+class RehearsalDate(date):
+    @classmethod
+    def today(cls):
+        return max(date.today(), date(SEASON, 4, 3))
+
+
 def audit_future(source, target):
+    # Only the isolated synthetic audit may advance the filter calendar.
+    # The production API continues to reject future calendar years.
+    with patch("app.services.filters.date", RehearsalDate):
+        return _audit_future(source, target)
+
+
+def _audit_future(source, target):
     left, right = app_for(source), app_for(target)
     try:
         path = "/api/v1/pitchers?season=2027"
