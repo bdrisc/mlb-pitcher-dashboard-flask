@@ -111,6 +111,16 @@ def expected_run_value_columns(future_constants=None):
     # non-contact actual RV as if it were contact-adjusted expected RV.
     future_ready = or_(Game.season < 2027, scale.is_not(None))
     matched = and_(has_actual_rv, future_ready, or_(~is_batted_ball, usable_contact))
+    # Mixed-season aggregates cannot silently publish only the known seasons.
+    blocked = func.count(Pitch.pitch_id).filter(physical, ~future_ready) > 0
+
+    def count_scored(*conditions):
+        return case((blocked, 0), else_=func.count(Pitch.pitch_id).filter(*conditions))
+
+    def sum_scored(value, *conditions):
+        total = func.sum(value).filter(*conditions) if conditions else func.sum(value)
+        return case((blocked, None), else_=total)
+
     actual_pitcher_rv = -Pitch.delta_run_expectancy
     paired_actual = case((matched, actual_pitcher_rv), else_=None)
     paired_expected = case(
@@ -133,18 +143,16 @@ def expected_run_value_columns(future_constants=None):
         func.count(Pitch.pitch_id)
         .filter(has_actual_rv, is_batted_ball)
         .label("xrv_eligible_contact"),
-        func.count(Pitch.pitch_id)
-        .filter(has_actual_rv, usable_contact)
-        .label("xrv_scored_contact"),
-        func.sum(observed_weight)
-        .filter(has_actual_rv, usable_contact)
-        .label("xrv_contact_observed_woba_sum"),
-        func.sum(Pitch.estimated_woba)
-        .filter(has_actual_rv, usable_contact)
-        .label("xrv_contact_expected_woba_sum"),
-        func.count(Pitch.pitch_id).filter(matched).label("xrv_scored_pitches"),
-        func.sum(paired_actual).label("xrv_paired_actual"),
-        func.sum(paired_expected).label("xrv_paired_expected"),
+        count_scored(has_actual_rv, usable_contact).label("xrv_scored_contact"),
+        sum_scored(observed_weight, has_actual_rv, usable_contact).label(
+            "xrv_contact_observed_woba_sum"
+        ),
+        sum_scored(Pitch.estimated_woba, has_actual_rv, usable_contact).label(
+            "xrv_contact_expected_woba_sum"
+        ),
+        count_scored(matched).label("xrv_scored_pitches"),
+        sum_scored(paired_actual).label("xrv_paired_actual"),
+        sum_scored(paired_expected).label("xrv_paired_expected"),
         func.count(Pitch.pitch_id).filter(missing_contact).label("xrv_missing_contact"),
         func.count(Pitch.pitch_id)
         .filter(missing_contact, event.notin_(VALID_CONTACT_EVENTS), event != "")

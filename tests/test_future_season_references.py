@@ -14,6 +14,7 @@ from app.services.filters import PitchFilters
 from app.services.location_performance import build_location_performance
 from app.services.location_reference import FIELDS, future_league_bins
 from app.services.movement_reference import movement_vs_average
+from app.services.pitch_roles import ROLE_FIELDS, build_pitch_roles, role_values
 from scripts.build_future_season_references import parse_coefficients, write_location
 
 WEIGHTS = [1.2, 0.8, 1.2, 1.6, 2.0]
@@ -150,10 +151,68 @@ def test_xrv_future_without_and_with_approved_weights(app, registry):
         unavailable = metrics()
         assert unavailable["xrv_scored_pitches"] == 0
         assert unavailable["xrv_paired_expected"] is None
+        db.session.add(
+            Game(
+                game_pk=13,
+                season=2026,
+                game_date=date(2026, 4, 1),
+                home_team="BOS",
+                away_team="NYY",
+                game_type="R",
+            )
+        )
+        db.session.flush()
+        db.session.add(
+            Pitch(
+                pitch_id="13_1_1",
+                game_pk=13,
+                pitcher_id=101,
+                batter_id=101,
+                at_bat_number=1,
+                pitch_number=1,
+                pitch_type="FF",
+                balls=0,
+                strikes=0,
+                description="called_strike",
+                delta_run_expectancy=-0.2,
+            )
+        )
+        db.session.commit()
+        assert metrics()["xrv_paired_expected"] is None
         install(registry, entry())
         ready = metrics()
-        assert ready["xrv_scored_pitches"] == 2
-        assert ready["xrv_paired_expected"] == pytest.approx(-0.9 + (2 - 0.5) / 1.2)
+        assert ready["xrv_scored_pitches"] == 3
+        assert ready["xrv_paired_expected"] == pytest.approx(-0.7 + (2 - 0.5) / 1.2)
         location = build_location_performance(101, PitchFilters(season=2027), "R")
         assert location["league_bins"] == []
         assert location["reference_scope"] == "Approved full-league reference unavailable"
+
+
+def test_roles_require_approved_reference(registry):
+    data = entry()
+    data["coverage"] = [300, 200000, 200000, 600]
+    path = registry.parent / "league_pitch_roles_2027.json"
+    payload = {
+        "version": 1,
+        "season": 2027,
+        "pitchers": 300,
+        "physical_pitches": 200000,
+        "games": 600,
+        "through": data["through"],
+        "distributions": {
+            "FF|R|ALL|0-0|whiff_pct": [20] * 20,
+        },
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    stats = dict.fromkeys(ROLE_FIELDS, 0)
+    stats.update(physical_pitch_count=100, role_regular_pitches=100, swings=80, whiffs=40)
+    arsenal = [{"pitch_type": "FF", "role_values": role_values(stats)}]
+    filters = PitchFilters(season=2027, balls=0, strikes=0)
+    assert not build_pitch_roles(arsenal, filters, "R")["reference_available"]
+    data["artifacts"]["roles"] = {"file": path.name, "sha256": future.digest(path)}
+    install(registry, data)
+    result = build_pitch_roles(arsenal, filters, "R")
+    assert result["reference_available"]
+    assert result["rows"][1]["cells"][0]["percentile"] == 100
+    path.write_text("tampered", encoding="utf-8")
+    assert not build_pitch_roles(arsenal, filters, "R")["reference_available"]

@@ -190,6 +190,20 @@ def movement_vs_average(
             groups = _load_reference(str(path), path.stat().st_mtime_ns)
         except (OSError, ValueError, KeyError, TypeError, EOFError):
             return result
+        if approved:
+            all_rows = [
+                (side, code, *row) for (side, code), group in groups.items() for row in group
+            ]
+            unique_keys = {(side, code, angle, pid) for side, code, angle, pid, *_ in all_rows}
+            coverage = approved[1]["coverage"]
+            eligible_pitchers = len({row[3] for row in all_rows})
+            eligible_pitches = sum(row[4] for row in all_rows)
+            if (
+                len(unique_keys) != len(all_rows)
+                or not MIN_MLB_PITCHERS <= eligible_pitchers <= coverage[0]
+                or not MIN_MLB_PITCHES <= eligible_pitches <= coverage[1]
+            ):
+                return result
         rows = groups.get((throwing_hand, pitch_type), ())
         eligible = [
             row for row in rows if abs(row[0] + 0.5 - normalized_angle) <= ARM_ANGLE_WINDOW_DEGREES

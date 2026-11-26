@@ -298,6 +298,10 @@ def build(args):
     clean_checkout()
     input_paths(inputs, synthetic)
     require(sha(package) == package_sha, "Package A evidence changed.")
+    if not synthetic:
+        require(sha(args.inputs) == args.inputs_sha, "Reviewed input manifest changed.")
+        if args.guts_csv:
+            require(sha(args.guts_csv) == args.guts_sha, "Guts archive changed.")
     entry = {
         "season": season,
         "synthetic": synthetic,
